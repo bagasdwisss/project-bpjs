@@ -67,20 +67,20 @@ const Notifications = () => {
 
   const getPriorityColor = (priority) => {
     const colors = {
-      high: 'bg-red-100 text-red-800 border border-red-200',
-      medium: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-      low: 'bg-green-100 text-green-800 border border-green-200',
+      high: 'bg-rose-50 text-rose-700 border border-rose-200',
+      medium: 'bg-[#FCE373] text-[#121214] border border-[#F2CE46]/50',
+      low: 'bg-[#B8C96E] text-[#121214] border border-[#9CB04C]/50',
     };
-    return colors[priority];
+    return colors[priority] || 'bg-[#FAF9F6] text-[#121214] border border-[#EAE9E4]';
   };
 
   const getTypeColor = (type) => {
     const colors = {
-      reminder: 'bg-blue-100 text-blue-800 border border-blue-200',
-      announcement: 'bg-purple-100 text-purple-800 border border-purple-200',
-      alert: 'bg-orange-100 text-orange-800 border border-orange-200',
+      reminder: 'bg-[#BDD4F2] text-[#121214]',
+      announcement: 'bg-[#F5C6EC] text-[#121214]',
+      alert: 'bg-[#FCE373] text-[#121214]',
     };
-    return colors[type];
+    return colors[type] || 'bg-[#FAF9F6] text-[#121214]';
   };
 
   const formatDate = (dateString) => {
@@ -95,95 +95,121 @@ const Notifications = () => {
 
   return (
     <Layout>
-      <div className="p-6">
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Notifikasi</h1>
-              <p className="mt-2 text-sm text-gray-600">Update dan pengingat penting</p>
-            </div>
-            
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Pusat Notifikasi & Pengingat 🔔
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Informasi instruksi pembimbing, tenggat penugasan, dan pengumuman operasional BPJS
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                className="px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm"
               >
                 Tandai Semua Dibaca ({unreadCount})
               </button>
             )}
+            <button
+              onClick={loadNotifications}
+              className="px-4 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] transition-colors shadow-sm"
+            >
+              Segarkan
+            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-900">
-              Notifikasi Anda
+        {/* 3 Quick Bento Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">♥</div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Pesan Baru</span>
+            <div className="text-3xl font-black text-[#121214] my-1">{unreadCount}</div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Belum Dibuka</span>
+          </div>
+
+          <div className="rounded-[22px] bg-[#FCE373] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">●</div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Total Notifikasi</span>
+            <div className="text-3xl font-black text-[#121214] my-1">{notifications.length}</div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Tersimpan di Akun</span>
+          </div>
+
+          <div className="rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">★</div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Pengingat Aktif</span>
+            <div className="text-3xl font-black text-[#121214] my-1">
+              {notifications.filter(n => n.type === 'reminder' || n.priority === 'high').length}
+            </div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Prioritas Tinggi</span>
+          </div>
+        </div>
+
+        {/* Notifications List Bento Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#EAE9E4] flex items-center justify-between">
+            <h2 className="text-sm sm:text-base font-bold text-[#121214]">
+              Riwayat Notifikasi
               {unreadCount > 0 && (
-                <span className="ml-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs">
-                  {unreadCount} belum dibaca
+                <span className="ml-2.5 bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                  {unreadCount} baru
                 </span>
               )}
-            </h3>
-            
-            <button
-              onClick={loadNotifications}
-              className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
-            >
-              Refresh
-            </button>
+            </h2>
+            <span className="text-xs font-bold text-[#6E6D6A]">Klik untuk menandai dibaca</span>
           </div>
           
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Memuat notifikasi...</div>
+            <div className="flex flex-col items-center justify-center p-12 space-y-2">
+              <div className="w-8 h-8 border-2 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs font-bold text-[#121214]">Memuat notifikasi...</p>
+            </div>
           ) : notifications.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">Belum ada notifikasi</div>
+            <div className="p-12 text-center text-[#6E6D6A] text-xs">Belum ada notifikasi baru untuk Anda saat ini.</div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-[#F0EFEA]">
               {notifications.map((notification) => (
                 <div 
                   key={notification.notification_id} 
-                  className={`p-6 hover:bg-gray-50 cursor-pointer ${!notification.is_read ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                  className={`p-5 sm:p-6 hover:bg-[#FAF9F6] transition-colors cursor-pointer ${
+                    !notification.is_read ? 'bg-[#F5C6EC]/15 border-l-4 border-[#121214]' : ''
+                  }`}
                   onClick={() => !notification.is_read && handleMarkAsRead(notification.notification_id)}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-medium text-gray-900">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm font-bold text-[#121214]">
                           {notification.title}
-                          {!notification.is_read && (
-                            <span className="ml-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
-                              Baru
-                            </span>
-                          )}
                         </h3>
-                        <div className="flex space-x-2">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(notification.type)}`}>
-                            {notification.type.toUpperCase()}
-                          </span>
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(notification.priority)}`}>
-                            {notification.priority.toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <p className="mt-2 text-sm text-gray-600">{notification.message}</p>
-                      
-                      <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                        {notification.due_date && (
-                          <span className="flex items-center">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            Jatuh Tempo: {formatDate(notification.due_date)}
+                        {!notification.is_read && (
+                          <span className="bg-[#121214] text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
+                            Baru
                           </span>
                         )}
-                        
-                        <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {formatDate(notification.created_at)}
+                        <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full ${getTypeColor(notification.type)}`}>
+                          {notification.type.toUpperCase()}
                         </span>
+                        <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full ${getPriorityColor(notification.priority)}`}>
+                          {notification.priority.toUpperCase()}
+                        </span>
+                      </div>
+                      
+                      <p className="text-xs text-[#121214] leading-relaxed whitespace-pre-wrap">{notification.message}</p>
+                      
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#8A8985] pt-1">
+                        {notification.due_date && (
+                          <span className="font-bold text-rose-600">
+                            ⏰ Tenggat: {formatDate(notification.due_date)}
+                          </span>
+                        )}
+                        <span>🕒 {formatDate(notification.created_at)}</span>
                       </div>
                     </div>
                   </div>

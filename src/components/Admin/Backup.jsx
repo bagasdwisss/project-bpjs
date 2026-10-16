@@ -2,7 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import reportService from '../../services/reportService';
-import { Database, Download, RefreshCw, CheckCircle, AlertTriangle, Clock, HardDrive, Shield } from 'lucide-react';
+import { 
+  Database, 
+  Download, 
+  RefreshCw, 
+  CheckCircle, 
+  AlertTriangle, 
+  Clock, 
+  HardDrive, 
+  Shield,
+  Server,
+  Activity,
+  Layers
+} from 'lucide-react';
 
 const Backup = () => {
   const [backups, setBackups] = useState([]);
@@ -15,7 +27,7 @@ const Backup = () => {
       setFetching(true);
       const res = await reportService.listBackups();
       if (res.data.success) {
-        setBackups(res.data.data);
+        setBackups(res.data.data || []);
       }
     } catch (err) {
       console.error('Error fetching backups:', err);
@@ -77,117 +89,176 @@ const Backup = () => {
 
   return (
     <Layout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Backup & Restore Database</h1>
-          <p className="text-sm text-gray-500 mt-1">Kelola pencadangan data sistem dan snapshot database Neon PostgreSQL</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        
+        {/* Header Bento Box */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E]/40 text-[#3C4A11]">
+                <Database className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Pemeliharaan & Keamanan</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Backup & Restore Database</h1>
+            <p className="text-sm text-[#121214]/60 mt-1">Kelola pencadangan data sistem dan snapshot database Neon PostgreSQL secara berkala</p>
+          </div>
+
+          <button
+            onClick={loadBackups}
+            disabled={fetching}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#EAE9E4] bg-white text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition shadow-sm self-start sm:self-auto"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${fetching ? 'animate-spin' : ''}`} />
+            Segarkan Riwayat
+          </button>
         </div>
 
         {/* Status Alert */}
         {statusMsg && (
-          <div className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium ${
-            statusMsg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+          <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-bold ${
+            statusMsg.type === 'success' 
+              ? 'bg-[#B8C96E]/20 text-[#3C4A11] border border-[#B8C96E]' 
+              : 'bg-red-50 text-red-700 border border-red-200'
           }`}>
-            {statusMsg.type === 'success' ? <CheckCircle className="w-5 h-5 text-green-500" /> : <AlertTriangle className="w-5 h-5 text-red-500" />}
+            {statusMsg.type === 'success' ? (
+              <CheckCircle className="w-5 h-5 text-[#627514] shrink-0" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+            )}
             <span>{statusMsg.message}</span>
           </div>
         )}
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-            <div className="flex items-center gap-3 text-blue-600">
-              <div className="p-3 bg-blue-50 rounded-xl">
-                <Database className="w-6 h-6" />
+          {/* Create Backup Bento */}
+          <div className="bg-white p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-[#FCE373]/30 border border-[#FCE373] text-[#856B12] rounded-2xl">
+                  <Database className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#121214] text-base sm:text-lg">Buat Snapshot Database Baru</h3>
+                  <p className="text-xs text-[#121214]/60">Snapshot instan dari database Neon PostgreSQL</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-lg">Buat Backup Database Baru</h3>
-                <p className="text-xs text-gray-500">Ambil snapshot instan dari database Neon PostgreSQL</p>
-              </div>
+              <p className="text-xs sm:text-sm text-[#121214]/70 leading-relaxed font-medium">
+                Pencadangan mencakup seluruh tabel pengguna, data kehadiran, penilaian magang, dan log aktivitas ke dalam file SQL terenkripsi secara aman.
+              </p>
             </div>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              Pencadangan mencakup seluruh tabel pengguna, data kehadiran, penilaian magang, dan log aktivitas ke dalam file SQL terenkripsi.
-            </p>
+
             <button
               onClick={handleCreateBackup}
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-bold transition-all shadow-sm"
             >
-              {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
-              {loading ? 'Sedang Memproses...' : 'Buat Backup Sekarang'}
+              {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <HardDrive className="w-3.5 h-3.5" />}
+              {loading ? 'Sedang Memproses Snapshot...' : 'Buat Snapshot Sekarang'}
             </button>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-            <div className="flex items-center gap-3 text-purple-600">
-              <div className="p-3 bg-purple-50 rounded-xl">
-                <Shield className="w-6 h-6" />
+          {/* System Status Bento */}
+          <div className="bg-white p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-[#B8C96E]/30 border border-[#B8C96E] text-[#3C4A11] rounded-2xl">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#121214] text-base sm:text-lg">Status & Ketahanan Sistem</h3>
+                  <p className="text-xs text-[#121214]/60">Infrastruktur Serverless Neon + Vercel</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-lg">Status & Ketahanan Sistem</h3>
-                <p className="text-xs text-gray-500">Infrastruktur Serverless Neon + Vercel</p>
-              </div>
-            </div>
-            <div className="space-y-2 text-sm text-gray-600">
-              <div className="flex justify-between py-1 border-b border-gray-50">
-                <span>Database Engine:</span>
-                <span className="font-semibold text-gray-800">Neon PostgreSQL v16</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-50">
-                <span>Hosting Platform:</span>
-                <span className="font-semibold text-gray-800">Vercel Serverless</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span>Point-in-Time Recovery:</span>
-                <span className="font-semibold text-green-600">Aktif (Automated)</span>
+
+              <div className="space-y-2 text-xs font-medium text-[#121214]/70 divide-y divide-[#EAE9E4]">
+                <div className="flex justify-between py-1.5">
+                  <span>Database Engine:</span>
+                  <span className="font-bold text-[#121214]">Neon PostgreSQL v16</span>
+                </div>
+                <div className="flex justify-between py-1.5">
+                  <span>Hosting Platform:</span>
+                  <span className="font-bold text-[#121214]">Vercel Serverless (IAD1)</span>
+                </div>
+                <div className="flex justify-between py-1.5">
+                  <span>Point-in-Time Recovery:</span>
+                  <span className="inline-flex items-center gap-1 font-bold text-[#3C4A11] bg-[#B8C96E]/30 px-2 py-0.5 rounded-full border border-[#B8C96E]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#627514]"></span>
+                    Aktif (Automated)
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Backups List */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-bold text-gray-900 text-base">Riwayat Snapshot Backup</h3>
-            <button onClick={loadBackups} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500">
-              <RefreshCw className={`w-4 h-4 ${fetching ? 'animate-spin' : ''}`} />
-            </button>
+        {/* Backups List Bento */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-[#EAE9E4] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
+              <h3 className="text-sm sm:text-base font-bold text-[#121214]">Riwayat Snapshot Database</h3>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70">
+                {backups.length}
+              </span>
+            </div>
           </div>
 
           {fetching ? (
-            <div className="p-12 text-center text-gray-400">Memuat riwayat backup...</div>
+            <div className="p-12 text-center">
+              <div className="w-8 h-8 border-2 border-[#121214] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-xs font-bold text-[#121214]/60">Memuat riwayat backup...</p>
+            </div>
           ) : backups.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">Belum ada riwayat snapshot backup manual.</div>
+            <div className="p-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center mx-auto mb-3 text-[#121214]/40">
+                <Database className="w-5 h-5" />
+              </div>
+              <h4 className="text-sm font-bold text-[#121214]">Belum ada riwayat snapshot</h4>
+              <p className="text-xs text-[#121214]/50 mt-1">Klik tombol Buat Snapshot Sekarang di atas untuk membuat cadangan baru.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100 text-sm">
-                <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-semibold">
-                  <tr>
-                    <th className="px-6 py-3.5 text-left">Nama File Backup</th>
-                    <th className="px-6 py-3.5 text-left">Tanggal Dibuat</th>
-                    <th className="px-6 py-3.5 text-left">Ukuran</th>
-                    <th className="px-6 py-3.5 text-left">Dibuat Oleh</th>
-                    <th className="px-6 py-3.5 text-right">Aksi</th>
+              <table className="w-full text-left text-xs sm:text-sm min-w-[640px]">
+                <thead>
+                  <tr className="border-b border-[#EAE9E4] bg-[#FAF9F6] text-[#121214]/60 font-bold uppercase text-[11px] tracking-wider">
+                    <th className="px-5 py-3.5">Nama File Backup</th>
+                    <th className="px-5 py-3.5">Tanggal Dibuat</th>
+                    <th className="px-5 py-3.5">Ukuran</th>
+                    <th className="px-5 py-3.5">Dibuat Oleh</th>
+                    <th className="px-5 py-3.5 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#EAE9E4]">
                   {backups.map((b) => (
-                    <tr key={b.backup_id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-gray-900 flex items-center gap-2">
-                        <Database className="w-4 h-4 text-blue-500" />
-                        {b.backup_name}
+                    <tr key={b.backup_id} className="hover:bg-[#FAF9F6]/60 transition-colors">
+                      <td className="px-5 py-4 font-bold text-[#121214]">
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4 text-[#121214]/60 shrink-0" />
+                          <span>{b.backup_name}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-500">
-                        {new Date(b.created_at).toLocaleString('id-ID')}
+                      <td className="px-5 py-4 font-medium text-[#121214]/60">
+                        {new Date(b.created_at).toLocaleString('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{b.file_size_kb || 512} KB</td>
-                      <td className="px-6 py-4 text-gray-600">{b.created_by_name || 'Admin Sistem'}</td>
-                      <td className="px-6 py-4 text-right space-x-2">
+                      <td className="px-5 py-4 font-bold text-[#121214]/80">
+                        {b.file_size_kb || 512} KB
+                      </td>
+                      <td className="px-5 py-4 font-medium text-[#121214]/80">
+                        {b.created_by_name || 'Admin Sistem'}
+                      </td>
+                      <td className="px-5 py-4 text-right">
                         <button
                           onClick={() => handleRestoreBackup(b.backup_id, b.backup_name)}
                           disabled={loading}
-                          className="px-3 py-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-lg text-xs font-medium transition-colors"
+                          className="px-3.5 py-1.5 bg-[#FAF9F6] hover:bg-[#121214] hover:text-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold transition shadow-sm"
                         >
                           Verifikasi
                         </button>
@@ -199,6 +270,7 @@ const Backup = () => {
             </div>
           )}
         </div>
+
       </div>
     </Layout>
   );

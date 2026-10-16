@@ -84,214 +84,202 @@ const ParticipantDetails = ({ participant, onClose }) => {
   }, [participant]);
 
   const getProgressColor = (progress) => {
-    if (progress >= 80) return 'from-green-500 to-green-600';
-    if (progress >= 60) return 'from-blue-500 to-blue-600';
-    if (progress >= 40) return 'from-yellow-500 to-yellow-600';
-    if (progress > 0) return 'from-orange-500 to-orange-600';
-    return 'from-gray-400 to-gray-500';
+    return 'bg-[#121214]';
   };
 
   const getGradeColor = (grade) => {
     const colors = {
-      'A': 'bg-green-100 text-green-800 border-green-200',
-      'B': 'bg-blue-100 text-blue-800 border-blue-200',
-      'C': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'D': 'bg-orange-100 text-orange-800 border-orange-200',
-      'E': 'bg-red-100 text-red-800 border-red-200'
+      'A': 'bg-[#B8C96E]/40 text-[#3C4A11] border border-[#B8C96E]',
+      'B': 'bg-[#BDD4F2]/50 text-[#1F4275] border border-[#BDD4F2]',
+      'C': 'bg-[#FCE373]/50 text-[#856B12] border border-[#FCE373]',
+      'D': 'bg-[#F5C6EC]/40 text-[#8B2471] border border-[#F5C6EC]',
+      'E': 'bg-[#121214]/5 text-[#121214]/60 border border-[#EAE9E4]'
     };
-    return colors[grade] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return colors[grade] || 'bg-[#121214]/5 text-[#121214]/60 border border-[#EAE9E4]';
   };
 
   if (!participant) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+      <div className="bg-white rounded-[26px] border border-[#EAE9E4] max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-[#EAE9E4]">
           <div className="flex items-center space-x-3">
-            <User className="w-8 h-8 text-blue-600" />
+            <div className="w-10 h-10 rounded-2xl bg-[#F5C6EC] flex items-center justify-center text-[#121214] font-bold text-sm shadow-sm">
+              {participant.full_name?.charAt(0) || 'P'}
+            </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-[#121214]">
                 {participant.full_name}
               </h2>
-              <p className="text-gray-600">Detail Progress Peserta</p>
+              <p className="text-xs text-[#6E6D6A]">Detail Perkembangan & Rekapitulasi Capaian Magang</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] text-[#121214] flex items-center justify-center transition-colors"
           >
-            <X className="w-6 h-6 text-gray-500" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-6">
           {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="flex flex-col items-center justify-center py-16 space-y-2">
+              <div className="w-8 h-8 border-2 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs font-bold text-[#121214]">Memuat detail capaian peserta...</p>
             </div>
           ) : !progressData ? (
-            <div className="text-center py-12 bg-yellow-50 rounded-lg border border-yellow-200">
-              <TrendingUp className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-yellow-800 mb-2">
-                Data Progress Tidak Ditemukan
+            <div className="text-center py-12 bg-[#FAF9F6] rounded-[22px] border border-[#EAE9E4] p-6 space-y-2">
+              <TrendingUp className="w-10 h-10 text-[#6E6D6A] mx-auto mb-2" />
+              <h3 className="text-base font-bold text-[#121214]">
+                Data Progress Belum Tersedia
               </h3>
-              <p className="text-yellow-700">
-                Data progress untuk peserta ini belum tersedia di sistem.
+              <p className="text-xs text-[#6E6D6A]">
+                Data penilaian dan aktivitas peserta ini belum tercatat dalam sistem.
               </p>
             </div>
           ) : (
             <>
-              {/* Informasi Dasar */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                    <IdCard className="w-5 h-5 mr-2 text-blue-600" />
+              {/* Informasi Dasar & Nilai Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-[#FAF9F6] rounded-[20px] p-5 border border-[#EAE9E4] space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-[#121214]">
+                    <IdCard className="w-4 h-4 text-[#121214]" />
                     Informasi Peserta
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Nama:</span>
-                      <span className="font-medium">{progressData.userInfo.nama}</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-[#EAE9E4]/60">
+                      <span className="text-[#6E6D6A]">ID / NIM:</span>
+                      <span className="font-bold text-[#121214]">{progressData.userInfo.unique_id}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">ID:</span>
-                      <span className="font-medium">{progressData.userInfo.unique_id}</span>
+                    <div className="flex justify-between py-1 border-b border-[#EAE9E4]/60">
+                      <span className="text-[#6E6D6A]">Email:</span>
+                      <span className="font-bold text-[#121214]">{progressData.userInfo.email}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Email:</span>
-                      <span className="font-medium">{progressData.userInfo.email}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Koordinator:</span>
-                      <span className="font-medium">{progressData.userInfo.koordinator}</span>
+                    <div className="flex justify-between py-1">
+                      <span className="text-[#6E6D6A]">Koordinator:</span>
+                      <span className="font-bold text-[#121214]">{progressData.userInfo.koordinator}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                    <Award className="w-5 h-5 mr-2 text-purple-600" />
-                    Nilai & Grade
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Poin:</span>
-                      <span className="font-medium">{progressData.metrics.totalPoin}</span>
+                <div className="bg-[#FCE373] text-[#121214] rounded-[20px] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+                  <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">●</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Nilai & Predikat</span>
+                    <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                      Grade {progressData.userInfo.grade}
+                    </span>
+                  </div>
+                  <div className="my-2 flex items-baseline gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold text-[#121214]/70 uppercase">Nilai Akhir</p>
+                      <p className="text-3xl font-black">{progressData.metrics.nilai}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Nilai:</span>
-                      <span className="font-medium">{progressData.metrics.nilai}</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-[#121214]/70 uppercase">Total Poin</p>
+                      <p className="text-3xl font-black">{progressData.metrics.totalPoin}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Grade:</span>
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getGradeColor(progressData.userInfo.grade)}`}>
-                        {progressData.userInfo.grade}
-                      </span>
-                    </div>
+                  </div>
+                  <div className="text-[10px] font-bold text-[#121214]/70 pt-2 border-t border-[#121214]/15">
+                    Status: {progressData.metrics.nilai >= 75 ? 'Memenuhi Standar Kelulusan' : 'Perlu Bimbingan'}
                   </div>
                 </div>
               </div>
 
-              {/* Progress Akuisisi */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Progress Akuisisi BPU
-                  </h3>
-                  <span className="text-2xl font-bold text-gray-900">
+              {/* Progress Akuisisi Meter */}
+              <div className="bg-white rounded-[20px] border border-[#EAE9E4] p-5 shadow-sm space-y-2.5">
+                <div className="flex items-center justify-between text-xs font-bold text-[#121214]">
+                  <span>Progress Akuisisi BPU ({progressData.progress.progressAkuisisi} / {progressData.progress.targetAkuisisi} Peserta)</span>
+                  <span className="bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[10px]">
                     {progressData.progress.progressPercentage}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                <div className="w-full bg-[#FAF9F6] border border-[#EAE9E4] rounded-full h-3.5 overflow-hidden">
                   <div 
-                    className={`h-3 rounded-full bg-gradient-to-r ${getProgressColor(progressData.progress.progressPercentage)}`}
+                    className="h-full bg-[#121214] rounded-full transition-all duration-500" 
                     style={{ width: `${progressData.progress.progressPercentage}%` }}
-                  ></div>
+                  />
                 </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>{progressData.progress.progressAkuisisi} BPU Tercapai</span>
-                  <span>Target: {progressData.progress.targetAkuisisi} BPU</span>
+                <div className="flex justify-between text-[11px] text-[#6E6D6A]">
+                  <span>Sisa target: {Math.max(0, progressData.progress.targetAkuisisi - progressData.progress.progressAkuisisi)} peserta BPU</span>
+                  <span>Target: 20 BPU</span>
                 </div>
               </div>
 
               {/* Metrics Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4 text-center">
-                  <Building className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900">
-                    {progressData.metrics.kunjunganBPU}
-                  </div>
-                  <div className="text-sm text-gray-600">Kunjungan BPU</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-[#FAF9F6] border border-[#EAE9E4] rounded-[18px] p-4 text-center">
+                  <p className="text-2xl font-black text-[#121214]">{progressData.metrics.kunjunganBPU}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-1">Kunjungan BPU</p>
                 </div>
 
-                <div className="bg-green-50 rounded-lg p-4 text-center">
-                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900">
-                    {progressData.metrics.hasilAkuisisiBPU}
-                  </div>
-                  <div className="text-sm text-gray-600">Akuisisi BPU</div>
+                <div className="bg-[#B8C96E] text-[#121214] rounded-[18px] p-4 text-center">
+                  <p className="text-2xl font-black text-[#121214]">{progressData.metrics.hasilAkuisisiBPU}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70 mt-1">Akuisisi BPU</p>
                 </div>
 
-                <div className="bg-purple-50 rounded-lg p-4 text-center">
-                  <Briefcase className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900">
-                    {progressData.metrics.kunjunganPU}
-                  </div>
-                  <div className="text-sm text-gray-600">Kunjungan PU</div>
+                <div className="bg-[#FAF9F6] border border-[#EAE9E4] rounded-[18px] p-4 text-center">
+                  <p className="text-2xl font-black text-[#121214]">{progressData.metrics.kunjunganPU}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-1">Kunjungan PU</p>
                 </div>
 
-                <div className="bg-orange-50 rounded-lg p-4 text-center">
-                  <Video className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900">
-                    {progressData.metrics.videoViralisasi}
-                  </div>
-                  <div className="text-sm text-gray-600">Video Viralisasi</div>
+                <div className="bg-[#BDD4F2] text-[#121214] rounded-[18px] p-4 text-center">
+                  <p className="text-2xl font-black text-[#121214]">{progressData.metrics.videoViralisasi}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70 mt-1">Video Viralisasi</p>
                 </div>
               </div>
 
-              {/* Additional Activities */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4">
+              {/* Seminar & Sosialisasi Activities */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-[#FAF9F6] border border-[#EAE9E4] rounded-[18px] p-4 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Users className="w-6 h-6 text-blue-600" />
+                    <div className="w-8 h-8 rounded-xl bg-[#F5C6EC] flex items-center justify-center text-[#121214]">
+                      <Users className="w-4 h-4" />
+                    </div>
                     <div>
-                      <div className="font-medium text-gray-900">Kehadiran Seminar</div>
-                      <div className="text-2xl font-bold text-gray-900">
-                        {progressData.metrics.kehadiranSeminar}
-                      </div>
+                      <p className="text-xs font-bold text-[#121214]">Kehadiran Seminar</p>
+                      <p className="text-[10px] text-[#6E6D6A]">Sesi pembekalan materi</p>
                     </div>
                   </div>
+                  <span className="text-xl font-black text-[#121214]">{progressData.metrics.kehadiranSeminar}x</span>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-[#FAF9F6] border border-[#EAE9E4] rounded-[18px] p-4 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Calendar className="w-6 h-6 text-green-600" />
+                    <div className="w-8 h-8 rounded-xl bg-[#FCE373] flex items-center justify-center text-[#121214]">
+                      <Calendar className="w-4 h-4" />
+                    </div>
                     <div>
-                      <div className="font-medium text-gray-900">Sosialisasi Kantor</div>
-                      <div className="text-2xl font-bold text-gray-900">
-                        {progressData.metrics.kehadiranSosialisasi}
-                      </div>
+                      <p className="text-xs font-bold text-[#121214]">Sosialisasi Lapangan</p>
+                      <p className="text-[10px] text-[#6E6D6A]">Sesi edukasi langsung</p>
                     </div>
                   </div>
+                  <span className="text-xl font-black text-[#121214]">{progressData.metrics.kehadiranSosialisasi}x</span>
                 </div>
               </div>
 
-              {/* Summary Card */}
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">Ringkasan Performa</h3>
-                    <p className="text-blue-100 mt-1">
-                      Total {progressData.metrics.hasilAkuisisiBPU} BPU dari {progressData.metrics.kunjunganBPU} kunjungan
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">{progressData.metrics.totalPoin} Poin</div>
-                    <div className="text-blue-100">Total Akumulasi</div>
-                  </div>
+              {/* Pitch Black Summary Card */}
+              <div className="bg-[#121214] text-white rounded-[22px] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                <div>
+                  <h3 className="text-sm font-bold text-white">Ringkasan Performa Magang</h3>
+                  <p className="text-xs text-[#9CA3AF] mt-0.5">
+                    Total {progressData.metrics.hasilAkuisisiBPU} BPU dari {progressData.metrics.kunjunganBPU} kunjungan terlaksana
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold bg-[#F5C6EC] text-[#121214] px-4 py-1.5 rounded-full">
+                    {progressData.metrics.totalPoin} Poin Akumulasi
+                  </span>
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold rounded-full transition-colors"
+                  >
+                    Tutup
+                  </button>
                 </div>
               </div>
             </>

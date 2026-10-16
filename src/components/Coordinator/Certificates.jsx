@@ -3,7 +3,20 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import reportService from '../../services/reportService';
 import userService from '../../services/userService';
-import { Award, Download, Plus, Search, Filter, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { 
+  Award, 
+  Download, 
+  Plus, 
+  Search, 
+  Filter, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle,
+  FileText,
+  Users,
+  X,
+  Sparkles
+} from 'lucide-react';
 
 const Certificates = () => {
   const [certificates, setCertificates] = useState([]);
@@ -53,8 +66,9 @@ const Certificates = () => {
     try {
       const res = await reportService.generateCertificate(formData);
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
+        setSuccessMsg(res.data.message || 'Sertifikat berhasil diterbitkan');
         setShowGenerateModal(false);
+        setFormData({ participant_id: '', type: 'Completion' });
         loadData();
         setTimeout(() => setSuccessMsg(''), 4000);
       }
@@ -63,13 +77,30 @@ const Certificates = () => {
     }
   };
 
-  const getStatusBadgeColor = (status) => {
-    const colors = {
-      issued: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      draft: 'bg-gray-100 text-gray-800',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+  const getStatusBadge = (status) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'issued' || s === 'completed') {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[#B8C96E]/30 text-[#3C4A11] border border-[#B8C96E]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#627514]"></span>
+          Telah Terbit
+        </span>
+      );
+    }
+    if (s === 'pending') {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[#FCE373]/40 text-[#856B12] border border-[#FCE373]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#D4A600]"></span>
+          Menunggu
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[#121214]/5 text-[#121214]/70 border border-[#EAE9E4]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#121214]/40"></span>
+        Draft
+      </span>
+    );
   };
 
   const filteredCertificates = (Array.isArray(certificates) ? certificates : []).filter((cert) => {
@@ -79,97 +110,187 @@ const Certificates = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const totalIssued = certificates.filter(c => (c.status || '').toLowerCase() === 'issued').length;
+  const totalCompletion = certificates.filter(c => (c.type || 'Completion') === 'Completion').length;
+  const totalAchievement = certificates.filter(c => c.type === 'Achievement').length;
+
   return (
     <Layout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        
+        {/* Header Bento Box */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Manajemen Sertifikat</h1>
-            <p className="mt-1 text-sm text-gray-600">Penerbitan dan kelola sertifikat kelulusan peserta magang BPJS</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE373]/50 text-[#856B12]">
+                <Award className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Sertifikasi & Kelulusan</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Manajemen Sertifikat</h1>
+            <p className="text-sm text-[#121214]/60 mt-1">Penerbitan, verifikasi, dan manajemen sertifikat kelulusan peserta magang BPJS</p>
           </div>
+          
           <button
             onClick={() => setShowGenerateModal(true)}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-sm transition-colors text-sm"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-black transition shadow-sm self-start sm:self-auto"
           >
-            <Plus className="w-4 h-4" /> Terbitkan Sertifikat
+            <Plus className="w-4 h-4" />
+            Terbitkan Sertifikat
           </button>
         </div>
 
-        {/* Notification */}
+        {/* Success Alert */}
         {successMsg && (
-          <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
+          <div className="p-4 bg-[#B8C96E]/20 border border-[#B8C96E] rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-bold text-[#3C4A11]">
+            <CheckCircle className="w-5 h-5 text-[#627514] flex-shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        {/* Filter & Search */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+        {/* 4 Pastel Bento Stat Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-[#FCE373]/30 rounded-[22px] border border-[#FCE373] p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-[#121214]/70">Total Sertifikat</span>
+              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
+                <Award className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{certificates.length}</div>
+            <p className="text-xs text-[#121214]/60 mt-1">Dibuat di sistem</p>
+          </div>
+
+          <div className="bg-[#B8C96E]/30 rounded-[22px] border border-[#B8C96E] p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-[#121214]/70">Sertifikat Kelulusan</span>
+              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
+                <FileText className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{totalCompletion}</div>
+            <p className="text-xs text-[#121214]/60 mt-1">Program Selesai</p>
+          </div>
+
+          <div className="bg-[#F5C6EC]/30 rounded-[22px] border border-[#F5C6EC] p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-[#121214]/70">Sertifikat Prestasi</span>
+              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{totalAchievement}</div>
+            <p className="text-xs text-[#121214]/60 mt-1">Kinerja Terbaik</p>
+          </div>
+
+          <div className="bg-[#BDD4F2]/30 rounded-[22px] border border-[#BDD4F2] p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-[#121214]/70">Peserta Bimbingan</span>
+              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
+                <Users className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{participants.length}</div>
+            <p className="text-xs text-[#121214]/60 mt-1">Siap disertifikasi</p>
+          </div>
+        </div>
+
+        {/* Filter & Search Bento */}
+        <div className="bg-white p-4 sm:p-5 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-[#121214]/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari nama peserta..."
+              placeholder="Cari nama peserta atau nomor sertifikat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] placeholder-[#121214]/40 focus:outline-none focus:bg-white focus:border-[#121214] transition"
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Filter className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-[#121214]/40" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+              className="px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
             >
               <option value="all">Semua Status</option>
-              <option value="issued">Telah Diterbitkan</option>
+              <option value="issued">Telah Terbit</option>
               <option value="pending">Menunggu</option>
               <option value="draft">Draft</option>
             </select>
           </div>
         </div>
 
-        {/* Certificates Table */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Certificates Table Bento Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-[#EAE9E4] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
+              <h3 className="text-sm sm:text-base font-bold text-[#121214]">Daftar Sertifikat Terbit</h3>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70">
+                {filteredCertificates.length}
+              </span>
+            </div>
+          </div>
+
           {loading ? (
-            <div className="p-12 text-center text-gray-500">Memuat sertifikat...</div>
+            <div className="p-12 text-center">
+              <div className="w-8 h-8 border-2 border-[#121214] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-xs font-bold text-[#121214]/60">Memuat sertifikat...</p>
+            </div>
           ) : filteredCertificates.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">Belum ada riwayat sertifikat yang diterbitkan.</div>
+            <div className="p-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center mx-auto mb-3 text-[#121214]/40">
+                <Award className="w-5 h-5" />
+              </div>
+              <h4 className="text-sm font-bold text-[#121214]">Belum ada sertifikat</h4>
+              <p className="text-xs text-[#121214]/50 mt-1">Terbitkan sertifikat baru dengan menekan tombol di atas.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100 text-sm">
-                <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-semibold">
-                  <tr>
-                    <th className="px-6 py-3.5 text-left">Nama Peserta / Sertifikat</th>
-                    <th className="px-6 py-3.5 text-left">Tipe</th>
-                    <th className="px-6 py-3.5 text-left">Tanggal Terbit</th>
-                    <th className="px-6 py-3.5 text-left">Status</th>
-                    <th className="px-6 py-3.5 text-right">Aksi</th>
+              <table className="w-full text-left text-xs sm:text-sm min-w-[680px]">
+                <thead>
+                  <tr className="border-b border-[#EAE9E4] bg-[#FAF9F6] text-[#121214]/60 font-bold uppercase text-[11px] tracking-wider">
+                    <th className="px-5 py-3.5">Nama Peserta / Sertifikat</th>
+                    <th className="px-5 py-3.5">Jenis</th>
+                    <th className="px-5 py-3.5">Tanggal Terbit</th>
+                    <th className="px-5 py-3.5">Status</th>
+                    <th className="px-5 py-3.5 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#EAE9E4]">
                   {filteredCertificates.map((cert) => (
-                    <tr key={cert.id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-gray-900 flex items-center gap-2">
-                        <Award className="w-4 h-4 text-yellow-500" />
-                        {cert.participant || cert.report_name}
+                    <tr key={cert.id} className="hover:bg-[#FAF9F6]/60 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-[#FCE373]/40 border border-[#FCE373] flex items-center justify-center text-[#856B12] flex-shrink-0">
+                            <Award className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-[#121214] text-xs sm:text-sm">
+                              {cert.participant || cert.report_name}
+                            </p>
+                            <span className="text-[11px] text-[#121214]/50 font-medium">
+                              ID: #{cert.id || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{cert.type || 'Completion'}</td>
-                      <td className="px-6 py-4 text-gray-500">
-                        {cert.issueDate ? new Date(cert.issueDate).toLocaleDateString('id-ID') : '-'}
+                      <td className="px-5 py-4 font-medium text-[#121214]/80">
+                        {cert.type === 'Completion' ? 'Kelulusan' : cert.type === 'Achievement' ? 'Prestasi' : cert.type || 'Umum'}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(cert.status)}`}>
-                          {cert.status || 'issued'}
-                        </span>
+                      <td className="px-5 py-4 font-medium text-[#121214]/60">
+                        {cert.issueDate ? new Date(cert.issueDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-5 py-4">
+                        {getStatusBadge(cert.status)}
+                      </td>
+                      <td className="px-5 py-4 text-right">
                         <button
-                          onClick={() => alert(`Mengunduh dokumen: ${cert.report_name || 'Sertifikat'}`)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-colors"
+                          onClick={() => alert(`Mengunduh dokumen sertifikat: ${cert.participant || cert.report_name}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214] text-white hover:bg-black text-xs font-bold transition shadow-sm"
                         >
                           <Download className="w-3.5 h-3.5" /> Unduh
                         </button>
@@ -184,17 +305,34 @@ const Certificates = () => {
 
         {/* Generate Certificate Modal */}
         {showGenerateModal && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-              <h3 className="text-lg font-bold text-gray-900">Terbitkan Sertifikat Baru</h3>
+          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-[26px] max-w-md w-full p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-2xl bg-[#FCE373]/40 border border-[#FCE373] flex items-center justify-center text-[#856B12]">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#121214]">Terbitkan Sertifikat Baru</h3>
+                    <p className="text-xs text-[#121214]/50">Pilih peserta dan tipe sertifikat</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowGenerateModal(false)}
+                  className="w-8 h-8 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
               <form onSubmit={handleGenerateCertificate} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Pilih Peserta</label>
+                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Pilih Peserta Magang</label>
                   <select
                     required
                     value={formData.participant_id}
                     onChange={(e) => setFormData({ ...formData, participant_id: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
                   >
                     <option value="">-- Pilih Peserta --</option>
                     {participants.map(p => (
@@ -206,11 +344,11 @@ const Certificates = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Jenis Sertifikat</label>
+                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Jenis Sertifikat</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
                   >
                     <option value="Completion">Sertifikat Kelulusan (Completion)</option>
                     <option value="Achievement">Sertifikat Prestasi (Achievement)</option>
@@ -218,17 +356,17 @@ const Certificates = () => {
                   </select>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2.5 pt-3 border-t border-[#EAE9E4]">
                   <button
                     type="button"
                     onClick={() => setShowGenerateModal(false)}
-                    className="px-4 py-2 border rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium"
+                    className="px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm"
                   >
                     Terbitkan Sekarang
                   </button>
@@ -237,6 +375,7 @@ const Certificates = () => {
             </div>
           </div>
         )}
+
       </div>
     </Layout>
   );

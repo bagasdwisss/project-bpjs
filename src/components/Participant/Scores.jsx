@@ -111,10 +111,10 @@ const Scores = () => {
   }, []); // Tidak ada dependency, hanya dipanggil sekali saat komponen dimount
 
   const getScoreColor = (score) => {
-    if (score >= 90) return 'text-green-600 bg-green-50 border-green-200';
-    if (score >= 80) return 'text-blue-600 bg-blue-50 border-blue-200';
-    if (score >= 70) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    return 'text-red-600 bg-red-50 border-red-200';
+    if (score >= 90) return 'text-[#3C4A11] bg-[#B8C96E]/30 border-[#B8C96E]';
+    if (score >= 80) return 'text-[#1F4275] bg-[#BDD4F2]/40 border-[#BDD4F2]';
+    if (score >= 70) return 'text-[#856B12] bg-[#FCE373]/40 border-[#FCE373]';
+    return 'text-[#8B2471] bg-[#F5C6EC]/40 border-[#F5C6EC]';
   };
 
   const getScoreIcon = (score) => {
@@ -164,8 +164,9 @@ const Scores = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
+          <div className="w-10 h-10 border-3 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-bold text-[#121214]">Memuat rekapitulasi nilai...</p>
         </div>
       </Layout>
     );
@@ -174,18 +175,16 @@ const Scores = () => {
   if (error) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Memuat Data Nilai</h3>
-            <p className="text-gray-600">{error}</p>
-            <button 
-              onClick={fetchScoreData}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Coba Lagi
-            </button>
-          </div>
+        <div className="bg-white rounded-[24px] border border-red-200 p-8 text-center max-w-md mx-auto my-12 space-y-4 shadow-sm">
+          <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
+          <h3 className="text-base font-bold text-[#121214]">Error Memuat Data Nilai</h3>
+          <p className="text-xs text-[#6E6D6A]">{error}</p>
+          <button 
+            onClick={fetchScoreData}
+            className="px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm"
+          >
+            Coba Segarkan
+          </button>
         </div>
       </Layout>
     );
@@ -194,80 +193,124 @@ const Scores = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
-          <div className="flex items-center justify-between">
+        {/* Top Greeting & Action Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Nilai & Hasil Evaluasi 📊
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Pantau perkembangan capaian kompetensi magang dan umpan balik langsung dari koordinator
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold bg-white border border-[#EAE9E4] text-[#121214] px-3.5 py-1.5 rounded-full shadow-sm">
+              Status: Evaluasi Aktif
+            </span>
+          </div>
+        </div>
+
+        {/* 3 Pastel Bento Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          {/* Card 1: Rata-Rata Keseluruhan (Pastel Butter Yellow) */}
+          <div className="rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">
+              ●
+            </div>
             <div>
-              <h1 className="text-3xl font-bold mb-2">
-                Nilai dan Hasil Belajar 📊
-              </h1>
-              <p className="text-blue-100">
-                Lihat progress nilai dan feedback dari koordinator
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Rata-rata Keseluruhan
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Semua Modul
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-4xl font-black text-[#121214]">{overallAverage}%</span>
+                <span className="text-xs font-bold text-[#121214]/70">Skala 100</span>
+              </div>
             </div>
-            <Award className="w-12 h-12 text-blue-200" />
+            <div className="pt-4 mt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
+              <span>Grade: {overallAverage >= 85 ? 'A (Sangat Baik)' : overallAverage >= 75 ? 'B (Baik)' : 'C (Cukup)'}</span>
+              <TrendingUp className="w-4 h-4 text-[#121214]" />
+            </div>
+          </div>
+
+          {/* Card 2: Total Penilaian (Soft Bubblegum Pink) */}
+          <div className="rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">
+              ♥
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Total Evaluasi Selesai
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Assessment
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-4xl font-black text-[#121214]">{scores.length}</span>
+                <span className="text-xs font-bold text-[#121214]/70">Tugas & Ujian</span>
+              </div>
+            </div>
+            <div className="pt-4 mt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
+              <span>Terverifikasi Koordinator</span>
+              <Award className="w-4 h-4 text-[#121214]" />
+            </div>
+          </div>
+
+          {/* Card 3: Rata-Rata Filter (Muted Olive Green) */}
+          <div className="rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">
+              ▲
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Rata-rata Filter
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Aktif
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-4xl font-black text-[#121214]">{currentAverage}%</span>
+                <span className="text-xs font-bold text-[#121214]/70">
+                  {selectedType === 'all' ? 'Semua Tipe' : selectedType}
+                </span>
+              </div>
+            </div>
+            <div className="pt-4 mt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
+              <span>{filteredScores.length} data ditemukan</span>
+              <Target className="w-4 h-4 text-[#121214]" />
+            </div>
           </div>
         </div>
 
-        {/* Overall Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Rata-rata Keseluruhan</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">{overallAverage}%</h3>
-                <p className="text-sm text-gray-500 mt-1">Semua modul</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Penilaian</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">{scores.length}</h3>
-                <p className="text-sm text-gray-500 mt-1">Assessment diselesaikan</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <FileText className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Rata-rata Filter</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">{currentAverage}%</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {selectedType === 'all' ? 'Semua tipe' : selectedType} • {selectedModule === 'all' ? 'Semua modul' : selectedModule}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Target className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        {/* Filter Bar Bento Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-5 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Filter Nilai</h2>
-            <Filter className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center text-[#121214]">
+                <Filter className="w-3.5 h-3.5" />
+              </div>
+              <h2 className="text-sm font-bold text-[#121214]">Filter Penilaian</h2>
+            </div>
+            <span className="text-xs text-[#6E6D6A]">Pilih kategori untuk memfilter hasil</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1.5">
                 Tipe Penilaian
               </label>
               <select 
                 value={selectedType} 
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214] transition-all"
               >
                 {scoreTypes.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -277,13 +320,13 @@ const Scores = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Modul
+              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1.5">
+                Modul Pembelajaran
               </label>
               <select 
                 value={selectedModule} 
                 onChange={(e) => setSelectedModule(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214] transition-all"
               >
                 {modules.map((module) => (
                   <option key={module} value={module}>
@@ -295,18 +338,34 @@ const Scores = () => {
           </div>
         </div>
 
-        {/* Module Averages */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Rata-rata per Modul</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Module Averages Grid */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm sm:text-base font-bold text-[#121214]">Capaian Rata-rata per Modul</h2>
+            <span className="text-xs font-bold bg-[#F5C6EC] text-[#121214] px-3 py-1 rounded-full">
+              Kurikulum BPJS
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {modules.filter(m => m !== 'all').map((module) => {
               const average = calculateModuleAverage(module);
               return (
-                <div key={module} className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">{average}%</div>
-                  <div className="text-sm text-gray-600 mt-1">{module}</div>
-                  <div className={`text-xs mt-2 px-2 py-1 rounded-full ${getScoreColor(average)}`}>
-                    {getGradeText(average)}
+                <div key={module} className="p-4 bg-[#FAF9F6] rounded-[18px] border border-[#EAE9E4] flex flex-col justify-between hover:border-[#121214]/20 transition-all">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-[#6E6D6A] uppercase tracking-wider">Modul</span>
+                      <span className="text-[10px] font-bold bg-[#121214] text-white px-2 py-0.5 rounded-full">
+                        {getGradeText(average)}
+                      </span>
+                    </div>
+                    <div className="text-2xl font-black text-[#121214] mt-2">{average}%</div>
+                    <div className="text-xs font-bold text-[#121214] mt-1 line-clamp-1">{module}</div>
+                  </div>
+                  <div className="w-full h-1.5 bg-[#EAE9E4] rounded-full mt-3 overflow-hidden">
+                    <div 
+                      className="h-full bg-[#121214] rounded-full" 
+                      style={{ width: `${Math.min(100, average)}%` }}
+                    />
                   </div>
                 </div>
               );
@@ -314,101 +373,108 @@ const Scores = () => {
           </div>
         </div>
 
-        {/* Scores List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Detail Nilai</h2>
-              <button className="flex items-center space-x-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700">
-                <Download className="w-4 h-4" />
-                <span>Export PDF</span>
-              </button>
+        {/* Scores Detail Bento Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#EAE9E4] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-[#121214]">Riwayat Evaluasi & Umpan Balik</h2>
+              <p className="text-xs text-[#6E6D6A]">Daftar nilai tugas, ujian, dan catatan pembimbing</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold bg-[#121214] text-white px-3 py-1 rounded-full">
+                {filteredScores.length} Penilaian
+              </span>
             </div>
           </div>
           
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-[#F0EFEA]">
             {filteredScores.length > 0 ? (
               filteredScores.map((score) => (
-                <div key={score.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <span className="text-2xl">{getScoreIcon(score.score)}</span>
+                <div key={score.id} className="p-5 sm:p-6 hover:bg-[#FAF9F6] transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#FCE373] text-[#121214] flex items-center justify-center font-bold text-base shadow-sm shrink-0">
+                          {getScoreIcon(score.score)}
+                        </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{score.title}</h3>
-                          <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
-                            <span className="flex items-center space-x-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>
-                                {(() => {
-                                  const date = new Date(score.date);
-                                  if (isNaN(date.getTime())) {
-                                    return 'Tanggal tidak valid';
-                                  }
-                                  return date.toLocaleDateString('id-ID');
-                                })()}
-                              </span>
+                          <h3 className="font-bold text-sm sm:text-base text-[#121214]">{score.title}</h3>
+                          <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-[#6E6D6A]">
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {(() => {
+                                const date = new Date(score.date);
+                                if (isNaN(date.getTime())) return 'Tanggal tidak valid';
+                                return date.toLocaleDateString('id-ID');
+                              })()}
                             </span>
                             <span>•</span>
-                            <span>Modul: {score.module}</span>
+                            <span className="bg-[#FAF9F6] border border-[#EAE9E4] px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#121214]">
+                              {score.module}
+                            </span>
                             <span>•</span>
                             <span>Bobot: {score.weight}%</span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-600 mb-2">
-                          <strong>Feedback:</strong> {score.feedback}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Dinilai oleh: {score.gradedBy}
-                        </p>
-                      </div>
+                      {score.feedback && (
+                        <div className="mt-3 p-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs text-[#121214]">
+                          <span className="font-bold text-[#121214]">Catatan Koordinator:</span> {score.feedback}
+                          <p className="text-[10px] text-[#6E6D6A] mt-1 font-medium">Dinilai oleh: {score.gradedBy}</p>
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="text-right ml-4">
-                      <div className={`text-3xl font-bold ${getScoreColor(score.score).split(' ')[0]}`}>
-                        {score.score}
+                    <div className="sm:text-right shrink-0 flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2">
+                      <div>
+                        <div className="text-3xl font-black text-[#121214]">
+                          {score.score}
+                          <span className="text-xs font-normal text-[#6E6D6A] ml-1">/ {score.maxScore}</span>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">dari {score.maxScore}</div>
-                      <div className={`text-xs font-semibold mt-1 px-2 py-1 rounded-full ${getScoreColor(score.score)}`}>
+                      <span className="text-[11px] font-bold px-3 py-0.5 rounded-full bg-[#121214] text-white">
                         {getGradeText(score.score)}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {((score.score / score.maxScore) * 100).toFixed(1)}%
-                      </div>
+                      </span>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center">
-                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">Tidak ada nilai yang ditemukan</p>
-                <p className="text-sm text-gray-400 mt-1">Coba ubah filter pencarian</p>
+              <div className="p-12 text-center">
+                <FileText className="w-10 h-10 text-[#A09F9B] mx-auto mb-3" />
+                <p className="text-sm font-bold text-[#121214]">Tidak ada data nilai yang sesuai filter</p>
+                <p className="text-xs text-[#6E6D6A] mt-1">Coba sesuaikan pilihan tipe penilaian atau modul.</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Performance Summary */}
-        <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">Ringkasan Performa</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-            <div>
-              <p><strong>📈 Trend Nilai:</strong> {overallAverage >= 80 ? 'Meningkat' : overallAverage >= 70 ? 'Stabil' : 'Perlu Perbaikan'}</p>
-              <p><strong>🎯 Target:</strong> Minimal 75% per modul</p>
+        {/* Performance Summary Card */}
+        <div className="rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden shadow-sm">
+          <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">
+            ★
+          </div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-bold text-[#121214]">Ringkasan Performa & Rekomendasi</h3>
+            <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+              BPJS Internship Track
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium pt-2">
+            <div className="p-3.5 bg-white/60 rounded-xl space-y-1.5 backdrop-blur-sm">
+              <p><strong className="text-[#121214]">📈 Tren Capaian:</strong> {overallAverage >= 80 ? 'Sangat Baik (Stabil)' : overallAverage >= 70 ? 'Cukup (Perlu Ditingkatkan)' : 'Perlu Pendampingan Khusus'}</p>
+              <p><strong className="text-[#121214]">🎯 Standar Kelulusan:</strong> Minimal 75.0% di setiap modul kompetensi inti</p>
             </div>
-            <div>
-              <p><strong>⭐ Pencapaian:</strong> {scores.filter(s => s.score >= 80).length} dari {scores.length} nilai di atas 80</p>
-              <p><strong>📚 Modul Terbaik:</strong> {(() => {
+            <div className="p-3.5 bg-white/60 rounded-xl space-y-1.5 backdrop-blur-sm">
+              <p><strong className="text-[#121214]">⭐ Modul Unggulan:</strong> {(() => {
                 const nonAllModules = modules.filter(m => m !== 'all');
                 return nonAllModules.length > 0 ? 
                   nonAllModules.reduce((best, current) => 
                     calculateModuleAverage(current) > calculateModuleAverage(best) ? current : best
-                  ) : 'Tidak ada modul';
+                  ) : 'Modul Pembelajaran BPJS';
               })()}</p>
+              <p><strong className="text-[#121214]">🏆 Evaluasi Memenuhi Target:</strong> {scores.filter(s => s.score >= 75).length} dari {scores.length} penilaian</p>
             </div>
           </div>
         </div>

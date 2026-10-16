@@ -319,7 +319,7 @@ const ParticipantDashboard = () => {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Hadir</p>
               </div>
               <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
-                <p className="text-lg font-black text-blue-600">{attendance.izin || 0}</p>
+                <p className="text-lg font-black text-[#1F4275]">{attendance.izin || 0}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Izin</p>
               </div>
               <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">

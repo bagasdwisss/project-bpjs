@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, isAuthenticated, loading } = useContext(AuthContext);
@@ -8,10 +9,10 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Memverifikasi akses...</p>
+      <div className="flex justify-center items-center h-screen bg-[#F5F4F0]">
+        <div className="text-center space-y-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#121214] border-t-transparent mx-auto"></div>
+          <p className="text-xs font-bold text-[#121214]/60">Memverifikasi akses autentikasi...</p>
         </div>
       </div>
     );
@@ -31,33 +32,31 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     });
     
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+      <div className="min-h-screen bg-[#F5F4F0] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-[26px] border border-[#EAE9E4] shadow-xl p-8 text-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-14 h-14 bg-[#F5C6EC]/40 border border-[#F5C6EC] rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#8B2471]">
+            <ShieldAlert className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">403 - Akses Ditolak</h2>
-          <p className="text-gray-600 mb-6">
-            Anda tidak memiliki izin untuk mengakses halaman ini.
+          <h2 className="text-2xl font-black text-[#121214] mb-2">403 — Akses Ditolak</h2>
+          <p className="text-xs sm:text-sm text-[#121214]/60 mb-6">
+            Anda tidak memiliki izin hak akses untuk membuka halaman ini.
             <br />
-            <span className="text-sm text-gray-500">
-              Role Anda: <strong>{user?.role || 'Tidak terdeteksi'}</strong>
+            <span className="inline-block mt-2 px-3 py-1 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214]">
+              Role Aktif: {user?.role || 'Tidak terdeteksi'}
             </span>
           </p>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <button
               onClick={() => window.history.back()}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 bg-[#121214] hover:bg-black text-white font-bold py-2.5 px-4 rounded-full text-xs transition shadow-sm"
             >
-              Kembali
+              <ArrowLeft className="w-4 h-4" /> Kembali ke Halaman Sebelumnya
             </button>
             <button
               onClick={() => window.location.href = '/login'}
-              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 bg-white border border-[#EAE9E4] hover:bg-[#FAF9F6] text-[#121214] font-bold py-2.5 px-4 rounded-full text-xs transition shadow-sm"
             >
-              Login dengan Akun Lain
+              <LogIn className="w-4 h-4" /> Masuk dengan Akun Lain
             </button>
           </div>
         </div>

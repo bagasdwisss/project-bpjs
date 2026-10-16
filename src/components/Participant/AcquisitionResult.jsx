@@ -22,9 +22,9 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
       case 'warning':
         return 'bg-yellow-500 border-yellow-600';
       case 'info':
-        return 'bg-blue-500 border-blue-600';
+        return 'bg-[#121214] border-[#121214]';
       default:
-        return 'bg-gray-500 border-gray-600';
+        return 'bg-[#121214] border-[#121214]';
     }
   };
 
@@ -665,8 +665,8 @@ const AcquisitionResult = () => {
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Memuat data hasil akuisisi...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#121214] border-t-transparent mx-auto"></div>
+            <p className="mt-4 text-xs font-bold text-[#121214]/60">Memuat data hasil akuisisi...</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -719,9 +719,9 @@ const AcquisitionResult = () => {
                         {formatRupiah(item.biaya)}
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap text-right">
-                        <div className="flex space-x-2">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
-                            className="text-blue-600 hover:text-blue-900"
+                            className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70 hover:bg-[#121214] hover:text-white transition"
                             onClick={() => {
                               setSelectedItem(item);
                               setUploadType('payment');
@@ -729,10 +729,10 @@ const AcquisitionResult = () => {
                             }}
                             title="Upload Bukti Pembayaran"
                           >
-                            <Upload className="w-4 h-4" />
+                            <Upload className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            className="text-green-600 hover:text-green-900"
+                            className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70 hover:bg-[#121214] hover:text-white transition"
                             onClick={() => {
                               setSelectedItem(item);
                               setUploadType('socialization');
@@ -740,23 +740,23 @@ const AcquisitionResult = () => {
                             }}
                             title="Upload Bukti Sosialisasi"
                           >
-                            <Upload className="w-4 h-4" />
+                            <Upload className="w-3.5 h-3.5" />
                           </button>
                           {item.status_pendaftaran === 'MENUNGGU PEMBAYARAN' && item.bukti_pembayaran_link && (
                             <button
-                              className="text-purple-600 hover:text-purple-900"
+                              className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#B8C96E]/30 border border-[#B8C96E] text-[#3C4A11] hover:bg-[#121214] hover:text-white transition"
                               onClick={() => handleConfirmPayment(item.peserta_id)}
                               title="Konfirmasi Pembayaran"
                             >
-                              <CheckCircle className="w-4 h-4" />
+                              <CheckCircle className="w-3.5 h-3.5" />
                             </button>
                           )}
                           <button
-                            className="text-yellow-600 hover:text-yellow-900"
+                            className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70 hover:bg-[#121214] hover:text-white transition"
                             onClick={() => openEditForm(item)}
                             title="Edit Data"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -780,44 +780,44 @@ const AcquisitionResult = () => {
 
       {/* Upload Modal */}
       {showUploadModal && selectedItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl max-w-md w-full p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-base sm:text-lg font-bold text-[#121214] mb-2">
               Unggah {uploadType === 'payment' ? 'Bukti Pembayaran' : 'Bukti Sosialisasi'}
             </h3>
 
-            <p className="text-sm text-gray-600 mb-4">
-              Peserta: <strong>{selectedItem.nama_peserta || 'Nama Tidak Tersedia'}</strong> (NIK: {selectedItem.nik})
+            <p className="text-xs text-[#121214]/60 mb-4">
+              Peserta: <strong className="text-[#121214]">{selectedItem.nama_peserta || 'Nama Tidak Tersedia'}</strong> (NIK: {selectedItem.nik})
             </p>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-5">
+              <label className="block text-xs font-bold text-[#121214] mb-2">
                 Pilih file {uploadType === 'payment' ? 'bukti pembayaran' : 'bukti sosialisasi'}:
               </label>
               <input
                 type="file"
                 accept=".jpg,.jpeg,.png,.pdf"
                 onChange={handleFileChange}
-                className="w-full text-sm text-gray-500
+                className="w-full text-xs text-[#121214]/60
                   file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
+                  file:rounded-full file:border file:border-[#EAE9E4]
+                  file:text-xs file:font-bold
+                  file:bg-[#FAF9F6] file:text-[#121214]
+                  hover:file:bg-[#121214] hover:file:text-white file:transition"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-[11px] text-[#121214]/40 mt-1.5">
                 Format: JPG, PNG, PDF. Maksimal 5MB
               </p>
             </div>
 
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end items-center gap-2.5 pt-3 border-t border-[#EAE9E4]">
               <button
                 type="button"
                 onClick={() => {
                   setShowUploadModal(false);
                   setUploadFile(null);
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
               >
                 Batal
               </button>
@@ -825,13 +825,13 @@ const AcquisitionResult = () => {
                 type="button"
                 onClick={handleUploadProof}
                 disabled={!uploadFile || uploading}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                className={`px-6 py-2.5 rounded-full text-xs font-bold transition shadow-sm ${
                   !uploadFile || uploading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                    ? 'bg-[#121214]/20 text-[#121214]/40 cursor-not-allowed'
+                    : 'bg-[#121214] hover:bg-black text-white'
                 }`}
               >
-                {uploading ? 'Mengunggah...' : 'Unggah'}
+                {uploading ? 'Mengunggah...' : 'Unggah File'}
               </button>
             </div>
           </div>
@@ -840,17 +840,15 @@ const AcquisitionResult = () => {
 
       {/* Form Modal */}
       {showFormModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {isEditMode ? 'Edit Data Peserta' : 'Tambah Data Peserta'}
+        <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-base sm:text-lg font-bold text-[#121214] mb-3">
+              {isEditMode ? 'Edit Data Peserta BPU' : 'Tambah Data Akuisisi BPU'}
             </h3>
 
             {/* Catatan wajib diisi */}
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-sm text-yellow-800">
-                <span className="font-semibold">Catatan:</span> Kolom dengan tanda <span className="text-red-500">*</span> wajib diisi.
-              </p>
+            <div className="mb-4 p-3.5 bg-[#FCE373]/30 border border-[#FCE373] rounded-2xl text-xs font-medium text-[#856B12]">
+              <span className="font-bold">Perhatian:</span> Kolom bertanda <span className="text-red-500 font-bold">*</span> wajib diisi dengan data valid.
             </div>
 
             <form onSubmit={handleFormSubmit}>
@@ -975,9 +973,9 @@ const AcquisitionResult = () => {
                         name="jkk"
                         checked={formData.program_terdaftar.split(',').includes('JKK')}
                         onChange={handleProgramChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 accent-[#121214] rounded cursor-pointer"
                       />
-                      <label htmlFor="jkk" className="ml-2 block text-sm text-gray-700">
+                      <label htmlFor="jkk" className="ml-2 block text-xs font-medium text-[#121214] cursor-pointer">
                         JKK (Jaminan Kecelakaan Kerja)
                       </label>
                     </div>
@@ -988,9 +986,9 @@ const AcquisitionResult = () => {
                         name="jkm"
                         checked={formData.program_terdaftar.split(',').includes('JKM')}
                         onChange={handleProgramChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 accent-[#121214] rounded cursor-pointer"
                       />
-                      <label htmlFor="jkm" className="ml-2 block text-sm text-gray-700">
+                      <label htmlFor="jkm" className="ml-2 block text-xs font-medium text-[#121214] cursor-pointer">
                         JKM (Jaminan Kematian)
                       </label>
                     </div>
@@ -1001,9 +999,9 @@ const AcquisitionResult = () => {
                         name="jht"
                         checked={formData.program_terdaftar.split(',').includes('JHT')}
                         onChange={handleProgramChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 accent-[#121214] rounded cursor-pointer"
                       />
-                      <label htmlFor="jht" className="ml-2 block text-sm text-gray-700">
+                      <label htmlFor="jht" className="ml-2 block text-xs font-medium text-[#121214] cursor-pointer">
                         JHT (Jaminan Hari Tua)
                       </label>
                     </div>
@@ -1074,67 +1072,67 @@ const AcquisitionResult = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-[#121214] mb-1.5">
                     Upload Bukti Pembayaran
                   </label>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.pdf"
                     onChange={handlePaymentProofChange}
-                    className="w-full text-sm text-gray-500
+                    className="w-full text-xs text-[#121214]/60
                       file:mr-4 file:py-2 file:px-4
-                      file:rounded-md file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-blue-50 file:text-blue-700
-                      hover:file:bg-blue-100"
+                      file:rounded-full file:border file:border-[#EAE9E4]
+                      file:text-xs file:font-bold
+                      file:bg-[#FAF9F6] file:text-[#121214]
+                      hover:file:bg-[#121214] hover:file:text-white file:transition"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-[11px] text-[#121214]/40 mt-1">
                     Format: JPG, PNG, PDF. Maksimal 5MB
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-[#121214] mb-1.5">
                     Upload Bukti Sosialisasi
                   </label>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.pdf"
                     onChange={handleSocializationProofChange}
-                    className="w-full text-sm text-gray-500
+                    className="w-full text-xs text-[#121214]/60
                       file:mr-4 file:py-2 file:px-4
-                      file:rounded-md file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-blue-50 file:text-blue-700
-                      hover:file:bg-blue-100"
+                      file:rounded-full file:border file:border-[#EAE9E4]
+                      file:text-xs file:font-bold
+                      file:bg-[#FAF9F6] file:text-[#121214]
+                      hover:file:bg-[#121214] hover:file:text-white file:transition"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-[11px] text-[#121214]/40 mt-1">
                     Format: JPG, PNG, PDF. Maksimal 5MB
                   </p>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-end items-center gap-2.5 pt-3 border-t border-[#EAE9E4]">
                 <button
                   type="button"
                   onClick={() => {
                     setShowFormModal(false);
                     resetForm();
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                  className={`px-6 py-2.5 rounded-full text-xs font-bold transition shadow-sm ${
                     submitting
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700'
+                      ? 'bg-[#121214]/20 text-[#121214]/40 cursor-not-allowed'
+                      : 'bg-[#121214] hover:bg-black text-white'
                   }`}
                 >
-                  {submitting ? 'Menyimpan...' : isEditMode ? 'Update' : 'Simpan'}
+                  {submitting ? 'Menyimpan...' : isEditMode ? 'Perbarui Data' : 'Simpan Data'}
                 </button>
               </div>
             </form>

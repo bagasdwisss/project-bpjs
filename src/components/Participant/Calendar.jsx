@@ -92,17 +92,17 @@ const Calendar = () => {
     const title = event.event_title?.toLowerCase() || '';
 
     if (title.includes('ujian') || title.includes('test') || title.includes('assessment')) {
-      return 'bg-red-100 text-red-800 border-red-200';
+      return 'bg-[#FCE373] text-[#121214] border border-[#F2CE46]/50';
     } else if (title.includes('workshop') || title.includes('pelatihan')) {
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return 'bg-[#BDD4F2] text-[#121214] border border-[#91B6E6]/50';
     } else if (title.includes('deadline') || title.includes('pengumpulan')) {
-      return 'bg-purple-100 text-purple-800 border-purple-200';
+      return 'bg-[#F5C6EC] text-[#121214] border border-[#E59CD8]/50';
     } else if (title.includes('seminar') || title.includes('sharing')) {
-      return 'bg-green-100 text-green-800 border-green-200';
+      return 'bg-[#B8C96E] text-[#121214] border border-[#9CB04C]/50';
     } else if (title.includes('kuis') || title.includes('quiz')) {
-      return 'bg-orange-100 text-orange-800 border-orange-200';
+      return 'bg-[#FCE373] text-[#121214] border border-[#F2CE46]/50';
     } else {
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+      return 'bg-[#FAF9F6] text-[#121214] border border-[#EAE9E4]';
     }
   };
 
@@ -242,53 +242,64 @@ const Calendar = () => {
     }
 
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Calendar Header */}
-        <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
-          {['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'].map((day) => (
-            <div key={day} className="p-4 text-center text-sm font-medium text-gray-700">
-              {day}
+      <div className="bg-white rounded-[22px] border border-[#EAE9E4] overflow-hidden shadow-sm">
+        {/* Responsive Table Wrapper */}
+        <div className="overflow-x-auto">
+          <div className="min-w-[640px]">
+            {/* Calendar Header */}
+            <div className="grid grid-cols-7 bg-[#FAF9F6] border-b border-[#EAE9E4]">
+              {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((day) => (
+                <div key={day} className="py-3 text-center text-xs font-bold uppercase tracking-wider text-[#6E6D6A]">
+                  {day}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7">
-          {weeks.flat().map((day, index) => (
-            <div 
-              key={index} 
-              className={`min-h-32 p-2 border-r border-b border-gray-200 ${
-                !day.isCurrentMonth ? 'bg-gray-50' : 'bg-white'
-              } ${day.isToday ? 'bg-blue-50' : ''}`}
-            >
-              <div className={`text-sm font-medium ${
-                !day.isCurrentMonth ? 'text-gray-400' : 
-                day.isToday ? 'text-blue-600' : 'text-gray-900'
-              }`}>
-                {day.display}
-              </div>
-              <div className="mt-1 space-y-1 max-h-20 overflow-y-auto">
-                {day.events.slice(0, 3).map((event) => (
-                  <div 
-                    key={event.event_id} 
-                    className={`text-xs p-1 rounded border ${getEventTypeColor(event)} cursor-pointer hover:opacity-80 transition-opacity`} 
-                    onClick={() => setSelectedEvent(event)}
-                    title={event.event_title}
-                  >
-                    <div className="flex items-center space-x-1">
-                      {getEventTypeIcon(event)}
-                      <span className="truncate flex-1">{event.event_title}</span>
-                    </div>
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7 divide-x divide-y divide-[#F0EFEA]">
+              {weeks.flat().map((day, index) => (
+                <div 
+                  key={index} 
+                  className={`min-h-24 sm:min-h-28 p-2 flex flex-col justify-between transition-colors ${
+                    !day.isCurrentMonth ? 'bg-[#FAF9F6]/60 opacity-40' : 'bg-white'
+                  } ${day.isToday ? 'bg-[#F5C6EC]/20' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center justify-center text-xs font-bold w-6 h-6 rounded-full ${
+                      day.isToday 
+                        ? 'bg-[#121214] text-white shadow-sm' 
+                        : !day.isCurrentMonth 
+                          ? 'text-[#A09F9B]' 
+                          : 'text-[#121214]'
+                    }`}>
+                      {day.display}
+                    </span>
+                    {day.events.length > 0 && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#121214]"></span>
+                    )}
                   </div>
-                ))}
-                {day.events.length > 3 && (
-                  <div className="text-xs text-gray-500 text-center">
-                    +{day.events.length - 3} lainnya
+
+                  <div className="mt-1 space-y-1 overflow-y-auto max-h-16">
+                    {day.events.slice(0, 2).map((event) => (
+                      <div 
+                        key={event.event_id} 
+                        className={`text-[10px] p-1 rounded-lg ${getEventTypeColor(event)} cursor-pointer font-semibold truncate hover:opacity-80 transition-opacity`} 
+                        onClick={() => setSelectedEvent(event)}
+                        title={event.event_title}
+                      >
+                        {event.event_title}
+                      </div>
+                    ))}
+                    {day.events.length > 2 && (
+                      <div className="text-[9px] font-bold text-[#6E6D6A] text-center">
+                        +{day.events.length - 2} lagi
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     );
@@ -298,51 +309,53 @@ const Calendar = () => {
     const upcomingEvents = getUpcomingEvents();
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {upcomingEvents.length > 0 ? (
           upcomingEvents.map((event) => (
             <div 
               key={event.event_id} 
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer" 
+              className="bg-white rounded-[20px] border border-[#EAE9E4] p-4 sm:p-5 shadow-sm hover:border-[#121214]/20 transition-all cursor-pointer" 
               onClick={() => setSelectedEvent(event)}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getEventTypeColor(event)} flex items-center space-x-1`}>
-                      {getEventTypeIcon(event)}
-                      <span>{getEventTypeLabel(event)}</span>
-                    </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start space-x-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center shrink-0 text-[#121214] font-bold">
+                    {getEventTypeIcon(event)}
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{event.event_title}</h3>
-                  {event.event_description && (
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                      {event.event_description}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatDateForDisplay(event.start_datetime)}</span>
-                      <span>
-                        {formatTime(event.start_datetime)} - {formatTime(event.end_datetime)}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full ${getEventTypeColor(event)}`}>
+                        {getEventTypeLabel(event)}
                       </span>
+                      {event.batch_name && (
+                        <span className="text-[10px] font-semibold text-[#6E6D6A] bg-[#FAF9F6] px-2 py-0.5 rounded-full border border-[#EAE9E4]">
+                          {event.batch_name}
+                        </span>
+                      )}
                     </div>
-                    {event.batch_name && (
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
-                        <span>{event.batch_name}</span>
-                      </div>
+                    <h3 className="font-bold text-sm text-[#121214] truncate">{event.event_title}</h3>
+                    {event.event_description && (
+                      <p className="text-xs text-[#6E6D6A] mt-0.5 line-clamp-1">
+                        {event.event_description}
+                      </p>
                     )}
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 sm:self-center">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214] px-3 py-1.5 rounded-full">
+                    <Clock className="w-3.5 h-3.5 text-[#6E6D6A]" />
+                    {formatDateForDisplay(event.start_datetime)} • {formatTime(event.start_datetime)}
+                  </span>
                 </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-center py-8">
-            <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">Tidak ada kegiatan mendatang</p>
+          <div className="text-center py-12 bg-white rounded-[22px] border border-[#EAE9E4] p-6">
+            <CalendarIcon className="w-10 h-10 text-[#A09F9B] mx-auto mb-3" />
+            <p className="text-sm font-bold text-[#121214]">Tidak ada kegiatan mendatang</p>
+            <p className="text-xs text-[#6E6D6A] mt-1">Semua agenda pelatihan telah diselesaikan.</p>
           </div>
         )}
       </div>
@@ -353,8 +366,9 @@ const Calendar = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
+          <div className="w-10 h-10 border-3 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-bold text-[#121214]">Memuat jadwal kegiatan...</p>
         </div>
       </Layout>
     );
@@ -364,28 +378,16 @@ const Calendar = () => {
   if (error) {
     return (
       <Layout>
-        <div className="space-y-6">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Kalender Kegiatan 📅</h1>
-                <p className="text-blue-100">Lihat jadwal dan kegiatan dari koordinator & administrator</p>
-              </div>
-              <CalendarIcon className="w-12 h-12 text-blue-200" />
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center justify-center h-64 space-y-4">
-            <AlertCircle className="w-16 h-16 text-red-500" />
-            <h3 className="text-xl font-bold text-gray-900">Gagal Memuat Kalender</h3>
-            <p className="text-gray-600 text-center max-w-md">{error}</p>
-            <button 
-              onClick={handleRefresh} 
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Coba Lagi
-            </button>
-          </div>
+        <div className="bg-white rounded-[24px] border border-red-200 p-8 text-center max-w-md mx-auto my-12 space-y-4 shadow-sm">
+          <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
+          <h3 className="text-base font-bold text-[#121214]">Gagal Memuat Kalender</h3>
+          <p className="text-xs text-[#6E6D6A]">{error}</p>
+          <button 
+            onClick={handleRefresh} 
+            className="px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm"
+          >
+            Coba Lagi
+          </button>
         </div>
       </Layout>
     );
@@ -395,189 +397,206 @@ const Calendar = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-8 text-white relative">
-          <button 
-            onClick={handleRefresh} 
-            disabled={refreshing} 
-            className="absolute top-6 right-6 p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50" 
-            title="Refresh Kalender"
-          >
-            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Kalender Kegiatan 📅</h1>
-              <p className="text-blue-100">Lihat jadwal dan kegiatan dari koordinator & administrator</p>
-            </div>
-            <CalendarIcon className="w-12 h-12 text-blue-200" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Kalender Kegiatan & Agenda 📅
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Jadwal pelaksanaan sosialisasi, evaluasi ujian, dan agenda bimbingan koordinator
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button 
+              onClick={handleRefresh} 
+              disabled={refreshing} 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              Segarkan
+            </button>
           </div>
         </div>
 
-        {/* Calendar Controls */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            {/* View Toggle */}
-            <div className="flex space-x-2">
+        {/* 3 Bento Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-[22px] bg-[#FCE373] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">●</div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">Total Agenda</span>
+            <div className="text-3xl font-black text-[#121214] my-1">{events.length}</div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Kegiatan Terdaftar</span>
+          </div>
+
+          <div className="rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">♥</div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">Akan Datang</span>
+            <div className="text-3xl font-black text-[#121214] my-1">
+              {events.filter((e) => new Date(e.start_datetime) >= new Date()).length}
+            </div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Kegiatan Mendatang</span>
+          </div>
+
+          <div className="rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">★</div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">Ujian & Evaluasi</span>
+            <div className="text-3xl font-black text-[#121214] my-1">
+              {events.filter((e) => 
+                e.event_title?.toLowerCase().includes('ujian') || 
+                e.event_title?.toLowerCase().includes('test')
+              ).length}
+            </div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Tes Kompetensi</span>
+          </div>
+        </div>
+
+        {/* Calendar Controls Bento Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-4 sm:p-5 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* View Switcher Pills */}
+            <div className="inline-flex items-center bg-[#FAF9F6] p-1 rounded-full border border-[#EAE9E4]">
               <button 
                 onClick={() => setView('month')} 
-                className={`px-4 py-2 rounded-lg font-medium ${
-                  view === 'month' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  view === 'month' 
+                    ? 'bg-[#121214] text-white shadow-sm' 
+                    : 'text-[#6E6D6A] hover:text-[#121214]'
                 }`}
               >
                 Tampilan Bulan
               </button>
               <button 
                 onClick={() => setView('list')} 
-                className={`px-4 py-2 rounded-lg font-medium ${
-                  view === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  view === 'list' 
+                    ? 'bg-[#121214] text-white shadow-sm' 
+                    : 'text-[#6E6D6A] hover:text-[#121214]'
                 }`}
               >
                 Daftar Kegiatan
               </button>
             </div>
 
-            {/* Month Navigation - hanya tampil di month view */}
+            {/* Month Navigation */}
             {view === 'month' && (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={goToPreviousMonth} 
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] border border-[#EAE9E4] flex items-center justify-center transition-colors text-[#121214]"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                <h2 className="text-xl font-bold text-gray-900 min-w-48 text-center">
-                  {currentDate.toLocaleDateString('id-ID', {
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </h2>
+                {/* Signature Intelly Pink Month Pill */}
+                <span className="px-4 py-1.5 bg-[#F5C6EC] text-[#121214] font-bold text-xs rounded-full shadow-sm">
+                  {currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                </span>
 
                 <button 
                   onClick={goToNextMonth} 
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] border border-[#EAE9E4] flex items-center justify-center transition-colors text-[#121214]"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
 
                 <button 
                   onClick={goToToday} 
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="px-3.5 py-1.5 bg-[#121214] text-white text-xs font-bold rounded-full hover:bg-neutral-800 transition-colors shadow-sm ml-1"
                 >
                   Hari Ini
                 </button>
               </div>
             )}
-
-            {/* View Info */}
-            <div className="text-sm text-gray-600 lg:text-right">
-              {view === 'month' 
-                ? `Kalender ${currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}` 
-                : 'Kegiatan Mendatang'
-              }
-            </div>
           </div>
         </div>
 
         {/* Calendar Content */}
         {view === 'month' ? <MonthView /> : <ListView />}
 
-        {/* Event Detail Modal */}
+        {/* Event Detail Modal (Intelly Design) */}
         {selectedEvent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] p-6 sm:p-7 w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
               <div className="flex items-start justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900">{selectedEvent.event_title}</h3>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 text-xs font-bold rounded-full ${getEventTypeColor(selectedEvent)}`}>
+                    {getEventTypeLabel(selectedEvent)}
+                  </span>
+                  {selectedEvent.batch_name && (
+                    <span className="text-xs font-semibold text-[#6E6D6A] bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#EAE9E4]">
+                      {selectedEvent.batch_name}
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={() => setSelectedEvent(null)} 
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] flex items-center justify-center text-[#121214] transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getEventTypeColor(selectedEvent)} flex items-center space-x-1`}>
-                    {getEventTypeIcon(selectedEvent)}
-                    <span>{getEventTypeLabel(selectedEvent)}</span>
-                  </span>
+              <h3 className="text-xl font-bold text-[#121214] tracking-tight">{selectedEvent.event_title}</h3>
+              
+              {selectedEvent.event_description && (
+                <div className="mt-3 p-4 bg-[#FAF9F6] rounded-2xl border border-[#EAE9E4] text-xs text-[#121214] leading-relaxed">
+                  <p className="font-bold mb-1 text-[#121214]">Deskripsi Acara:</p>
+                  <p className="whitespace-pre-wrap">{selectedEvent.event_description}</p>
                 </div>
+              )}
 
-                {selectedEvent.event_description && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-[#F0EFEA] text-xs">
+                <div className="p-3 bg-white rounded-xl border border-[#EAE9E4] flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#FAF9F6] flex items-center justify-center text-[#121214]">
+                    <Clock className="w-4 h-4" />
+                  </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Deskripsi</h4>
-                    <p className="text-gray-600 whitespace-pre-wrap">{selectedEvent.event_description}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">Mulai</p>
-                      <p className="text-sm text-gray-600">
-                        {formatDate(selectedEvent.start_datetime)}<br />
-                        {formatTime(selectedEvent.start_datetime)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">Selesai</p>
-                      <p className="text-sm text-gray-600">
-                        {formatDate(selectedEvent.end_datetime)}<br />
-                        {formatTime(selectedEvent.end_datetime)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">Batch</p>
-                      <p className="text-sm text-gray-600">{selectedEvent.batch_name}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Bell className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">Dibuat Oleh</p>
-                      <p className="text-sm text-gray-600">{selectedEvent.created_by_name}</p>
-                    </div>
+                    <p className="font-bold text-[#121214]">Waktu Mulai</p>
+                    <p className="text-[#6E6D6A]">{formatDate(selectedEvent.start_datetime)} • {formatTime(selectedEvent.start_datetime)}</p>
                   </div>
                 </div>
+
+                <div className="p-3 bg-white rounded-xl border border-[#EAE9E4] flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#FAF9F6] flex items-center justify-center text-[#121214]">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#121214]">Waktu Selesai</p>
+                    <p className="text-[#6E6D6A]">{formatDate(selectedEvent.end_datetime)} • {formatTime(selectedEvent.end_datetime)}</p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white rounded-xl border border-[#EAE9E4] flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#FAF9F6] flex items-center justify-center text-[#121214]">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#121214]">Target Batch</p>
+                    <p className="text-[#6E6D6A]">{selectedEvent.batch_name || 'Semua Batch'}</p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white rounded-xl border border-[#EAE9E4] flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#FAF9F6] flex items-center justify-center text-[#121214]">
+                    <Bell className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#121214]">Penyelenggara</p>
+                    <p className="text-[#6E6D6A]">{selectedEvent.created_by_name || 'Koordinator BPJS'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm"
+                >
+                  Tutup Informasi
+                </button>
               </div>
             </div>
           </div>
         )}
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-blue-600">{events.length}</div>
-            <div className="text-sm text-gray-600">Total Kegiatan</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {events.filter((e) => new Date(e.start_datetime) >= new Date()).length}
-            </div>
-            <div className="text-sm text-gray-600">Kegiatan Mendatang</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {events.filter((e) => 
-                e.event_title?.toLowerCase().includes('ujian') || 
-                e.event_title?.toLowerCase().includes('test')
-              ).length}
-            </div>
-            <div className="text-sm text-gray-600">Ujian & Test</div>
-          </div>
-        </div>
       </div>
     </Layout>
   );

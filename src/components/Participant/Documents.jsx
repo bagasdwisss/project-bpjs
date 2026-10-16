@@ -63,18 +63,18 @@ const Documents = () => {
   const getStatusConfig = (status) => {
     const configs = {
       approved: {
-        color: 'text-green-600 bg-green-50 border-green-200',
-        icon: <CheckCircle className="w-4 h-4" />,
+        color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+        icon: <CheckCircle className="w-3.5 h-3.5" />,
         text: 'Disetujui'
       },
       pending: {
-        color: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-        icon: <Clock className="w-4 h-4" />,
+        color: 'text-[#121214] bg-[#FCE373]/50 border-[#FCE373]',
+        icon: <Clock className="w-3.5 h-3.5" />,
         text: 'Menunggu'
       },
       rejected: {
-        color: 'text-red-600 bg-red-50 border-red-200',
-        icon: <XCircle className="w-4 h-4" />,
+        color: 'text-rose-700 bg-rose-50 border-rose-200',
+        icon: <XCircle className="w-3.5 h-3.5" />,
         text: 'Ditolak'
       }
     };
@@ -83,15 +83,15 @@ const Documents = () => {
 
   const getCategoryColor = (category) => {
     const colors = {
-      guidelines: 'bg-blue-100 text-blue-800',
-      submissions: 'bg-green-100 text-green-800',
-      certificates: 'bg-purple-100 text-purple-800',
-      materials: 'bg-orange-100 text-orange-800',
-      reports: 'bg-red-100 text-red-800',
-      templates: 'bg-indigo-100 text-indigo-800',
-      documentation: 'bg-teal-100 text-teal-800'
+      guidelines: 'bg-[#BDD4F2] text-[#121214]',
+      submissions: 'bg-[#B8C96E] text-[#121214]',
+      certificates: 'bg-[#F5C6EC] text-[#121214]',
+      materials: 'bg-[#FCE373] text-[#121214]',
+      reports: 'bg-[#FAF9F6] text-[#121214] border border-[#EAE9E4]',
+      templates: 'bg-[#BDD4F2] text-[#121214]',
+      documentation: 'bg-[#F5C6EC] text-[#121214]'
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-[#FAF9F6] text-[#121214]';
   };
 
   const handleDownload = async (document) => {
@@ -175,8 +175,9 @@ const Documents = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
+          <div className="w-10 h-10 border-3 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-bold text-[#121214]">Memuat basis dokumen...</p>
         </div>
       </Layout>
     );
@@ -186,205 +187,189 @@ const Documents = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">
-                Manajemen Dokumen 📁
-              </h1>
-              <p className="text-blue-100">
-                Kelola semua dokumen program dan submission tugas
-              </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Basis Dokumen & Modul 📁
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Pusat unduhan materi pelatihan, panduan magang, formulir, dan penyerahan tugas resmi
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold bg-[#121214] text-white px-3.5 py-1.5 rounded-full shadow-sm">
+              {safeDocs.length} Dokumen Tersedia
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Pastel Bento Stat Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="rounded-[22px] bg-[#FCE373] text-[#121214] p-4 sm:p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Total Dokumen</span>
+            <div className="text-3xl font-black text-[#121214] my-1">{stats.total}</div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Semua Kategori</span>
+          </div>
+
+          <div className="rounded-[22px] bg-[#B8C96E] text-[#121214] p-4 sm:p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Disetujui</span>
+            <div className="text-3xl font-black text-[#121214] my-1">{stats.approved}</div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Terverifikasi</span>
+          </div>
+
+          <div className="rounded-[22px] bg-[#F5C6EC] text-[#121214] p-4 sm:p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Menunggu</span>
+            <div className="text-3xl font-black text-[#121214] my-1">{stats.pending}</div>
+            <span className="text-[10px] font-bold text-[#121214]/70">Dalam Review</span>
+          </div>
+
+          <div className="rounded-[22px] bg-[#BDD4F2] text-[#121214] p-4 sm:p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Sertifikat</span>
+            <div className="text-3xl font-black text-[#121214] my-1">
+              {safeDocs.filter(d => d.category === 'certificates').length}
             </div>
-            <Folder className="w-12 h-12 text-blue-200" />
+            <span className="text-[10px] font-bold text-[#121214]/70">Kelulusan & Prestasi</span>
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-            <div className="text-sm text-gray-600">Total Dokumen</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
-            <div className="text-sm text-gray-600">Disetujui</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            <div className="text-sm text-gray-600">Menunggu</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-purple-600">{stats.myUploads}</div>
-            <div className="text-sm text-gray-600">Upload Saya</div>
-          </div>
-        </div>
-
-        {/* Search and Upload */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        {/* Search & Category Pills Bento Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-center">
+            {/* Search Input */}
+            <div className="flex-1 w-full flex items-center bg-[#FAF9F6] rounded-full px-3.5 py-2 border border-[#EAE9E4] focus-within:ring-2 focus-within:ring-[#121214]">
+              <div className="w-6 h-6 rounded-full bg-[#F5C6EC] flex items-center justify-center shrink-0 text-[#121214]">
+                <Search className="w-3.5 h-3.5" />
+              </div>
               <input
                 type="text"
-                placeholder="Cari dokumen..."
+                placeholder="Cari berdasarkan nama dokumen, panduan, atau deskripsi..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="bg-transparent border-none outline-none text-xs sm:text-sm text-[#121214] placeholder-[#8A8985] px-3 w-full font-medium"
               />
             </div>
-            
-            {/* Only show upload button for admin and coordinator */}
+
+            {/* Upload Button (if admin/coordinator) */}
             {(user?.role && (user.role.toLowerCase().includes('admin') || user.role.toLowerCase().includes('koordinator'))) && (
-              <div className="flex gap-2">
-                <label className={`flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  <Upload className="w-4 h-4" />
-                  <span>{uploading ? 'Mengupload...' : 'Upload File'}</span>
-                  <input
-                    type="file"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                </label>
-              </div>
+              <label className="cursor-pointer shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-[#121214] hover:bg-neutral-800 text-white rounded-full text-xs font-bold transition-all shadow-sm">
+                <Upload className="w-3.5 h-3.5" />
+                <span>{uploading ? 'Mengunggah...' : 'Unggah File'}</span>
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </label>
             )}
           </div>
-        </div>
 
-        {/* Category Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Kategori Dokumen</h2>
-            <Filter className="w-5 h-5 text-gray-400" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Category Filter Pills (Horizontal Scrollable) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {categories.map((category) => {
               const Icon = category.icon;
+              const isActive = selectedCategory === category.id;
               return (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    selectedCategory === category.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all ${
+                    isActive 
+                      ? 'bg-[#121214] text-white shadow-sm' 
+                      : 'bg-[#FAF9F6] text-[#6E6D6A] border border-[#EAE9E4] hover:text-[#121214] hover:bg-white'
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <Icon className="w-5 h-5 text-gray-600" />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">{category.label}</div>
-                      <div className="text-sm text-gray-500">{category.count} dokumen</div>
-                    </div>
-                  </div>
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{category.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isActive ? 'bg-[#27272A] text-white' : 'bg-[#EAE9E4] text-[#121214]'
+                  }`}>
+                    {category.count}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Documents List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">
+        {/* Documents List Bento Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#EAE9E4] flex items-center justify-between">
+            <h2 className="text-sm sm:text-base font-bold text-[#121214]">
               {selectedCategory === 'all' ? 'Semua Dokumen' : categories.find(c => c.id === selectedCategory)?.label}
-              <span className="text-sm font-normal text-gray-500 ml-2">
-                ({filteredDocuments.length} dokumen)
+              <span className="text-xs font-normal text-[#6E6D6A] ml-2">
+                ({filteredDocuments.length} berkas)
               </span>
             </h2>
+            <span className="text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214] px-3 py-1 rounded-full">
+              PDF / Docs
+            </span>
           </div>
           
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-[#F0EFEA]">
             {filteredDocuments.length > 0 ? (
               filteredDocuments.map((doc) => {
                 const statusConfig = getStatusConfig(doc.status);
                 
                 return (
-                  <div key={doc.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4 flex-1">
-                        <div className="flex-shrink-0">
+                  <div key={doc.id} className="p-5 sm:p-6 hover:bg-[#FAF9F6] transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start space-x-3.5 flex-1 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center shrink-0">
                           {getFileIcon(doc.type)}
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-semibold text-gray-900 truncate">{doc.name}</h3>
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(doc.category)}`}>
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <h3 className="font-bold text-sm text-[#121214] truncate">{doc.name}</h3>
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${getCategoryColor(doc.category)}`}>
                               {categories.find(c => c.id === doc.category)?.label}
                             </span>
                           </div>
                           
-                          <p className="text-sm text-gray-600 mb-3">{doc.description}</p>
+                          <p className="text-xs text-[#6E6D6A] mb-2 line-clamp-1">{doc.description}</p>
                           
-                          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                            <span>💾 {doc.size}</span>
-                            <span>📅 {new Date(doc.uploadDate).toLocaleDateString('id-ID')}</span>
-                            <span>👤 {doc.uploadedBy}</span>
-                            <span>⬇️ {doc.downloadCount} download</span>
-                            <span>{doc.isPublic ? '🌐 Publik' : '🔒 Privat'}</span>
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-[#8A8985]">
+                            <span>💾 {doc.size || '1.2 MB'}</span>
+                            <span>•</span>
+                            <span>📅 {new Date(doc.uploadDate || Date.now()).toLocaleDateString('id-ID')}</span>
+                            <span>•</span>
+                            <span>👤 {doc.uploadedBy || 'Admin BPJS'}</span>
+                            <span>•</span>
+                            <span>⬇️ {doc.downloadCount || 0}x</span>
                           </div>
-
-                          {doc.status === 'rejected' && doc.rejectionReason && (
-                            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                              <strong>Alasan penolakan:</strong> {doc.rejectionReason}
-                            </div>
-                          )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-3 ml-4">
-                        <span className={`px-3 py-1 text-sm font-semibold rounded-full border flex items-center space-x-1 ${statusConfig.color}`}>
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                        <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full border flex items-center gap-1 ${statusConfig.color}`}>
                           {statusConfig.icon}
                           <span>{statusConfig.text}</span>
                         </span>
                         
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleDownload(doc)}
-                            className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Download"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                          <button
-                            className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                            title="Preview"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleDownload(doc)}
+                          className="p-2 bg-[#FAF9F6] hover:bg-[#121214] hover:text-white border border-[#EAE9E4] text-[#121214] rounded-full transition-colors"
+                          title="Unduh Berkas"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="p-8 text-center">
-                <Folder className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">Tidak ada dokumen yang ditemukan</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  {searchQuery ? 'Coba ubah kata kunci pencarian' : 'Tidak ada dokumen dalam kategori ini'}
+              <div className="p-12 text-center">
+                <Folder className="w-10 h-10 text-[#A09F9B] mx-auto mb-3" />
+                <p className="text-sm font-bold text-[#121214]">Tidak ada dokumen yang ditemukan</p>
+                <p className="text-xs text-[#6E6D6A] mt-1">
+                  {searchQuery ? 'Coba ubah kata kunci pencarian Anda.' : 'Belum ada dokumen yang diunggah dalam kategori ini.'}
                 </p>
               </div>
             )}
           </div>
         </div>
-
-        {/* Upload Guidelines - Only show for admin and coordinator */}
-        {(user?.role && (user.role.toLowerCase().includes('admin') || user.role.toLowerCase().includes('koordinator'))) && (
-          <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-900 mb-3">Panduan Upload</h3>
-            <ul className="text-blue-800 space-y-2 text-sm">
-              <li>• Format file yang didukung: PDF, DOCX, XLSX, PPTX, JPG, PNG</li>
-              <li>• Maksimal ukuran file: 10 MB</li>
-              <li>• File submission akan diverifikasi oleh koordinator</li>
-              <li>• Status "Menunggu" berarti file sedang dalam proses review</li>
-              <li>• Hubungi koordinator jika file ditolak tanpa alasan jelas</li>
-            </ul>
-          </div>
-        )}
       </div>
     </Layout>
   );

@@ -3,7 +3,17 @@ import React, { useState } from 'react';
 import Layout from '../Layout/Layout';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
-import { Upload, Download, FileSpreadsheet, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { 
+  Upload, 
+  Download, 
+  FileSpreadsheet, 
+  CheckCircle, 
+  AlertCircle, 
+  FileText,
+  Database,
+  ShieldCheck,
+  Sparkles
+} from 'lucide-react';
 
 const ImportExport = () => {
   const [importFile, setImportFile] = useState(null);
@@ -32,7 +42,6 @@ const ImportExport = () => {
           throw new Error('File Excel/CSV kosong atau format tidak sesuai.');
         }
 
-        // Call backend import API
         const res = await api.post('/users/import', { users: parsedData });
 
         setStatusMsg({
@@ -68,7 +77,6 @@ const ImportExport = () => {
         return;
       }
 
-      // Convert to Excel worksheet
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Data Pengguna');
@@ -97,14 +105,14 @@ const ImportExport = () => {
         full_name: 'Nama Peserta Contoh',
         role_id: 1,
         status: 'Aktif',
-        penempatan: 'Kantor'
+        penempatan: 'Kantor Cabang BPJS'
       },
       {
         unique_id: 'KO999',
         full_name: 'Nama Koordinator Contoh',
         role_id: 2,
         status: 'Aktif',
-        penempatan: 'Kantor'
+        penempatan: 'Kantor Cabang BPJS'
       }
     ];
 
@@ -116,107 +124,176 @@ const ImportExport = () => {
 
   return (
     <Layout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Import & Export Data</h1>
-          <p className="text-sm text-gray-500 mt-1">Sinkronisasi data massal pengguna dan laporan menggunakan format Excel / CSV</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        
+        {/* Header Bento Box */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE373]/50 text-[#856B12]">
+                <FileSpreadsheet className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Integrasi & Sinkronisasi</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Import & Export Data</h1>
+            <p className="text-sm text-[#121214]/60 mt-1">Sinkronisasi data massal akun peserta magang dan koordinator menggunakan berkas Excel / CSV</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDownloadTemplate}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#EAE9E4] bg-white text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition shadow-sm self-start sm:self-auto"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Unduh Template Excel
+          </button>
         </div>
 
+        {/* Status Message */}
         {statusMsg && (
-          <div className={`p-4 rounded-xl flex items-center gap-2 text-sm font-medium ${
-            statusMsg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+          <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-bold ${
+            statusMsg.type === 'success' 
+              ? 'bg-[#B8C96E]/20 text-[#3C4A11] border border-[#B8C96E]' 
+              : 'bg-red-50 text-red-700 border border-red-200'
           }`}>
-            {statusMsg.type === 'success' ? <CheckCircle className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-red-500" />}
+            {statusMsg.type === 'success' ? (
+              <CheckCircle className="w-5 h-5 text-[#627514] shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+            )}
             <span>{statusMsg.message}</span>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Import Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-blue-600" /> Impor Data Pengguna
-              </h2>
-              <button
-                type="button"
-                onClick={handleDownloadTemplate}
-                className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-medium"
-              >
-                <FileText className="w-3.5 h-3.5" /> Unduh Template Excel
-              </button>
-            </div>
-            
-            <p className="text-xs text-gray-500">
-              Unggah file spreadsheet (.xlsx, .xls, .csv) berisi kolom: <code>unique_id</code>, <code>full_name</code>, <code>role_id</code>.
-            </p>
-
-            <form onSubmit={handleImport} className="space-y-4">
-              <div className="border-2 border-dashed border-gray-200 hover:border-blue-400 rounded-2xl p-6 text-center transition-colors">
-                <FileSpreadsheet className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                <input
-                  type="file"
-                  id="importFileInput"
-                  onChange={(e) => setImportFile(e.target.files[0])}
-                  className="hidden"
-                  accept=".csv,.xlsx,.xls"
-                />
-                <label
-                  htmlFor="importFileInput"
-                  className="cursor-pointer text-sm font-semibold text-blue-600 hover:underline block"
-                >
-                  {importFile ? importFile.name : 'Klik untuk memilih file Excel/CSV'}
-                </label>
-                <p className="text-xs text-gray-400 mt-1">Maksimal 10MB</p>
+        {/* 2 Main Action Bento Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Import Card */}
+          <div className="bg-white p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col justify-between space-y-5">
+            <div>
+              <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4] mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
+                  <h2 className="text-base font-bold text-[#121214]">Impor Data Pengguna</h2>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70">
+                  Spreadsheet
+                </span>
               </div>
+              
+              <p className="text-xs text-[#121214]/60 mb-4">
+                Unggah file spreadsheet (<code className="font-mono text-[#121214]">.xlsx</code>, <code className="font-mono text-[#121214]">.csv</code>) dengan kolom identitas yang valid.
+              </p>
 
-              <button
-                type="submit"
-                disabled={!importFile || loading}
-                className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
-              >
-                {loading ? 'Mengimpor Data...' : 'Mulai Proses Impor'}
-              </button>
-            </form>
+              <form onSubmit={handleImport} className="space-y-4">
+                <div className="border-2 border-dashed border-[#EAE9E4] hover:border-[#121214] bg-[#FAF9F6] rounded-2xl p-6 text-center transition-all cursor-pointer">
+                  <FileSpreadsheet className="w-10 h-10 text-[#121214]/40 mx-auto mb-2" />
+                  <input
+                    type="file"
+                    id="importFileInput"
+                    onChange={(e) => setImportFile(e.target.files[0])}
+                    className="hidden"
+                    accept=".csv,.xlsx,.xls"
+                  />
+                  <label
+                    htmlFor="importFileInput"
+                    className="cursor-pointer text-xs sm:text-sm font-bold text-[#121214] hover:underline block"
+                  >
+                    {importFile ? importFile.name : 'Klik untuk memilih file Excel/CSV'}
+                  </label>
+                  <p className="text-[11px] text-[#121214]/40 mt-1">Ukuran maksimal file: 10MB</p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!importFile || loading}
+                  className="w-full py-2.5 px-4 rounded-full text-xs font-bold text-white bg-[#121214] hover:bg-black disabled:opacity-40 transition-all shadow-sm"
+                >
+                  {loading ? 'Mengimpor Data...' : 'Mulai Proses Impor'}
+                </button>
+              </form>
+            </div>
           </div>
 
-          {/* Export Section */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Download className="w-5 h-5 text-green-600" /> Ekspor Data ke Excel
-            </h2>
-            <p className="text-xs text-gray-500">
-              Unduh data master peserta magang atau koordinator langsung dari database Neon PostgreSQL.
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Kategori Data</label>
-                <select
-                  value={exportType}
-                  onChange={(e) => setExportType(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">Semua Pengguna</option>
-                  <option value="participants">Hanya Peserta Magang</option>
-                  <option value="coordinators">Hanya Koordinator</option>
-                </select>
+          {/* Export Card */}
+          <div className="bg-white p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col justify-between space-y-5">
+            <div>
+              <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4] mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
+                  <h2 className="text-base font-bold text-[#121214]">Ekspor Data ke Excel</h2>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70">
+                  Database Neon
+                </span>
               </div>
 
-              <div className="pt-8">
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  disabled={exportLoading}
-                  className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm inline-flex items-center justify-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  {exportLoading ? 'Sedang Mengekspor...' : 'Unduh Data Excel'}
-                </button>
+              <p className="text-xs text-[#121214]/60 mb-4">
+                Unduh snapshot data akun peserta magang atau koordinator langsung dari basis data Neon PostgreSQL.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Kategori Data Pengguna</label>
+                  <select
+                    value={exportType}
+                    onChange={(e) => setExportType(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
+                  >
+                    <option value="all">Semua Pengguna Terdaftar</option>
+                    <option value="participants">Hanya Peserta Magang (Role 1)</option>
+                    <option value="coordinators">Hanya Koordinator Binaan (Role 2)</option>
+                  </select>
+                </div>
+
+                <div className="pt-6">
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    disabled={exportLoading}
+                    className="w-full py-2.5 px-4 rounded-full text-xs font-bold text-white bg-[#121214] hover:bg-black disabled:opacity-40 transition-all shadow-sm inline-flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    {exportLoading ? 'Sedang Mengekspor...' : 'Unduh Berkas Excel (.xlsx)'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* 3 Pastel Feature Highlights */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-[#BDD4F2]/30 rounded-[22px] border border-[#BDD4F2] p-5">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+              </div>
+              <h4 className="text-xs font-bold text-[#121214]">Format Terstandar</h4>
+            </div>
+            <p className="text-[11px] text-[#121214]/70 font-medium">Mendukung format spreadsheet XLSX dan CSV standar industri.</p>
+          </div>
+
+          <div className="bg-[#B8C96E]/30 rounded-[22px] border border-[#B8C96E] p-5">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
+                <ShieldCheck className="w-3.5 h-3.5" />
+              </div>
+              <h4 className="text-xs font-bold text-[#121214]">Validasi Kolom Otomatis</h4>
+            </div>
+            <p className="text-[11px] text-[#121214]/70 font-medium">Mencegah data duplikat atau NIK/ID yang tidak sesuai aturan skema.</p>
+          </div>
+
+          <div className="bg-[#FCE373]/30 rounded-[22px] border border-[#FCE373] p-5">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
+                <Database className="w-3.5 h-3.5" />
+              </div>
+              <h4 className="text-xs font-bold text-[#121214]">Koneksi Langsung Neon</h4>
+            </div>
+            <p className="text-[11px] text-[#121214]/70 font-medium">Data diekstrak secara real-time dari PostgreSQL pooler tanpa jeda cache.</p>
+          </div>
+        </div>
+
       </div>
     </Layout>
   );

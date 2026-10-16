@@ -292,24 +292,24 @@ const Grading = () => {
 
   const getGradeColor = (grade) => {
     const colors = {
-      A: 'bg-green-100 text-green-800 border border-green-200',
-      'B+': 'bg-blue-100 text-blue-800 border border-blue-200',
-      B: 'bg-teal-100 text-teal-800 border border-teal-200',
-      'C+': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-      C: 'bg-orange-100 text-orange-800 border border-orange-200',
-      D: 'bg-red-100 text-red-800 border border-red-200',
-      E: 'bg-gray-100 text-gray-800 border border-gray-200',
+      A: 'bg-[#B8C96E]/40 text-[#3C4A11] border border-[#B8C96E]',
+      'B+': 'bg-[#BDD4F2]/50 text-[#1F4275] border border-[#BDD4F2]',
+      B: 'bg-[#BDD4F2]/40 text-[#1F4275] border border-[#BDD4F2]',
+      'C+': 'bg-[#FCE373]/50 text-[#856B12] border border-[#FCE373]',
+      C: 'bg-[#FCE373]/40 text-[#856B12] border border-[#FCE373]',
+      D: 'bg-[#F5C6EC]/40 text-[#8B2471] border border-[#F5C6EC]',
+      E: 'bg-[#121214]/5 text-[#121214]/60 border border-[#EAE9E4]',
     };
-    return colors[grade] || 'bg-gray-100 text-gray-800';
+    return colors[grade] || 'bg-[#121214]/5 text-[#121214]/60 border border-[#EAE9E4]';
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      graded: 'bg-green-100 text-green-800',
-      submitted: 'bg-blue-100 text-blue-800',
+      pending: 'bg-[#FCE373]/40 text-[#856B12] border border-[#FCE373]',
+      graded: 'bg-[#B8C96E]/40 text-[#3C4A11] border border-[#B8C96E]',
+      submitted: 'bg-[#BDD4F2]/50 text-[#1F4275] border border-[#BDD4F2]',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-[#121214]/5 text-[#121214]/60 border border-[#EAE9E4]';
   };
 
   // Format date to match the design
@@ -324,7 +324,7 @@ const Grading = () => {
       <Layout>
         <div className="p-6">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#121214] border-t-transparent"></div>
           </div>
         </div>
       </Layout>
@@ -509,87 +509,97 @@ const Grading = () => {
 
         {/* Add Participant Modal */}
         {showAddParticipantModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Tambah Peserta ke Grading</h3>
+          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 sm:p-7">
+                <div className="flex items-center justify-between pb-4 border-b border-[#EAE9E4] mb-4">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-[#121214]">Tambah Peserta ke Penilaian</h3>
+                    <p className="text-xs text-[#121214]/50">Pilih peserta yang akan dimasukkan ke tabel evaluasi</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowAddParticipantModal(false);
+                      setError(null);
+                    }}
+                    className="w-8 h-8 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition"
+                  >
+                    ✕
+                  </button>
+                </div>
 
                 {/* Info Coordinator */}
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-700">
-                    <strong>Info:</strong> Menampilkan peserta dari <strong>Koordinator: {user?.full_name}</strong> (ID: {user?.user_id}) yang belum memiliki data grading
-                  </p>
+                <div className="mb-4 p-3.5 bg-[#BDD4F2]/20 border border-[#BDD4F2] rounded-2xl text-xs font-medium text-[#1F4275]">
+                  Menampilkan peserta binaan <strong>{user?.full_name}</strong> yang belum memiliki entri grading.
                 </div>
 
                 {/* Error Display */}
                 {error && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <p className="text-sm text-red-700">{error}</p>
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl text-xs font-bold text-red-700">
+                    {error}
                   </div>
                 )}
 
                 <div className="mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-gray-600">Pilih peserta dari koordinator Anda yang belum memiliki data grading:</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-bold text-[#121214]">Daftar Peserta Tersedia:</p>
                     {availableParticipants.length > 0 && (
-                      <div className="flex items-center space-x-2">
+                      <label className="flex items-center space-x-2 text-xs font-bold text-[#121214] cursor-pointer">
                         <input
                           type="checkbox"
                           id="select-all"
                           checked={selectAll}
                           onChange={toggleSelectAll}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 accent-[#121214] rounded"
                         />
-                        <label htmlFor="select-all" className="text-sm text-gray-700">
-                          Pilih Semua ({selectedParticipants.length} dari {availableParticipants.length})
-                        </label>
-                      </div>
+                        <span>Pilih Semua ({selectedParticipants.length}/{availableParticipants.length})</span>
+                      </label>
                     )}
                   </div>
 
                   {loadingParticipants ? (
-                    <div className="flex justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span className="ml-2 text-sm text-gray-600">Memuat peserta...</span>
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#121214] border-t-transparent mb-2"></div>
+                      <span className="text-xs font-bold text-[#121214]/60">Memuat peserta...</span>
                     </div>
                   ) : availableParticipants.length === 0 ? (
-                    <div className="text-center py-8">
-                      <div className="text-gray-400 text-4xl mb-2">👥</div>
-                      <p className="text-sm text-gray-500">Tidak ada peserta yang tersedia</p>
-                      <p className="text-xs text-gray-400 mt-1">Semua peserta dari koordinator Anda sudah memiliki data grading</p>
+                    <div className="text-center py-8 bg-[#FAF9F6] rounded-2xl border border-[#EAE9E4]">
+                      <div className="text-gray-400 text-3xl mb-2">👥</div>
+                      <p className="text-xs font-bold text-[#121214]">Tidak ada peserta yang tersedia</p>
+                      <p className="text-[11px] text-[#121214]/50 mt-1">Semua peserta binaan Anda sudah terdaftar di penilaian.</p>
                     </div>
                   ) : (
-                    <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-md">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <div className="max-h-64 overflow-y-auto border border-[#EAE9E4] rounded-2xl">
+                      <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+                        <thead className="bg-[#FAF9F6]">
                           <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase w-12">
+                            <th className="px-4 py-2.5 text-left w-12">
                               <input
                                 type="checkbox"
                                 id="select-all-header"
                                 checked={selectAll}
                                 onChange={toggleSelectAll}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                className="h-4 w-4 accent-[#121214] rounded"
                               />
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Peserta</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th className="px-4 py-2.5 text-left font-bold text-[#121214]/70">Nama Peserta</th>
+                            <th className="px-4 py-2.5 text-left font-bold text-[#121214]/70">ID Unik</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white divide-y divide-[#EAE9E4]">
                           {availableParticipants.map((participant) => (
-                            <tr key={participant.user_id} className="hover:bg-gray-50">
-                              <td className="px-4 py-2">
+                            <tr key={participant.user_id} className="hover:bg-[#FAF9F6] transition">
+                              <td className="px-4 py-2.5">
                                 <input
                                   type="checkbox"
                                   id={`participant-${participant.user_id}`}
                                   checked={selectedParticipants.includes(participant.user_id)}
                                   onChange={() => toggleParticipantSelection(participant.user_id)}
-                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                  className="h-4 w-4 accent-[#121214] rounded"
                                 />
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">{participant.full_name}</td>
-                              <td className="px-4 py-2 text-sm text-gray-500">{participant.unique_id}</td>
+                              <td className="px-4 py-2.5 font-bold text-[#121214]">{participant.full_name}</td>
+                              <td className="px-4 py-2.5 text-[#121214]/60 font-medium">{participant.unique_id}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -598,29 +608,32 @@ const Grading = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end space-x-3">
+                <div className="flex justify-end items-center gap-2.5 pt-3 border-t border-[#EAE9E4]">
                   <button
                     onClick={() => {
                       setShowAddParticipantModal(false);
                       setError(null);
                     }}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
                   >
                     Tutup
                   </button>
-                  <button onClick={fetchAvailableParticipants} className="px-4 py-2 bg-gray-300 text-white rounded-md hover:bg-gray-400">
-                    Refresh
+                  <button 
+                    onClick={fetchAvailableParticipants} 
+                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
+                  >
+                    Segarkan
                   </button>
                   <button
                     onClick={addMultipleParticipantsToGrading}
                     disabled={selectedParticipants.length === 0}
-                    className={`px-4 py-2 rounded-md text-white ${
+                    className={`px-6 py-2.5 rounded-full text-xs font-bold transition shadow-sm ${
                       selectedParticipants.length === 0
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700'
+                        ? 'bg-[#121214]/20 text-[#121214]/40 cursor-not-allowed'
+                        : 'bg-[#121214] hover:bg-black text-white'
                     }`}
                   >
-                    Tambah {selectedParticipants.length > 0 ? selectedParticipants.length : ''} Peserta
+                    Tambahkan {selectedParticipants.length > 0 ? `(${selectedParticipants.length})` : ''} Peserta
                   </button>
                 </div>
               </div>
@@ -630,18 +643,33 @@ const Grading = () => {
 
         {/* Grade Modal - Updated to include all fields */}
         {showGradeModal && selectedAssignment && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Nilai & Progress - {selectedAssignment.participant_name}</h3>
+          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 sm:p-7">
+                <div className="flex items-center justify-between pb-4 border-b border-[#EAE9E4] mb-5">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-[#121214]">
+                      Edit Nilai & Progress — {selectedAssignment.participant_name}
+                    </h3>
+                    <p className="text-xs text-[#121214]/50">Perbarui komponen evaluasi tugas dan penetapan nilai resmi</p>
+                  </div>
+                  <button
+                    onClick={() => setShowGradeModal(false)}
+                    className="w-8 h-8 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition"
+                  >
+                    ✕
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   {/* Scores Section */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-700 border-b pb-2">Nilai & Grade</h4>
+                  <div className="space-y-4 bg-[#FAF9F6] p-5 rounded-2xl border border-[#EAE9E4]">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-[#121214] pb-2 border-b border-[#EAE9E4]">
+                      Nilai Akhir & Grade
+                    </h4>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Score (%)</label>
+                      <label className="block text-xs font-bold text-[#121214] mb-1.5">Skor Akhir (0 - 100%)</label>
                       <input
                         type="number"
                         min="0"
@@ -653,13 +681,13 @@ const Grading = () => {
                             nilai: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter score"
+                        className="w-full px-4 py-2.5 bg-white border border-[#EAE9E4] rounded-xl text-sm font-bold text-[#121214] focus:outline-none focus:border-[#121214] transition"
+                        placeholder="Contoh: 88"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
+                      <label className="block text-xs font-bold text-[#121214] mb-1.5">Penetapan Grade</label>
                       <select
                         value={editData.grade || ''}
                         onChange={(e) =>
@@ -668,27 +696,29 @@ const Grading = () => {
                             grade: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2.5 bg-white border border-[#EAE9E4] rounded-xl text-sm font-bold text-[#121214] focus:outline-none focus:border-[#121214] transition cursor-pointer"
                       >
-                        <option value="">Select Grade</option>
-                        <option value="A">A</option>
-                        <option value="B+">B+</option>
-                        <option value="B">B</option>
-                        <option value="C+">C+</option>
-                        <option value="C">C</option>
-                        <option value="D">D</option>
-                        <option value="E">E</option>
+                        <option value="">Pilih Grade</option>
+                        <option value="A">Grade A (Sangat Memuaskan)</option>
+                        <option value="B+">Grade B+ (Memuaskan)</option>
+                        <option value="B">Grade B (Baik)</option>
+                        <option value="C+">Grade C+ (Cukup Baik)</option>
+                        <option value="C">Grade C (Cukup)</option>
+                        <option value="D">Grade D (Kurang)</option>
+                        <option value="E">Grade E (Gagal)</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Progress Components Section */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-700 border-b pb-2">Komponen Progress</h4>
+                  <div className="space-y-4 bg-[#FAF9F6] p-5 rounded-2xl border border-[#EAE9E4]">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-[#121214] pb-2 border-b border-[#EAE9E4]">
+                      Komponen Target Lapangan
+                    </h4>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Kunjungan BPU</label>
+                        <label className="block text-xs font-bold text-[#121214] mb-1">Kunjungan BPU</label>
                         <input
                           type="number"
                           min="0"
@@ -699,12 +729,12 @@ const Grading = () => {
                               kunjungan_bpu: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:border-[#121214]"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Hasil Akuisisi BPU</label>
+                        <label className="block text-xs font-bold text-[#121214] mb-1">Hasil Akuisisi</label>
                         <input
                           type="number"
                           min="0"
@@ -715,12 +745,12 @@ const Grading = () => {
                               hasil_akuisisi_bpu: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:border-[#121214]"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Kunjungan PU</label>
+                        <label className="block text-xs font-bold text-[#121214] mb-1">Kunjungan PU</label>
                         <input
                           type="number"
                           min="0"
@@ -731,12 +761,12 @@ const Grading = () => {
                               kunjungan_pu: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:border-[#121214]"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Video Viralisasi</label>
+                        <label className="block text-xs font-bold text-[#121214] mb-1">Video Viralisasi</label>
                         <input
                           type="number"
                           min="0"
@@ -747,12 +777,12 @@ const Grading = () => {
                               video_viralisasi: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:border-[#121214]"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Kehadiran Seminar</label>
+                        <label className="block text-xs font-bold text-[#121214] mb-1">Kehadiran Seminar</label>
                         <input
                           type="number"
                           min="0"
@@ -763,12 +793,12 @@ const Grading = () => {
                               kehadiran_seminar: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:border-[#121214]"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Kehadiran Sosialisasi</label>
+                        <label className="block text-xs font-bold text-[#121214] mb-1">Sosialisasi</label>
                         <input
                           type="number"
                           min="0"
@@ -779,19 +809,25 @@ const Grading = () => {
                               kehadiran_sosialisasi: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:border-[#121214]"
                         />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3">
-                  <button onClick={() => setShowGradeModal(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
-                    Cancel
+                <div className="flex justify-end items-center gap-2.5 pt-4 border-t border-[#EAE9E4]">
+                  <button 
+                    onClick={() => setShowGradeModal(false)} 
+                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
+                  >
+                    Batal
                   </button>
-                  <button onClick={saveAllData} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                    Simpan Semua
+                  <button 
+                    onClick={saveAllData} 
+                    className="px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm"
+                  >
+                    Simpan Perubahan Nilai
                   </button>
                 </div>
               </div>
@@ -801,55 +837,83 @@ const Grading = () => {
 
         {/* Detail Modal */}
         {showDetailModal && selectedParticipant && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Detail Peserta - {selectedParticipant.participant.full_name}</h3>
+          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 sm:p-7">
+                <div className="flex items-center justify-between pb-4 border-b border-[#EAE9E4] mb-5">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-[#121214]">
+                      Detail Evaluasi — {selectedParticipant.participant.full_name}
+                    </h3>
+                    <p className="text-xs text-[#121214]/50">Ringkasan profil dan pencapaian tugas peserta</p>
+                  </div>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="w-8 h-8 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-medium text-gray-700 mb-2">Informasi Peserta</h4>
-                    <div className="space-y-2 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-[#FAF9F6] p-5 rounded-2xl border border-[#EAE9E4]">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-[#121214]/70 mb-3">
+                      Identitas Peserta
+                    </h4>
+                    <div className="space-y-2 text-xs">
                       <div>
-                        <strong>ID:</strong> {selectedParticipant.participant.unique_id}
+                        <span className="text-[#121214]/50">ID Unik:</span>{' '}
+                        <strong className="text-[#121214]">{selectedParticipant.participant.unique_id}</strong>
                       </div>
                       <div>
-                        <strong>Koordinator:</strong> {selectedParticipant.participant.coordinator?.name || 'Tidak ada'}
+                        <span className="text-[#121214]/50">Koordinator Pembimbing:</span>{' '}
+                        <strong className="text-[#121214]">{selectedParticipant.participant.coordinator?.name || 'Belum diatur'}</strong>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h4 className="font-medium text-blue-700 mb-2">Nilai</h4>
-                    <div className="space-y-2 text-sm">
+                  <div className="bg-[#FCE373]/25 p-5 rounded-2xl border border-[#FCE373]">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-[#856B12] mb-3">
+                      Pencapaian Nilai
+                    </h4>
+                    <div className="space-y-2 text-xs">
                       <div>
-                        <strong>Total Poin:</strong> {selectedParticipant.scores.total_poin}
+                        <span className="text-[#856B12]">Total Poin:</span>{' '}
+                        <strong className="text-[#121214]">{selectedParticipant.scores.total_poin}</strong>
                       </div>
                       <div>
-                        <strong>Nilai:</strong> {selectedParticipant.scores.nilai || 'Belum diatur'}
+                        <span className="text-[#856B12]">Nilai Agregat:</span>{' '}
+                        <strong className="text-[#121214]">{selectedParticipant.scores.nilai ? `${selectedParticipant.scores.nilai}%` : 'Belum dinilai'}</strong>
                       </div>
                       <div>
-                        <strong>Grade:</strong>
-                        <span className={`ml-2 px-2 py-1 text-xs rounded-full ${getGradeColor(selectedParticipant.scores.grade)}`}>{selectedParticipant.scores.grade || 'Belum diatur'}</span>
+                        <span className="text-[#856B12]">Grade Resmi:</span>
+                        <span className="ml-2 font-bold text-[#121214] bg-white px-2 py-0.5 rounded-full border border-[#FCE373]">
+                          {selectedParticipant.scores.grade || '-'}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <h4 className="font-medium text-gray-700 mb-3">Komponen Progress</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-[#121214]/70 mb-3">
+                    Komponen Capaian Target
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {Object.entries(selectedParticipant.components).map(([key, value]) => (
-                      <div key={key} className="bg-white border border-gray-200 p-4 rounded-lg">
-                        <div className="text-sm font-medium text-gray-600 capitalize">{key.replace(/_/g, ' ')}</div>
-                        <div className="text-lg font-bold text-gray-900">{value}</div>
+                      <div key={key} className="bg-white border border-[#EAE9E4] p-4 rounded-2xl shadow-sm">
+                        <div className="text-[11px] font-bold text-[#121214]/60 capitalize">{key.replace(/_/g, ' ')}</div>
+                        <div className="text-lg font-black text-[#121214] mt-1">{value}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <button onClick={() => setShowDetailModal(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                <div className="flex justify-end pt-3 border-t border-[#EAE9E4]">
+                  <button 
+                    onClick={() => setShowDetailModal(false)} 
+                    className="px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm"
+                  >
                     Tutup
                   </button>
                 </div>
