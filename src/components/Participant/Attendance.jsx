@@ -21,16 +21,60 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
-  const isSuccess = type === 'success';
+  const getColorConfig = () => {
+    switch (type) {
+      case 'success':
+        return {
+          bg: 'bg-[#B8C96E] text-[#121214]',
+          icon: <CheckCircle className="w-4 h-4 text-[#121214] shrink-0" />,
+          badge: 'Berhasil'
+        };
+      case 'error':
+        return {
+          bg: 'bg-[#F5C6EC] text-[#121214]',
+          icon: <XCircle className="w-4 h-4 text-[#121214] shrink-0" />,
+          badge: 'Pemberitahuan'
+        };
+      case 'warning':
+        return {
+          bg: 'bg-[#FCE373] text-[#121214]',
+          icon: <AlertTriangle className="w-4 h-4 text-[#121214] shrink-0" />,
+          badge: 'Perhatian'
+        };
+      case 'info':
+      default:
+        return {
+          bg: 'bg-[#BDD4F2] text-[#121214]',
+          icon: <AlertCircle className="w-4 h-4 text-[#121214] shrink-0" />,
+          badge: 'Informasi'
+        };
+    }
+  };
+
+  const { bg, icon, badge } = getColorConfig();
 
   return (
-    <div className="fixed top-6 right-6 z-50 animate-in slide-in-from-right duration-200">
-      <div className={`px-5 py-3 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-center justify-between gap-3 text-xs font-black ${
-        isSuccess ? 'bg-[#B8C96E] text-[#121214]' : 'bg-[#F5C6EC] text-[#121214]'
-      }`}>
-        <span>{message}</span>
-        <button onClick={onClose} className="p-0.5 hover:opacity-70">
-          <X className="w-3.5 h-3.5" />
+    <div className="fixed top-5 right-5 z-[9999] animate-in slide-in-from-top-3 duration-200">
+      <div className={`${bg} px-4 py-3 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-start justify-between gap-3 min-w-[280px] max-w-sm sm:max-w-md`}>
+        <div className="flex items-start gap-2.5 min-w-0">
+          <div className="w-6 h-6 rounded-lg bg-[#121214] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-[1px_1px_0px_#121214]">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/70 block">
+              {badge}
+            </span>
+            <p className="text-xs font-black text-[#121214] leading-snug break-words">
+              {message}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1 rounded-lg hover:bg-black/10 active:scale-95 transition-all text-[#121214] shrink-0 mt-0.5"
+          aria-label="Tutup notifikasi"
+        >
+          <X className="w-4 h-4" />
         </button>
       </div>
     </div>

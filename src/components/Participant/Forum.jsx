@@ -3,6 +3,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import { 
   MessageSquare, Search, Plus, Pin, Users, Eye, 
   Send, Clock, User, ArrowLeft, CheckCircle
@@ -10,6 +11,7 @@ import {
 
 const ParticipantForum = () => {
   const { user } = useContext(AuthContext);
+  const { toast } = useToast();
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -66,8 +68,9 @@ const ParticipantForum = () => {
       setNewTopicDesc('');
       setShowCreateModal(false);
       loadTopics();
+      toast.success('Topik forum berhasil dibuat!');
     } catch (err) {
-      alert('Gagal membuat topik: ' + err.message);
+      toast.error('Gagal membuat topik: ' + err.message);
     }
   };
 
@@ -81,9 +84,10 @@ const ParticipantForum = () => {
       if (res.data.success) {
         setMessages([...messages, res.data.data]);
         setReplyContent('');
+        toast.success('Pesan balasan terkirim!');
       }
     } catch (err) {
-      alert('Gagal mengirim pesan: ' + err.message);
+      toast.error('Gagal mengirim pesan: ' + err.message);
     }
   };
 

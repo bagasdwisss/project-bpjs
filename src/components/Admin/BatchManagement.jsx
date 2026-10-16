@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import batchService from '../../services/batchService';
 import userService from '../../services/userService';
+import { useToast } from '../../context/ToastContext';
 import { Calendar, Users, Plus, Edit2, Trash2, UserPlus, CheckCircle, Clock, X } from 'lucide-react';
 
 function AdminBatchManagement() {
+  const { toast } = useToast();
   const [batches, setBatches] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,16 +84,15 @@ function AdminBatchManagement() {
     try {
       if (selectedBatch) {
         await batchService.update(selectedBatch.batch_id, formData);
-        setSuccessMsg('Batch berhasil diperbarui!');
+        toast.success('Batch berhasil diperbarui!');
       } else {
         await batchService.create(formData);
-        setSuccessMsg('Batch baru berhasil dibuat!');
+        toast.success('Batch baru berhasil dibuat!');
       }
       setShowModal(false);
       loadData();
-      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
-      alert('Gagal menyimpan batch: ' + (err.response?.data?.message || err.message));
+      toast.error('Gagal menyimpan batch: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -99,11 +100,10 @@ function AdminBatchManagement() {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus "${name}"?`)) return;
     try {
       await batchService.delete(id);
-      setSuccessMsg(`Batch "${name}" berhasil dihapus.`);
+      toast.success(`Batch "${name}" berhasil dihapus.`);
       loadData();
-      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
-      alert('Gagal menghapus batch: ' + (err.response?.data?.message || err.message));
+      toast.error('Gagal menghapus batch: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -126,12 +126,11 @@ function AdminBatchManagement() {
     if (!selectedBatch) return;
     try {
       await batchService.assignParticipants(selectedBatch.batch_id, selectedUsers);
-      setSuccessMsg(`Daftar peserta untuk "${selectedBatch.batch_name}" berhasil diperbarui.`);
+      toast.success(`Daftar peserta untuk "${selectedBatch.batch_name}" berhasil diperbarui.`);
       setShowAssignModal(false);
       loadData();
-      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
-      alert('Gagal menugaskan peserta: ' + (err.response?.data?.message || err.message));
+      toast.error('Gagal menugaskan peserta: ' + (err.response?.data?.message || err.message));
     }
   };
 

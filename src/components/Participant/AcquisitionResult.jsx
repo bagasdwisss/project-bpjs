@@ -4,7 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import Layout from '../Layout/Layout';
 import api from '../../services/api';
 
-// Komponen Toast
+// Komponen Toast Berwarna Sistem Intelly Soft Neo-Brutalism
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -14,48 +14,60 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
-  const getBackgroundColor = () => {
+  const getColorConfig = () => {
     switch (type) {
       case 'success':
-        return 'bg-green-500 border-green-600';
+        return {
+          bg: 'bg-[#B8C96E] text-[#121214]',
+          icon: <CheckCircle className="w-4 h-4 text-[#121214] shrink-0" />,
+          badge: 'Berhasil'
+        };
       case 'error':
-        return 'bg-red-500 border-red-600';
+        return {
+          bg: 'bg-[#F5C6EC] text-[#121214]',
+          icon: <XCircle className="w-4 h-4 text-[#121214] shrink-0" />,
+          badge: 'Pemberitahuan'
+        };
       case 'warning':
-        return 'bg-yellow-500 border-yellow-600';
+        return {
+          bg: 'bg-[#FCE373] text-[#121214]',
+          icon: <AlertCircle className="w-4 h-4 text-[#121214] shrink-0" />,
+          badge: 'Perhatian'
+        };
       case 'info':
-        return 'bg-[#121214] border-[#121214]';
       default:
-        return 'bg-[#121214] border-[#121214]';
+        return {
+          bg: 'bg-[#BDD4F2] text-[#121214]',
+          icon: <AlertCircle className="w-4 h-4 text-[#121214] shrink-0" />,
+          badge: 'Informasi'
+        };
     }
   };
 
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="w-5 h-5" />;
-      case 'error':
-        return <XCircle className="w-5 h-5" />;
-      case 'warning':
-        return <AlertCircle className="w-5 h-5" />;
-      case 'info':
-        return <AlertCircle className="w-5 h-5" />;
-      default:
-        return <AlertCircle className="w-5 h-5" />;
-    }
-  };
+  const { bg, icon, badge } = getColorConfig();
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
-      <div className={`${getBackgroundColor()} text-white px-6 py-4 rounded-lg shadow-lg flex items-center justify-between min-w-80 max-w-md border`}>
-        <div className="flex items-center space-x-3">
-          {getIcon()}
-          <span className="text-sm font-medium">{message}</span>
+    <div className="fixed top-5 right-5 z-[9999] animate-in slide-in-from-top-3 duration-200">
+      <div className={`${bg} px-4 py-3 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-start justify-between gap-3 min-w-[280px] max-w-sm sm:max-w-md`}>
+        <div className="flex items-start gap-2.5 min-w-0">
+          <div className="w-6 h-6 rounded-lg bg-[#121214] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-[1px_1px_0px_#121214]">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/70 block">
+              {badge}
+            </span>
+            <p className="text-xs font-black text-[#121214] leading-snug break-words">
+              {message}
+            </p>
+          </div>
         </div>
         <button
           onClick={onClose}
-          className="ml-4 text-white hover:text-gray-200 focus:outline-none text-lg font-bold transition-colors"
+          className="p-1 rounded-lg hover:bg-black/10 active:scale-95 transition-all text-[#121214] shrink-0 mt-0.5"
+          aria-label="Tutup notifikasi"
         >
-          ×
+          <XCircle className="w-4 h-4" />
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Layout from '../Layout/Layout';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import { 
   Upload, 
   Download, 
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 const ImportExport = () => {
+  const { toast } = useToast();
   const [importFile, setImportFile] = useState(null);
   const [exportType, setExportType] = useState('all');
   const [loading, setLoading] = useState(false);
@@ -73,7 +75,7 @@ const ImportExport = () => {
       const data = res.data.data || res.data || [];
 
       if (data.length === 0) {
-        alert('Tidak ada data untuk diekspor.');
+        toast.warning('Tidak ada data untuk diekspor.');
         return;
       }
 

@@ -8,9 +8,11 @@ import {
 } from 'lucide-react';
 
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 const Documents = () => {
   const { user } = useContext(AuthContext);
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,7 +122,7 @@ const Documents = () => {
       );
     } catch (error) {
       console.error('Error downloading document:', error);
-      alert('Terjadi kesalahan saat mengunduh dokumen.');
+      toast.error('Terjadi kesalahan saat mengunduh dokumen.');
     }
   };
 
@@ -138,18 +140,18 @@ const Documents = () => {
 
           if (res.data.success) {
             setDocuments(prev => [res.data.data, ...prev]);
-            alert('File berhasil diupload!');
+            toast.success('File berhasil diupload!');
           }
         } catch (error) {
           console.error('Error uploading file:', error);
-          alert('Gagal mengupload file: ' + (error.response?.data?.message || error.message));
+          toast.error('Gagal mengupload file: ' + (error.response?.data?.message || error.message));
         } finally {
           setUploading(false);
           event.target.value = '';
         }
       }
     } else {
-      alert('Hanya admin dan koordinator yang dapat mengupload dokumen.');
+      toast.warning('Hanya admin dan koordinator yang dapat mengupload dokumen.');
       event.target.value = '';
     }
   };

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import { notificationService } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { 
   Bell, 
   Plus, 
@@ -21,6 +22,7 @@ import {
 
 const Reminders = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -73,11 +75,11 @@ const Reminders = () => {
         });
         setShowCreateForm(false);
         loadNotifications();
-        alert(response.data.message || 'Notifikasi berhasil dikirim');
+        toast.success(response.data.message || 'Notifikasi berhasil dikirim');
       }
     } catch (error) {
       console.error('Error creating notification:', error);
-      alert('Gagal membuat notifikasi: ' + (error.response?.data?.message || error.message));
+      toast.error('Gagal membuat notifikasi: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -87,11 +89,12 @@ const Reminders = () => {
     try {
       const response = await notificationService.coordinatorDelete(id);
       if (response.data.success) {
+        toast.success('Notifikasi berhasil dihapus');
         loadNotifications();
       }
     } catch (error) {
       console.error('Error deleting notification:', error);
-      alert('Gagal menghapus notifikasi: ' + (error.response?.data?.message || error.message));
+      toast.error('Gagal menghapus notifikasi: ' + (error.response?.data?.message || error.message));
     }
   };
 

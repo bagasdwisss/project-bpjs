@@ -4,6 +4,7 @@ import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
 import userService from '../../services/userService';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import LiveChatModal from '../Common/LiveChatModal';
 import { 
   Users, TrendingUp, Award, Clock, CheckCircle, 
@@ -14,6 +15,7 @@ import {
 
 const CoordinatorDashboard = () => {
   const { user } = useContext(AuthContext);
+  const { toast } = useToast();
   const [participants, setParticipants] = useState([]);
   const [progressData, setProgressData] = useState({});
   const [selectedParticipant, setSelectedParticipant] = useState(null);
@@ -120,11 +122,11 @@ const CoordinatorDashboard = () => {
       });
 
       if (res.data?.success) {
-        alert(`Pengajuan berhasil di-${status.toLowerCase()}`);
+        toast.success(`Pengajuan berhasil di-${status.toLowerCase()}`);
         loadPendingLeaves();
       }
     } catch (err) {
-      alert('Gagal memverifikasi pengajuan: ' + (err.response?.data?.message || err.message));
+      toast.error('Gagal memverifikasi pengajuan: ' + (err.response?.data?.message || err.message));
     }
   };
 

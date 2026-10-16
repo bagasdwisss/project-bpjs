@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import { notificationService } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { 
   Bell, 
   Trash2, 
@@ -17,6 +18,7 @@ import {
 
 const Notifications = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -85,10 +87,11 @@ const Notifications = () => {
       if (response.data?.success) {
         setNotifications(prev => prev.filter(n => n.notification_id !== id));
         loadUnreadCount();
+        toast.success('Notifikasi berhasil dihapus.');
       }
     } catch (error) {
       console.error('Error deleting notification:', error);
-      alert('Gagal menghapus notifikasi: ' + (error.response?.data?.message || error.message));
+      toast.error('Gagal menghapus notifikasi: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -98,9 +101,11 @@ const Notifications = () => {
       const response = await notificationService.clearAllRead();
       if (response.data?.success) {
         setNotifications(prev => prev.filter(n => !n.is_read));
+        toast.success('Notifikasi yang terbaca berhasil dibersihkan.');
       }
     } catch (error) {
       console.error('Error clearing read notifications:', error);
+      toast.error('Gagal membersihkan notifikasi: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -111,9 +116,11 @@ const Notifications = () => {
       if (response.data?.success) {
         setNotifications([]);
         setUnreadCount(0);
+        toast.success('Seluruh notifikasi berhasil dibersihkan.');
       }
     } catch (error) {
       console.error('Error clearing all notifications:', error);
+      toast.error('Gagal membersihkan semua notifikasi: ' + (error.response?.data?.message || error.message));
     }
   };
 

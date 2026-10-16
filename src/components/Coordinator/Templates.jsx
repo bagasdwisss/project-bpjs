@@ -1,6 +1,6 @@
-// src/components/Coordinator/Templates.jsx
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
+import { useToast } from '../../context/ToastContext';
 import { 
   FileText, 
   Download, 
@@ -51,6 +51,7 @@ const defaultTemplates = [
 ];
 
 const Templates = () => {
+  const { toast } = useToast();
   const [templates, setTemplates] = useState(() => {
     const saved = localStorage.getItem('bpjs_templates');
     return saved ? JSON.parse(saved) : defaultTemplates;
@@ -89,11 +90,13 @@ const Templates = () => {
     setTemplates([created, ...templates]);
     setNewTemplate({ name: '', category: 'forms', status: 'active' });
     setShowCreateModal(false);
+    toast.success(`Template "${created.name}" berhasil ditambahkan!`);
   };
 
   const handleDeleteTemplate = (id, name) => {
     if (!window.confirm(`Hapus template "${name}"?`)) return;
     setTemplates(templates.filter((t) => t.id !== id));
+    toast.success(`Template "${name}" berhasil dihapus.`);
   };
 
   const getCategoryConfig = (category) => {
@@ -244,7 +247,7 @@ const Templates = () => {
 
                   <div className="flex items-center justify-between gap-2 pt-1">
                     <button
-                      onClick={() => alert(`Mengunduh berkas template: ${template.name}`)}
+                      onClick={() => toast.info(`Mengunduh berkas template: ${template.name}`)}
                       className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 bg-[#121214] hover:bg-black text-white rounded-full text-xs font-bold transition-all shadow-sm"
                     >
                       <Download className="w-3.5 h-3.5" /> Unduh Dokumen

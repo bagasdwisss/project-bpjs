@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import reportService from '../../services/reportService';
+import { useToast } from '../../context/ToastContext';
 import { 
   FileText, 
   Download, 
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 const Reports = () => {
+  const { toast } = useToast();
   const [selectedReport, setSelectedReport] = useState('monthly');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [history, setHistory] = useState([]);
@@ -69,7 +71,7 @@ const Reports = () => {
         setTimeout(() => setSuccessMsg(''), 4000);
       }
     } catch (err) {
-      alert('Gagal menghasilkan laporan: ' + (err.response?.data?.message || err.message));
+      toast.error('Gagal menghasilkan laporan: ' + (err.response?.data?.message || err.message));
     } finally {
       setGenerating(false);
     }
@@ -269,7 +271,7 @@ const Reports = () => {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <button
-                          onClick={() => alert(`Mengunduh file: ${rep.report_name}`)}
+                          onClick={() => toast.info(`Mengunduh file: ${rep.report_name}`)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#121214] hover:bg-black text-white rounded-full text-xs font-bold transition shadow-sm"
                         >
                           <Download className="w-3.5 h-3.5" /> Unduh

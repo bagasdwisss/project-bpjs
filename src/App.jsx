@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { DashboardProvider } from './context/DashboardContext';
+import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Auth/Login';
 
@@ -42,8 +43,9 @@ import './App.css';
 function App() {
   return (
     <AuthProvider>
-      <DashboardProvider>
-        <Router>
+      <ToastProvider>
+        <DashboardProvider>
+          <Router>
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
@@ -187,8 +189,9 @@ function App() {
           </Routes>
         </Router>
       </DashboardProvider>
-    </AuthProvider>
-  );
+    </ToastProvider>
+  </AuthProvider>
+);
 }
 
 export default App;

@@ -3,10 +3,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import Layout from '../Layout/Layout';
 import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { MessageSquare, Plus, Send, Clock, User, ArrowLeft, Pin, CheckCircle } from 'lucide-react';
 
 const CoordinatorForum = () => {
   const { user } = useContext(AuthContext);
+  const { toast } = useToast();
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -63,8 +65,9 @@ const CoordinatorForum = () => {
       setNewTopicDesc('');
       setShowCreateModal(false);
       loadTopics();
+      toast.success('Topik forum berhasil dibuat!');
     } catch (err) {
-      alert('Gagal membuat topik: ' + err.message);
+      toast.error('Gagal membuat topik: ' + err.message);
     }
   };
 
@@ -78,9 +81,10 @@ const CoordinatorForum = () => {
       if (res.data.success) {
         setMessages([...messages, res.data.data]);
         setReplyContent('');
+        toast.success('Pesan balasan terkirim!');
       }
     } catch (err) {
-      alert('Gagal mengirim pesan: ' + err.message);
+      toast.error('Gagal mengirim pesan: ' + err.message);
     }
   };
 

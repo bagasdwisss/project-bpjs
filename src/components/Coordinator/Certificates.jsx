@@ -4,6 +4,7 @@ import Layout from '../Layout/Layout';
 import reportService from '../../services/reportService';
 import userService from '../../services/userService';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import { 
   Award, 
   Download, 
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 
 const Certificates = () => {
+  const { toast } = useToast();
   const [certificates, setCertificates] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ const Certificates = () => {
   const handleGenerateCertificate = async (e) => {
     e.preventDefault();
     if (!formData.participant_id) {
-      alert('Silakan pilih peserta terlebih dahulu.');
+      toast.warning('Silakan pilih peserta terlebih dahulu.');
       return;
     }
     try {
@@ -76,14 +78,13 @@ const Certificates = () => {
         score_average: 92.5
       });
       if (res.data.success) {
-        setSuccessMsg(res.data.message || 'E-Sertifikat terverifikasi berhasil diterbitkan!');
+        toast.success(res.data.message || 'E-Sertifikat terverifikasi berhasil diterbitkan!');
         setShowGenerateModal(false);
         setFormData({ participant_id: '', type: 'Completion' });
         loadData();
-        setTimeout(() => setSuccessMsg(''), 4000);
       }
     } catch (err) {
-      alert('Gagal menerbitkan sertifikat: ' + (err.response?.data?.message || err.message));
+      toast.error('Gagal menerbitkan sertifikat: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -315,7 +316,7 @@ const Certificates = () => {
                               Verifikasi QR
                             </a>
                             <button
-                              onClick={() => alert(`Mengunduh dokumen e-sertifikat resmi untuk: ${certName}`)}
+                              onClick={() => toast.info(`Mengunduh dokumen e-sertifikat resmi untuk: ${certName}`)}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214] text-white hover:bg-black text-xs font-bold transition shadow-xs"
                             >
                               <Download className="w-3.5 h-3.5" /> Unduh

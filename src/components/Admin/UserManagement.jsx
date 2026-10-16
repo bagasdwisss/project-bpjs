@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 // Toast Notification in Intelly Style
-const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
+const Toast = ({ message, type = 'success', onClose, duration = 3500 }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -21,11 +21,14 @@ const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
 
   return (
     <div className="fixed top-6 right-6 z-50 animate-in slide-in-from-right duration-200">
-      <div className={`px-5 py-3 rounded-full shadow-lg flex items-center justify-between gap-3 text-xs font-bold ${
-        isSuccess ? 'bg-[#121214] text-white' : 'bg-rose-600 text-white'
+      <div className={`px-5 py-3 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-center justify-between gap-3 text-xs font-black ${
+        isSuccess ? 'bg-[#B8C96E] text-[#121214]' : 'bg-[#F5C6EC] text-[#121214]'
       }`}>
-        <span>{message}</span>
-        <button onClick={onClose} className="p-0.5 hover:opacity-70">
+        <div className="flex items-center gap-2">
+          {isSuccess ? <CheckCircle2 className="w-4 h-4 text-[#121214]" /> : <AlertCircle className="w-4 h-4 text-[#121214]" />}
+          <span>{message}</span>
+        </div>
+        <button onClick={onClose} className="p-0.5 hover:opacity-70 transition-opacity">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
