@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
 import userService from '../../services/userService';
+import api from '../../services/api';
+import LiveChatModal from '../Common/LiveChatModal';
 import { 
   Users, TrendingUp, Award, Clock, CheckCircle, 
   AlertCircle, RefreshCw, ChevronRight, Eye, Edit3, 
-  FileText, Calendar, Plus, ExternalLink
+  FileText, Calendar, Plus, ExternalLink, MessageSquare,
+  AlertTriangle, Sparkles, Check, X, ShieldAlert
 } from 'lucide-react';
 
 const CoordinatorDashboard = () => {
@@ -17,6 +20,12 @@ const CoordinatorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterType, setFilterType] = useState('all');
+
+  // AI Early Warning & Leave Workflow States
+  const [earlyWarnings, setEarlyWarnings] = useState([]);
+  const [pendingLeaves, setPendingLeaves] = useState([]);
+  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [chatRecipientId, setChatRecipientId] = useState(null);
 
   const loadParticipants = async () => {
     try {
@@ -77,8 +86,57 @@ const CoordinatorDashboard = () => {
     }
   };
 
+  const loadEarlyWarnings = async () => {
+    try {
+      const res = await api.get('/coordinator/early-warning');
+      if (res.data?.success) {
+        setEarlyWarnings(res.data.data || []);
+      }
+    } catch (err) {
+      console.error('Error loading early warnings:', err);
+    }
+  };
+
+  const loadPendingLeaves = async () => {
+    try {
+      const res = await api.get('/leaves');
+      if (res.data?.success) {
+        const pending = (res.data.data || []).filter(l => l.status === 'Pending');
+        setPendingLeaves(pending);
+      }
+    } catch (err) {
+      console.error('Error loading pending leaves:', err);
+    }
+  };
+
+  const handleReviewLeave = async (leaveId, status) => {
+    try {
+      const note = window.prompt(`Masukkan catatan verifikasi (${status}):`, status === 'Disetujui' ? 'Permohonan disetujui, jaga kesehatan.' : 'Dokumen pendukung kurang lengkap.');
+      if (note === null) return;
+
+      const res = await api.put(`/leaves/${leaveId}/status`, {
+        status,
+        coordinator_notes: note
+      });
+
+      if (res.data?.success) {
+        alert(`Pengajuan berhasil di-${status.toLowerCase()}`);
+        loadPendingLeaves();
+      }
+    } catch (err) {
+      alert('Gagal memverifikasi pengajuan: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const openChatWith = (participantId) => {
+    setChatRecipientId(participantId);
+    setChatModalOpen(true);
+  };
+
   useEffect(() => {
     loadParticipants();
+    loadEarlyWarnings();
+    loadPendingLeaves();
   }, []);
 
   // Filtered participants list
@@ -115,7 +173,21 @@ const CoordinatorDashboard = () => {
 
           <div className="flex items-center gap-2.5 shrink-0">
             <button
-              onClick={loadParticipants}
+              onClick={() => {
+                setChatRecipientId(null);
+                setChatModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FCE373] hover:bg-[#ebd056] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Live Chat Bimbingan</span>
+            </button>
+            <button
+              onClick={() => {
+                loadParticipants();
+                loadEarlyWarnings();
+                loadPendingLeaves();
+              }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -130,6 +202,118 @@ const CoordinatorDashboard = () => {
             </Link>
           </div>
         </div>
+
+        {/* AI Early Warning System Alerts Banner (Drop-Off Detection) */}
+        {earlyWarnings.some(w => w.riskLevel === 'Tinggi' || w.riskLevel === 'Sedang') && (
+          <div className="bg-white border-2 border-[#121214] rounded-2xl p-4 sm:p-5 shadow-[4px_4px_0px_#121214] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-[#F5C6EC] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
+                  <ShieldAlert className="w-4 h-4 text-[#121214]" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-[#121214] flex items-center space-x-2">
+                    <span>Sistem Peringatan Dini AI (Early Warning Drop-off)</span>
+                    <span className="text-[10px] font-black bg-[#121214] text-white px-2 py-0.5 rounded">Deteksi Cerdas</span>
+                  </h3>
+                  <p className="text-[11px] text-gray-500 font-medium">Algoritma otomatis mendeteksi anomali kehadiran & stagnasi target akuisisi BPU</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {earlyWarnings.filter(w => w.riskLevel === 'Tinggi' || w.riskLevel === 'Sedang').slice(0, 4).map((warn) => (
+                <div key={warn.userId} className="p-3.5 rounded-xl border-2 border-[#121214] bg-[#F5F4F0] flex flex-col justify-between space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-black text-xs text-[#121214]">{warn.name}</span>
+                      <p className="text-[10px] text-gray-500 font-mono">NIM: {warn.nim}</p>
+                    </div>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded border border-[#121214] ${
+                      warn.riskLevel === 'Tinggi' ? 'bg-[#F5C6EC] text-[#121214]' : 'bg-[#FCE373] text-[#121214]'
+                    }`}>
+                      Risiko {warn.riskLevel}
+                    </span>
+                  </div>
+
+                  <div className="text-[11px] text-gray-700 bg-white p-2 rounded-lg border border-[#121214]/15">
+                    <strong>Indikator:</strong> {warn.reasons.join(', ')}
+                    <div className="text-emerald-800 font-medium mt-1">
+                      💡 <strong>Saran AI:</strong> {warn.intervention}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => openChatWith(warn.userId)}
+                    className="w-full py-1.5 px-3 bg-[#B8C96E] hover:bg-[#a6b85c] rounded-lg border-2 border-[#121214] font-black text-[11px] text-[#121214] shadow-[2px_2px_0px_#121214] flex items-center justify-center space-x-1.5"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Konseling 1-on-1 via Live Chat</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Workflow Approval Cuti, Izin & Sakit (Pending) */}
+        {pendingLeaves.length > 0 && (
+          <div className="bg-white border-2 border-[#121214] rounded-2xl p-4 sm:p-5 shadow-[4px_4px_0px_#121214] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-[#BDD4F2] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
+                  <FileText className="w-4 h-4 text-[#121214]" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-[#121214]">Pengajuan Izin & Sakit Menunggu Persetujuan</h3>
+                  <p className="text-[11px] text-gray-500 font-medium">Verifikasi dokumen bukti dokter dalam 1 klik</p>
+                </div>
+              </div>
+              <span className="text-xs font-black bg-[#F5C6EC] px-2.5 py-1 rounded-full border border-[#121214]">
+                {pendingLeaves.length} Permohonan
+              </span>
+            </div>
+
+            <div className="divide-y divide-gray-100">
+              {pendingLeaves.map((leave) => (
+                <div key={leave.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-black text-xs text-[#121214]">{leave.participant_name}</span>
+                      <span className="text-[11px] bg-[#BDD4F2] px-2 py-0.2 rounded font-bold border border-[#121214]">
+                        {leave.leave_type}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-mono">
+                        {new Date(leave.start_date).toLocaleDateString('id-ID')} - {new Date(leave.end_date).toLocaleDateString('id-ID')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1 italic">"{leave.reason}"</p>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleReviewLeave(leave.id, 'Disetujui')}
+                      className="px-3 py-1.5 bg-[#B8C96E] hover:bg-[#a6b85c] rounded-xl border-2 border-[#121214] font-black text-xs text-[#121214] shadow-[2px_2px_0px_#121214] flex items-center space-x-1"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Setujui</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReviewLeave(leave.id, 'Ditolak')}
+                      className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl border-2 border-[#121214] font-black text-xs shadow-[2px_2px_0px_#121214] flex items-center space-x-1"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Tolak</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 4-Card Pastel Bento Grid (Intelly Signature) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
@@ -459,17 +643,25 @@ const CoordinatorDashboard = () => {
                 </div>
 
                 {/* Action CTA Buttons */}
-                <div className="pt-2 flex items-center gap-3">
+                <div className="pt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openChatWith(selectedParticipant.user_id)}
+                    className="flex-1 bg-[#121214] hover:bg-neutral-800 text-white font-bold text-xs py-3 px-3 rounded-full text-center transition-all shadow-sm flex items-center justify-center space-x-1.5"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-[#FCE373]" />
+                    <span>Chat Bimbingan</span>
+                  </button>
                   <Link
                     to="/coordinator/grading"
-                    className="flex-1 bg-[#121214] hover:bg-neutral-800 text-white font-bold text-xs py-3 px-4 rounded-full text-center transition-all shadow-sm flex items-center justify-center space-x-2"
+                    className="flex-1 bg-white hover:bg-[#FAF9F6] text-[#121214] font-bold text-xs py-3 px-3 rounded-full text-center transition-all shadow-sm border border-[#121214] flex items-center justify-center space-x-1.5"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
-                    <span>Input / Ubah Nilai</span>
+                    <span>Ubah Nilai</span>
                   </Link>
                   <Link
                     to="/coordinator/participants"
-                    className="bg-white hover:bg-[#FAF9F6] text-[#121214] font-bold text-xs py-3 px-5 rounded-full text-center transition-all shadow-sm border border-[#E59CD8]"
+                    className="bg-white/80 hover:bg-white text-[#121214] font-bold text-xs py-3 px-4 rounded-full text-center transition-all shadow-sm border border-[#E59CD8]"
                   >
                     Lihat Semua
                   </Link>
@@ -482,6 +674,13 @@ const CoordinatorDashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Live Chat Modal Mount */}
+        <LiveChatModal
+          isOpen={chatModalOpen}
+          onClose={() => setChatModalOpen(false)}
+          defaultRecipientId={chatRecipientId}
+        />
       </div>
     </Layout>
   );

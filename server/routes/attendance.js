@@ -14,19 +14,22 @@ router.get('/', authenticateToken, async (req, res) => {
     const { month, year } = req.query;
 
     let sql = `
-      SELECT attendance_id, user_id, attendance_date, check_in_time, status, notes,
-             location_coordinates, location_address, created_at
-      FROM attendance_records
-      WHERE user_id = $1
+      SELECT a.attendance_id, a.user_id, a.attendance_date, a.check_in_time, a.status, a.notes,
+             a.location_coordinates, a.location_address, a.created_at,
+             a.selfie_image_url, a.geofence_id, a.distance_meters, a.is_mock_location,
+             g.name as geofence_name
+      FROM attendance_records a
+      LEFT JOIN geofence_locations g ON a.geofence_id = g.id
+      WHERE a.user_id = $1
     `;
     const params = [userId];
 
     if (month && year) {
       params.push(month, year);
-      sql += ` AND EXTRACT(MONTH FROM attendance_date) = $2 AND EXTRACT(YEAR FROM attendance_date) = $3`;
+      sql += ` AND EXTRACT(MONTH FROM a.attendance_date) = $2 AND EXTRACT(YEAR FROM a.attendance_date) = $3`;
     }
 
-    sql += ` ORDER BY attendance_date DESC, check_in_time DESC`;
+    sql += ` ORDER BY a.attendance_date DESC, a.check_in_time DESC`;
 
     const result = await query(sql, params);
 
@@ -45,7 +48,17 @@ router.get('/', authenticateToken, async (req, res) => {
 router.post('/check-in', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { status, notes, coordinates, address, device_info } = req.body;
+    const { 
+      status, 
+      notes, 
+      coordinates, 
+      address, 
+      device_info, 
+      selfie_image_url, 
+      geofence_id, 
+      distance_meters, 
+      is_mock_location 
+    } = req.body;
 
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toTimeString().split(' ')[0];
@@ -64,9 +77,14 @@ router.post('/check-in', authenticateToken, async (req, res) => {
     }
 
     const result = await query(
-      `INSERT INTO attendance_records (user_id, attendance_date, check_in_time, status, notes, location_coordinates, location_address, ip_address, device_info, created_at)
-       VALUES ($1, $2, $3, COALESCE($4, 'Hadir'), $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
-       RETURNING *`,
+      `INSERT INTO attendance_records (
+        user_id, attendance_date, check_in_time, status, notes, 
+        location_coordinates, location_address, ip_address, device_info,
+        selfie_image_url, geofence_id, distance_meters, is_mock_location,
+        created_at
+      )
+      VALUES ($1, $2, $3, COALESCE($4, 'Hadir'), $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+      RETURNING *`,
       [
         userId,
         today,
@@ -76,7 +94,11 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         coordinates || null,
         address || null,
         req.ip || '127.0.0.1',
-        device_info || req.headers['user-agent'] || null
+        device_info || req.headers['user-agent'] || null,
+        selfie_image_url || null,
+        geofence_id || null,
+        distance_meters || null,
+        Boolean(is_mock_location)
       ]
     );
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import TanyaBPJSBot from '../Common/TanyaBPJSBot';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,6 +27,9 @@ const Layout = ({ children }) => {
           </div>
         </main>
       </div>
+
+      {/* Global AI Regulation Chatbot Assistant */}
+      <TanyaBPJSBot />
     </div>
   );
 };

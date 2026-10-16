@@ -21,6 +21,7 @@ import documentRoutes from './routes/documents.js';
 import batchRoutes from './routes/batches.js';
 import moduleRoutes from './routes/modules.js';
 import adminRoutes from './routes/admin.js';
+import featuresRoutes from './routes/features.js';
 
 dotenv.config();
 
@@ -118,6 +119,10 @@ apiRouter.use('/participant/documents', documentRoutes);
 apiRouter.use('/admin/batches', batchRoutes);
 apiRouter.use('/admin/modules', moduleRoutes);
 apiRouter.use('/admin', adminRoutes);
+
+// Enterprise Features Routes
+apiRouter.use('/features', featuresRoutes);
+apiRouter.use('/', featuresRoutes);
 
 // Coordinator routes
 apiRouter.use('/coordinator/certificates', adminRoutes);

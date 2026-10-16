@@ -35,6 +35,7 @@ import AdminImportExport from './components/Admin/ImportExport';
 import AdminMonitoring from './components/Admin/Monitoring';
 import AdminBackup from './components/Admin/Backup';
 import AdminBroadcast from './components/Admin/Broadcast';
+import VerifyCertificate from './components/Common/VerifyCertificate';
 
 import './App.css';
 
@@ -46,6 +47,8 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/verify-certificate/:certNumber" element={<VerifyCertificate />} />
+            <Route path="/verify-certificate" element={<VerifyCertificate />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
 
             {/* Participant Routes */}

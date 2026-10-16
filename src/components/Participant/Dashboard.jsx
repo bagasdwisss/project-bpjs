@@ -6,9 +6,13 @@ import { useDashboard } from '../../context/DashboardContext';
 import { 
   Calendar, TrendingUp, Award, Clock, CheckCircle, 
   AlertCircle, BarChart3, Bell, RefreshCw, AlertTriangle, 
-  ChevronRight, ArrowUpRight, Check, BookOpen, MapPin, Database
+  ChevronRight, ArrowUpRight, Check, BookOpen, MapPin, Database,
+  Calculator, QrCode, MessageSquare
 } from 'lucide-react';
 import dashboardService from '../../services/DashboardService.js';
+import CalculatorModal from '../Common/CalculatorModal';
+import QRCodeModal from '../Common/QRCodeModal';
+import LiveChatModal from '../Common/LiveChatModal';
 
 const ParticipantDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -17,6 +21,11 @@ const ParticipantDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Enterprise Feature Modals
+  const [calcModalOpen, setCalcModalOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [chatModalOpen, setChatModalOpen] = useState(false);
 
   const fetchDashboardData = async (isRefresh = false) => {
     try {
@@ -102,24 +111,38 @@ const ParticipantDashboard = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <button
-              onClick={() => fetchDashboardData(true)}
-              disabled={refreshing}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all disabled:opacity-50"
+              type="button"
+              onClick={() => setCalcModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FCE373] hover:bg-[#ebd056] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Segarkan
+              <Calculator className="w-3.5 h-3.5" />
+              <span>Simulasi Iuran</span>
             </button>
-            {user?.penempatan !== 'lapangan' && (
-              <Link
-                to="/participant/attendance"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
-              >
-                <CheckCircle className="w-3.5 h-3.5" />
-                Isi Presensi
-              </Link>
-            )}
+            <button
+              type="button"
+              onClick={() => setQrModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#BDD4F2] hover:bg-[#a5c4ec] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>QR Referral</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setChatModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#F5C6EC] hover:bg-[#e8b4dd] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Chat Pembimbing</span>
+            </button>
+            <Link
+              to="/participant/attendance"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+            >
+              <CheckCircle className="w-3.5 h-3.5 text-[#B8C96E]" />
+              <span>Isi Presensi</span>
+            </Link>
           </div>
         </div>
 
@@ -421,6 +444,12 @@ const ParticipantDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Global Modals for Participant */}
+        <CalculatorModal isOpen={calcModalOpen} onClose={() => setCalcModalOpen(false)} />
+        <QRCodeModal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} user={user} />
+        <LiveChatModal isOpen={chatModalOpen} onClose={() => setChatModalOpen(false)} />
+
       </div>
     </Layout>
   );
