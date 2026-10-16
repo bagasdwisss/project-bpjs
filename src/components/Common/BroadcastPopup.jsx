@@ -21,7 +21,7 @@ const BroadcastPopup = () => {
   const fetchActiveBroadcasts = async () => {
     if (!user) return;
     try {
-      const res = await api.get('/notifications/broadcasts/active');
+      const res = await api.get('/notifications/broadcasts/active', { skipCache: true });
       if (res.data?.success && Array.isArray(res.data.data)) {
         const list = res.data.data;
         
@@ -51,9 +51,34 @@ const BroadcastPopup = () => {
   useEffect(() => {
     if (user) {
       fetchActiveBroadcasts();
-      // Optional polling every 60 seconds for new emergency broadcasts
-      const interval = setInterval(fetchActiveBroadcasts, 60000);
-      return () => clearInterval(interval);
+
+      // Listen for immediate broadcast sent by admin in the same window
+      const handleBroadcastEvent = () => {
+        sessionStorage.removeItem('dismissed_broadcasts');
+        fetchActiveBroadcasts();
+      };
+
+      const handlePreviewBroadcast = (e) => {
+        const item = e.detail;
+        if (!item) return;
+        if (item.priority === 'Biasa') {
+          setActiveToastBroadcasts(prev => [item, ...prev]);
+        } else {
+          setActiveModalBroadcast(item);
+        }
+      };
+
+      window.addEventListener('broadcast-sent', handleBroadcastEvent);
+      window.addEventListener('preview-broadcast', handlePreviewBroadcast);
+      window.addEventListener('focus', fetchActiveBroadcasts);
+      
+      const interval = setInterval(fetchActiveBroadcasts, 20000);
+      return () => {
+        window.removeEventListener('broadcast-sent', handleBroadcastEvent);
+        window.removeEventListener('preview-broadcast', handlePreviewBroadcast);
+        window.removeEventListener('focus', fetchActiveBroadcasts);
+        clearInterval(interval);
+      };
     }
   }, [user]);
 

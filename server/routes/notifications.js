@@ -352,16 +352,21 @@ router.get('/admin/broadcast/history', authenticateToken, async (req, res) => {
  */
 router.get('/broadcasts/active', authenticateToken, async (req, res) => {
   try {
-    const userRole = req.user.role_name; // 'Peserta', 'Koordinator', 'Administrator'
+    const roleId = req.user.role_id;
+    const roleName = (req.user.role_name || req.user.role || '').toLowerCase();
     const userId = req.user.user_id;
 
+    // Target role matching:
+    // Peserta gets 'all' and 'participants'
+    // Koordinator gets 'all' and 'coordinators'
+    // Administrator gets all broadcasts so they can immediately verify what was sent
     let targetFilter = `(b.target_role = 'all'`;
-    if (userRole === 'Peserta') {
+    if (roleId === 1 || roleName.includes('peserta')) {
       targetFilter += ` OR b.target_role = 'participants')`;
-    } else if (userRole === 'Koordinator') {
+    } else if (roleId === 2 || roleName.includes('koordinator')) {
       targetFilter += ` OR b.target_role = 'coordinators')`;
     } else {
-      targetFilter += ` OR b.target_role = 'all')`;
+      targetFilter += ` OR b.target_role = 'participants' OR b.target_role = 'coordinators')`;
     }
 
     const sql = `
@@ -369,8 +374,8 @@ router.get('/broadcasts/active', authenticateToken, async (req, res) => {
       FROM broadcast_messages b
       WHERE b.is_active = TRUE
         AND ${targetFilter}
-        AND (b.start_at IS NULL OR b.start_at <= CURRENT_TIMESTAMP)
-        AND (b.end_at IS NULL OR b.end_at >= CURRENT_TIMESTAMP)
+        AND (b.start_at IS NULL OR b.start_at <= CURRENT_TIMESTAMP + INTERVAL '1 hour')
+        AND (b.end_at IS NULL OR b.end_at >= CURRENT_TIMESTAMP - INTERVAL '1 hour')
         AND (
           b.show_on_login = TRUE 
           OR NOT EXISTS (
@@ -385,7 +390,7 @@ router.get('/broadcasts/active', authenticateToken, async (req, res) => {
           ELSE 3
         END,
         b.sent_at DESC
-      LIMIT 3
+      LIMIT 5
     `;
 
     const result = await query(sql, [userId]);

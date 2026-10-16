@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   Trash2,
   Repeat,
-  Info
+  Info,
+  Eye
 } from 'lucide-react';
 
 const formatLocalDatetime = (date) => {
@@ -38,6 +39,8 @@ const Broadcast = () => {
   // Schedule and persistence states
   const now = new Date();
   const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const [startType, setStartType] = useState('immediate'); // 'immediate' | 'custom'
+  const [endType, setEndType] = useState('7d'); // '7d' | '30d' | 'never' | 'custom'
   const [startAt, setStartAt] = useState(formatLocalDatetime(now));
   const [endAt, setEndAt] = useState(formatLocalDatetime(nextWeek));
   const [showOnLogin, setShowOnLogin] = useState(true);
@@ -65,20 +68,38 @@ const Broadcast = () => {
     e.preventDefault();
     if (!message.trim() || !title.trim()) return;
 
+    if (startType === 'custom' && endType === 'custom' && startAt && endAt) {
+      if (new Date(endAt) <= new Date(startAt)) {
+        toast.error('Batas akhir tayang harus lebih besar dari waktu mulai tayang!');
+        return;
+      }
+    }
+
     setLoading(true);
     setAlertMsg(null);
     try {
+      const payloadStartAt = startType === 'immediate' ? null : (startAt ? new Date(startAt).toISOString() : null);
+      
+      const payloadEndAt = endType === 'never' 
+        ? null 
+        : endType === '7d' 
+        ? new Date(Date.now() + 7 * 86400000).toISOString()
+        : endType === '30d'
+        ? new Date(Date.now() + 30 * 86400000).toISOString()
+        : (endAt ? new Date(endAt).toISOString() : null);
+
       const res = await api.post('/notifications/admin/broadcast/send', {
         title,
         message,
         priority,
         target,
-        start_at: startAt ? new Date(startAt).toISOString() : null,
-        end_at: endAt ? new Date(endAt).toISOString() : null,
+        start_at: payloadStartAt,
+        end_at: payloadEndAt,
         show_on_login: showOnLogin
       });
 
       if (res.data?.success) {
+        toast.success(res.data.message || 'Broadcast berhasil dikirim ke seluruh penerima!');
         setAlertMsg({ 
           type: 'success', 
           text: res.data.message || 'Broadcast berhasil dikirim ke seluruh penerima sasaran!' 
@@ -86,8 +107,14 @@ const Broadcast = () => {
         setTitle('');
         setMessage('');
         loadHistory();
+
+        // Clear cache and trigger immediate popup
+        if (api.clearCache) api.clearCache();
+        sessionStorage.removeItem('dismissed_broadcasts');
+        window.dispatchEvent(new CustomEvent('broadcast-sent', { detail: res.data.data }));
       }
     } catch (err) {
+      toast.error('Gagal mengirim broadcast: ' + (err.response?.data?.message || err.message));
       setAlertMsg({ type: 'error', text: 'Gagal mengirim broadcast: ' + (err.response?.data?.message || err.message) });
     } finally {
       setLoading(false);
@@ -256,34 +283,89 @@ const Broadcast = () => {
               </div>
 
               {/* Schedule Duration (Start At & End At) */}
-              <div className="p-4 bg-[#FAF9F6] rounded-2xl border border-[#EAE9E4] space-y-3">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#121214]" />
-                  <span className="text-xs font-bold text-[#121214]">Durasi Waktu Pop-up Ditampilkan</span>
+              <div className="p-4 bg-[#FAF9F6] rounded-2xl border border-[#EAE9E4] space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#121214]" />
+                    <span className="text-xs font-bold text-[#121214]">Waktu Mulai Tayang</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setStartType('immediate')}
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold border transition ${
+                        startType === 'immediate'
+                          ? 'bg-[#B8C96E] text-[#121214] border-[#121214] shadow-xs'
+                          : 'bg-white text-[#121214]/60 border-[#EAE9E4] hover:border-[#121214]'
+                      }`}
+                    >
+                      ✓ Langsung Sekarang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStartType('custom')}
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold border transition ${
+                        startType === 'custom'
+                          ? 'bg-[#121214] text-white border-[#121214]'
+                          : 'bg-white text-[#121214]/60 border-[#EAE9E4] hover:border-[#121214]'
+                      }`}
+                    >
+                      Pilih Tanggal
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {startType === 'custom' && (
                   <div>
-                    <label className="block text-[11px] font-bold text-[#121214]/70 mb-1">Mulai Tampil</label>
+                    <label className="block text-[11px] font-bold text-[#121214]/70 mb-1">Mulai Ditampilkan Pada</label>
                     <input
                       type="datetime-local"
-                      required
+                      required={startType === 'custom'}
                       value={startAt}
                       onChange={(e) => setStartAt(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:border-[#121214]"
                     />
                   </div>
+                )}
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#121214]/70 mb-1">Selesai Tampil (Batas Akhir)</label>
-                    <input
-                      type="datetime-local"
-                      required
-                      value={endAt}
-                      onChange={(e) => setEndAt(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:border-[#121214]"
-                    />
+                {/* End Duration Options */}
+                <div className="pt-2 border-t border-[#EAE9E4] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-[#121214]">Batas Akhir Penayangan</span>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {[
+                        { id: '7d', label: '7 Hari' },
+                        { id: '30d', label: '30 Hari' },
+                        { id: 'never', label: 'Selamanya' },
+                        { id: 'custom', label: 'Kustom' }
+                      ].map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setEndType(p.id)}
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition ${
+                            endType === p.id
+                              ? 'bg-[#121214] text-white border-[#121214]'
+                              : 'bg-white text-[#121214]/60 border-[#EAE9E4] hover:border-[#121214]'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {endType === 'custom' && (
+                    <div>
+                      <input
+                        type="datetime-local"
+                        required={endType === 'custom'}
+                        value={endAt}
+                        onChange={(e) => setEndAt(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:border-[#121214]"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Show on login option toggle */}
@@ -300,7 +382,7 @@ const Broadcast = () => {
                       Muncul Terus-Menerus Setiap Kali Login
                     </span>
                     <span className="text-[11px] text-[#121214]/60 font-medium">
-                      Jika dicentang, pop-up akan selalu muncul setiap kali peserta dan koordinator login selama rentang durasi di atas masih aktif. Jika tidak dicentang, hanya akan muncul 1 kali hingga ditutup pengguna.
+                      Jika dicentang, pop-up akan otomatis tampil kembali setiap pengguna login selama periode siaran masih berlaku.
                     </span>
                   </label>
                 </div>
@@ -310,7 +392,7 @@ const Broadcast = () => {
                 <label className="block text-xs font-bold text-[#121214] mb-1.5">Isi Pesan Broadcast</label>
                 <textarea
                   required
-                  rows={5}
+                  rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Tuliskan instruksi operasional, tenggat waktu penugasan, atau pengumuman secara rinci..."
@@ -318,14 +400,40 @@ const Broadcast = () => {
                 />
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 flex flex-wrap items-center gap-3">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full sm:w-auto px-8 py-3 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-bold transition-all shadow-[3px_3px_0px_#8A8985] hover:shadow-none inline-flex items-center justify-center gap-2"
+                  className="px-8 py-3 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-bold transition-all shadow-[3px_3px_0px_#8A8985] hover:shadow-none inline-flex items-center justify-center gap-2 active:scale-95"
                 >
                   <Send className="w-3.5 h-3.5 text-[#B8C96E]" />
                   {loading ? 'Mengirim Siaran...' : 'Kirim Siaran Sekarang'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!title.trim() && !message.trim()) {
+                      toast.warning('Tuliskan judul atau pesan terlebih dahulu untuk melihat preview');
+                      return;
+                    }
+                    window.dispatchEvent(
+                      new CustomEvent('preview-broadcast', {
+                        detail: {
+                          broadcast_id: 'preview-' + Date.now(),
+                          title: title || 'Contoh Judul Pengumuman',
+                          content: message || 'Ini adalah contoh preview tampilan isi pengumuman broadcast sistem BPJS Ketenagakerjaan.',
+                          priority,
+                          sent_at: new Date().toISOString()
+                        }
+                      })
+                    );
+                    toast.info(`Menampilkan preview pop-up tingkat ${priority}`);
+                  }}
+                  className="px-5 py-3 bg-[#FAF9F6] hover:bg-white border-2 border-[#121214] text-[#121214] rounded-full text-xs font-bold transition-all shadow-[2px_2px_0px_#121214] active:scale-95 inline-flex items-center gap-2"
+                >
+                  <Eye className="w-3.5 h-3.5 text-[#121214]" />
+                  <span>Preview Pop-up ({priority})</span>
                 </button>
               </div>
             </form>
