@@ -53,10 +53,13 @@ api.interceptors.response.use(
     });
 
     if (error.response?.status === 401) {
-      console.log('Unauthorized, redirecting to login...');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const isLoginRequest = error.config?.url?.includes('/login');
+      if (!isLoginRequest) {
+        console.log('Unauthorized on protected route, redirecting to login...');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     
     if (error.response?.status === 403) {

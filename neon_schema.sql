@@ -266,17 +266,17 @@ SELECT setval('roles_role_id_seq', (SELECT MAX(role_id) FROM roles));
 -- Default password hash for 'password123'
 -- $2b$10$qR6j5k2QzI0e2ZqgNl.vO.K7yXQGq5yRzJq8mU4JdF1vN6lXfNqX2 or original hash
 INSERT INTO users (user_id, unique_id, full_name, password_hash, role_id, coordinator_id, status, penempatan, created_at, updated_at) VALUES
-(3, 'ADM001', 'Admin Sistem', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 3, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(2, 'KO001', 'Fedro', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(5, 'KO002', 'Afiyah', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(6, 'KO003', 'Fizka', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(7, 'KO004', 'Paramitha', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(1, 'PES001', 'Arthur', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 1, 5, 'Aktif', 'Lapangan', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(4, 'PES002', 'Widi Iskandar Rangkuti', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 1, 2, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(8, 'PES003', 'Adinda Putri Anggraini', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 1, 6, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(9, 'PES004', 'Novita Monic Simanungkalit', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 1, 2, 'Aktif', 'Lapangan', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(10, 'Pes006', 'arip', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 1, 2, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(11, 'Pes0069', 'kyoto', '$2a$10$tZ20k9/h78Q9Q23Q/aN1wOFdNu04yG5OqXz5c1aHl6eM74z7J3p.e', 1, 6, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+(3, 'ADM001', 'Admin Sistem', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 3, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 'KO001', 'Fedro', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(5, 'KO002', 'Afiyah', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(6, 'KO003', 'Fizka', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(7, 'KO004', 'Paramitha', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 'PES001', 'Arthur', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 5, 'Aktif', 'Lapangan', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(4, 'PES002', 'Widi Iskandar Rangkuti', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 2, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(8, 'PES003', 'Adinda Putri Anggraini', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 6, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(9, 'PES004', 'Novita Monic Simanungkalit', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 2, 'Aktif', 'Lapangan', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(10, 'Pes006', 'arip', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 2, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(11, 'Pes0069', 'kyoto', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 6, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (user_id) DO UPDATE SET 
   unique_id = EXCLUDED.unique_id,
   full_name = EXCLUDED.full_name,

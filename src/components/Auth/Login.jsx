@@ -11,14 +11,15 @@ const Login = () => {
   const [roleDetected, setRoleDetected] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const { user, login, error, clearError, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const demoAccounts = [
-    { id: 'PES001', role: 'Peserta', password: 'pass1', description: 'Akses dashboard peserta' },
-    { id: 'KO001', role: 'Koordinator', password: 'pass2', description: 'Kelola data absensi & penilaian' },
-    { id: 'ADM001', role: 'Administrator', password: 'pass3', description: 'Manajemen sistem keseluruhan' },
+    { id: 'PES001', role: 'Peserta', password: 'password123', description: 'Akses dashboard peserta' },
+    { id: 'KO001', role: 'Koordinator', password: 'password123', description: 'Kelola data absensi & penilaian' },
+    { id: 'ADM001', role: 'Administrator', password: 'password123', description: 'Manajemen sistem keseluruhan' },
   ];
 
   // Effect untuk handle redirect setelah login berhasil
@@ -50,20 +51,22 @@ const Login = () => {
     const value = e.target.value.toUpperCase();
     setUniqueId(value);
     setRoleDetected(detectRole(value));
+    setFormError('');
     clearError();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
     clearError();
 
     if (!uniqueId.trim()) {
-      setError('ID Pengguna harus diisi');
+      setFormError('ID Pengguna harus diisi');
       return;
     }
 
     if (!password) {
-      setError('Kata Sandi harus diisi');
+      setFormError('Kata Sandi harus diisi');
       return;
     }
 
@@ -71,7 +74,7 @@ const Login = () => {
 
     try {
       console.log('Attempting login with:', { uniqueId });
-      const result = await login(uniqueId, password);
+      const result = await login(uniqueId.trim(), password);
       console.log('Login result:', result);
       
       if (result.success) {
@@ -79,10 +82,11 @@ const Login = () => {
         setLoginSuccess(true);
         // Redirect akan ditangani oleh useEffect di atas
       } else {
-        console.log('Login failed:', result.message);
+        setFormError(result.message || 'Login gagal. Periksa kembali ID Pengguna dan Kata Sandi Anda.');
       }
     } catch (err) {
       console.error('Login error:', err);
+      setFormError(err.message || 'Terjadi kesalahan saat menghubungi server.');
     } finally {
       setLoading(false);
     }
@@ -92,6 +96,7 @@ const Login = () => {
     setUniqueId(account.id);
     setPassword(account.password);
     setRoleDetected(account.role);
+    setFormError('');
     clearError();
   };
   
@@ -140,9 +145,9 @@ const Login = () => {
 
           {/* Form Section */}
           <div className="p-8">
-            {error && (
+            {(formError || error) && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
-                {error}
+                {formError || error}
               </div>
             )}
 
