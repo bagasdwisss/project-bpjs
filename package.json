@@ -1,16 +1,50 @@
 {
-  "name": "projectbpjs",
+  "name": "project-bpjs",
+  "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "api/index.js",
   "scripts": {
-    "build": "npm run build --prefix bpjs-frontend",
-    "dev": "npm run dev --prefix bpjs-frontend",
-    "server": "node bpjs-frontend/api/index.js",
-    "db:init": "node bpjs-frontend/scripts/init_neon_db.js"
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "server": "node api/index.js",
+    "db:init": "node scripts/init_neon_db.js"
   },
-  "keywords": ["bpjs", "absensi", "nilai", "neon", "postgresql", "vercel"],
-  "author": "",
-  "license": "ISC",
-  "description": "Sistem Informasi Absensi dan Penilaian BPJS Ketenagakerjaan - Ready for Vercel & Neon PostgreSQL"
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.1.0",
+    "axios": "^1.12.2",
+    "bcryptjs": "^3.0.3",
+    "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.0",
+    "classnames": "^2.5.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.3.0",
+    "flatpickr": "^4.6.13",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.545.0",
+    "pg": "^8.23.1",
+    "react": "^19.1.1",
+    "react-bootstrap": "^2.10.10",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.1.1",
+    "react-flatpickr": "^4.0.11",
+    "react-router-dom": "^7.9.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14",
+    "vite": "^7.1.7"
+  }
 }
