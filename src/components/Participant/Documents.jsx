@@ -21,11 +21,9 @@ const Documents = () => {
     const fetchDocuments = async () => {
       try {
         const response = await api.get('/documents');
-        if (response.data) {
-          setDocuments(response.data);
-        } else {
-          setDocuments([]);
-        }
+        const raw = response.data;
+        const docList = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+        setDocuments(docList);
       } catch (error) {
         console.error('Error fetching documents:', error);
         setDocuments([]);
@@ -37,15 +35,17 @@ const Documents = () => {
     fetchDocuments();
   }, []);
 
+  const safeDocs = Array.isArray(documents) ? documents : [];
+
   const categories = [
-    { id: 'all', label: 'Semua Dokumen', icon: FolderOpen, count: documents.length },
-    { id: 'guidelines', label: 'Panduan', icon: BookOpen, count: documents.filter(d => d.category === 'guidelines').length },
-    { id: 'submissions', label: 'Submission', icon: Upload, count: documents.filter(d => d.category === 'submissions').length },
-    { id: 'certificates', label: 'Sertifikat', icon: Award, count: documents.filter(d => d.category === 'certificates').length },
-    { id: 'materials', label: 'Materi', icon: FileText, count: documents.filter(d => d.category === 'materials').length },
-    { id: 'reports', label: 'Laporan', icon: Archive, count: documents.filter(d => d.category === 'reports').length },
-    { id: 'templates', label: 'Template', icon: Folder, count: documents.filter(d => d.category === 'templates').length },
-    { id: 'documentation', label: 'Dokumentasi', icon: Users, count: documents.filter(d => d.category === 'documentation').length }
+    { id: 'all', label: 'Semua Dokumen', icon: FolderOpen, count: safeDocs.length },
+    { id: 'guidelines', label: 'Panduan', icon: BookOpen, count: safeDocs.filter(d => d.category === 'guidelines').length },
+    { id: 'submissions', label: 'Submission', icon: Upload, count: safeDocs.filter(d => d.category === 'submissions').length },
+    { id: 'certificates', label: 'Sertifikat', icon: Award, count: safeDocs.filter(d => d.category === 'certificates').length },
+    { id: 'materials', label: 'Materi', icon: FileText, count: safeDocs.filter(d => d.category === 'materials').length },
+    { id: 'reports', label: 'Laporan', icon: Archive, count: safeDocs.filter(d => d.category === 'reports').length },
+    { id: 'templates', label: 'Template', icon: Folder, count: safeDocs.filter(d => d.category === 'templates').length },
+    { id: 'documentation', label: 'Dokumentasi', icon: Users, count: safeDocs.filter(d => d.category === 'documentation').length }
   ];
 
   const getFileIcon = (type) => {
@@ -154,20 +154,21 @@ const Documents = () => {
     }
   };
 
-  const filteredDocuments = documents.filter((doc) => {
+  const filteredDocuments = safeDocs.filter((doc) => {
+    const docName = doc?.name || '';
+    const docDesc = doc?.description || '';
     const matchesCategory = selectedCategory === 'all' || doc.category === selectedCategory;
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         doc.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = docName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         docDesc.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   const stats = {
-    total: documents.length,
-    approved: documents.filter(d => d.status === 'approved').length,
-    pending: documents.filter(d => d.status === 'pending').length,
-    // For participants, myUploads should be 0 since they can't upload
+    total: safeDocs.length,
+    approved: safeDocs.filter(d => d.status === 'approved').length,
+    pending: safeDocs.filter(d => d.status === 'pending').length,
     myUploads: (user?.role && (user.role.toLowerCase().includes('admin') || user.role.toLowerCase().includes('koordinator'))) 
-      ? documents.filter(d => d.uploadedBy === (user?.full_name || 'Peserta')).length 
+      ? safeDocs.filter(d => d.uploadedBy === (user?.full_name || 'Peserta')).length 
       : 0
   };
 

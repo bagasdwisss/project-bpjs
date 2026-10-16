@@ -42,32 +42,33 @@ const Header = ({ toggleSidebar }) => {
   return (
     <>
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4">
           {/* Left Section */}
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             <button
               onClick={toggleSidebar}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors mr-2 text-gray-700"
+              aria-label="Buka Menu"
             >
-              <Menu className="w-5 h-5 text-gray-600" />
+              <Menu className="w-5 h-5" />
             </button>
             
-            <div className="ml-4 lg:ml-0">
-              <div className="flex items-center gap-4">
-                <h1 className="text-xl font-semibold text-gray-900">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                <h1 className="text-base sm:text-xl font-semibold text-gray-900 truncate">
                   {getHeaderTitle()}
                 </h1>
                 
                 {/* Tampilkan info koordinator untuk peserta */}
                 {isParticipant && coordinator && (
-                  <div className="flex items-center text-sm text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                  <div className="hidden sm:flex items-center text-xs sm:text-sm text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
                     <span className="font-medium">Koordinator:</span>
-                    <span className="ml-1 font-semibold">{coordinator.full_name}</span>
+                    <span className="ml-1 font-semibold truncate max-w-[150px]">{coordinator.full_name}</span>
                   </div>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Selamat datang di sistem absensi dan nilai
+              <p className="text-xs text-gray-500 mt-0.5 hidden sm:block truncate">
+                Sistem Absensi & Penilaian BPJS Ketenagakerjaan
               </p>
             </div>
           </div>

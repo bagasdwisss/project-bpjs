@@ -539,14 +539,15 @@ const AcquisitionResult = () => {
   };
 
   // Filter data berdasarkan pencarian
-  const filteredData = acquisitionData.filter(item => {
-    const searchString = searchTerm.toLowerCase();
+  const safeData = Array.isArray(acquisitionData) ? acquisitionData : [];
+  const filteredData = safeData.filter(item => {
+    const searchString = (searchTerm || '').toLowerCase();
     return (
-      (item.nama_peserta && item.nama_peserta.toLowerCase().includes(searchString)) ||
-      (item.nik && item.nik.toLowerCase().includes(searchString)) ||
-      (item.email && item.email.toLowerCase().includes(searchString)) ||
-      (item.pekerjaan && item.pekerjaan.toLowerCase().includes(searchString)) ||
-      (item.no_telepon && item.no_telepon.includes(searchString))
+      (item?.nama_peserta && item.nama_peserta.toLowerCase().includes(searchString)) ||
+      (item?.nik && item.nik.toLowerCase().includes(searchString)) ||
+      (item?.email && item.email.toLowerCase().includes(searchString)) ||
+      (item?.pekerjaan && item.pekerjaan.toLowerCase().includes(searchString)) ||
+      (item?.no_telepon && item.no_telepon.includes(searchString))
     );
   });
 
@@ -592,7 +593,7 @@ const AcquisitionResult = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Aktif</p>
               <p className="text-2xl font-bold text-gray-900">
-                {acquisitionData.filter(p => p.status_pendaftaran === 'PEMBAYARAN BERHASIL').length}
+                {safeData.filter(p => p.status_pendaftaran === 'PEMBAYARAN BERHASIL').length}
               </p>
             </div>
           </div>
@@ -606,7 +607,7 @@ const AcquisitionResult = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Menunggu</p>
               <p className="text-2xl font-bold text-gray-900">
-                {acquisitionData.filter(p => p.status_pendaftaran === 'MENUNGGU PEMBAYARAN').length}
+                {safeData.filter(p => p.status_pendaftaran === 'MENUNGGU PEMBAYARAN').length}
               </p>
             </div>
           </div>
@@ -620,7 +621,7 @@ const AcquisitionResult = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Baru Daftar</p>
               <p className="text-2xl font-bold text-gray-900">
-                {acquisitionData.filter(p => p.status_pendaftaran === 'BARU DAFTAR').length}
+                {safeData.filter(p => p.status_pendaftaran === 'BARU DAFTAR').length}
               </p>
             </div>
           </div>

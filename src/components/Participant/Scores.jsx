@@ -69,7 +69,9 @@ const Scores = () => {
       }
       
       // Gunakan data dari respons API backend
-      const scoresData = responseJson.data || [];
+      const scoresData = Array.isArray(responseJson.data) 
+        ? responseJson.data 
+        : (Array.isArray(responseJson) ? responseJson : []);
       
       // Transformasi data dari struktur database ke format yang diharapkan oleh UI
       const transformedScores = scoresData.map(score => ({
@@ -141,14 +143,16 @@ const Scores = () => {
     return Math.round(totalWeighted / totalWeight);
   };
 
+  const safeScores = Array.isArray(scores) ? scores : [];
+
   const calculateModuleAverage = (moduleName) => {
-    const moduleScores = scores.filter(score => 
+    const moduleScores = safeScores.filter(score => 
       moduleName === 'all' ? true : score.module === moduleName
     );
     return calculateAverage(moduleScores);
   };
 
-  const filteredScores = scores.filter(score => {
+  const filteredScores = safeScores.filter(score => {
     const typeMatch = selectedType === 'all' || score.type === selectedType;
     const moduleMatch = selectedModule === 'all' || score.module === selectedModule;
     return typeMatch && moduleMatch;

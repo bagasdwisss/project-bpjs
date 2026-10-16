@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 // Impor ikon dari lucide-react
-import { User, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { User, Lock, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const [uniqueId, setUniqueId] = useState('');
@@ -15,12 +15,6 @@ const Login = () => {
 
   const { user, login, error, clearError, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  const demoAccounts = [
-    { id: 'PES001', role: 'Peserta', password: 'password123', description: 'Akses dashboard peserta' },
-    { id: 'KO001', role: 'Koordinator', password: 'password123', description: 'Kelola data absensi & penilaian' },
-    { id: 'ADM001', role: 'Administrator', password: 'password123', description: 'Manajemen sistem keseluruhan' },
-  ];
 
   // Effect untuk handle redirect setelah login berhasil
   useEffect(() => {
@@ -89,27 +83,6 @@ const Login = () => {
       setFormError(err.message || 'Terjadi kesalahan saat menghubungi server.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDemoAccountClick = (account) => {
-    setUniqueId(account.id);
-    setPassword(account.password);
-    setRoleDetected(account.role);
-    setFormError('');
-    clearError();
-  };
-  
-  const getRoleColor = (role) => {
-    switch (role) {
-      case 'Peserta':
-        return 'bg-gradient-to-br from-green-500 to-green-600';
-      case 'Koordinator':
-        return 'bg-gradient-to-br from-blue-500 to-blue-600';
-      case 'Administrator':
-        return 'bg-gradient-to-br from-purple-500 to-purple-600';
-      default:
-        return 'bg-gradient-to-br from-gray-500 to-gray-600';
     }
   };
 
@@ -226,33 +199,7 @@ const Login = () => {
               </button>
             </form>
 
-            {/* Demo Accounts Section */}
-            <div className="mt-8">
-              <h3 className="text-sm font-medium text-gray-700 mb-4 text-center">
-                Atau gunakan akun demo:
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {demoAccounts.map((account) => (
-                  <button
-                    key={account.id}
-                    onClick={() => handleDemoAccountClick(account)}
-                    disabled={loading}
-                    className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors group w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getRoleColor(account.role)}`}>
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">{account.role} ({account.id})</span>
-                        <span className="text-xs text-gray-500">Klik untuk login</span>
-                      </div>
-                      <p className="text-xs text-gray-600 mt-1">{account.description}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+
 
             {/* Information Section */}
             <div className="mt-8 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4">

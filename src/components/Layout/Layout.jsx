@@ -15,13 +15,13 @@ const Layout = ({ children }) => {
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <Header toggleSidebar={toggleSidebar} />
         
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-3 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto w-full">
             {children}
           </div>
         </main>

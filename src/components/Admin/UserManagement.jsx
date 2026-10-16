@@ -130,17 +130,22 @@ const UserManagement = () => {
     try {
       setLoading(true);
       const response = await userService.getUsers();
-      setUsers(response.data);
+      const rawData = response.data;
+      const userList = Array.isArray(rawData) 
+        ? rawData 
+        : (Array.isArray(rawData?.data) ? rawData.data : []);
+      
+      setUsers(userList);
       
       // Extract coordinators dari data users yang sudah ada (role_id = 2)
-      const coordinatorUsers = response.data.filter(user => user.role_id === 2);
+      const coordinatorUsers = userList.filter(user => user.role_id === 2);
       setCoordinators(coordinatorUsers);
       
-      console.log('Users loaded:', response.data.length);
+      console.log('Users loaded:', userList.length);
       console.log('Coordinators extracted:', coordinatorUsers.length);
     } catch (error) {
       console.error('Error loading users:', error);
-      showToast('Failed to load users', 'error');
+      showToast('Gagal memuat data pengguna', 'error');
     } finally {
       setLoading(false);
     }
@@ -242,11 +247,13 @@ const UserManagement = () => {
     return coordinator ? coordinator.full_name : '-';
   };
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = (Array.isArray(users) ? users : []).filter(user => {
+    const name = user?.full_name || '';
+    const uid = user?.unique_id || '';
     const matchesSearch = 
-      user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      user.unique_id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role_id.toString() === roleFilter;
+      name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      uid.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || user?.role_id?.toString() === roleFilter;
     return matchesSearch && matchesRole;
   });
 
@@ -264,15 +271,15 @@ const UserManagement = () => {
 
   return (
     <Layout>
-      <div className="p-6">
-        <div className="sm:flex sm:items-center sm:justify-between mb-8">
+      <div className="p-3 sm:p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               {coordinators.length} coordinators available from user data
             </p>
           </div>
-          <div className="flex items-center gap-2 mt-3 sm:mt-0">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="file"
               ref={fileInputRef}
@@ -282,13 +289,13 @@ const UserManagement = () => {
             />
             <button
               onClick={handleImportClick}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
             >
               Import from Excel
             </button>
             <button
               onClick={handleAddUser}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent rounded-lg shadow-sm text-xs sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
             >
               Add New User
             </button>
@@ -296,18 +303,18 @@ const UserManagement = () => {
         </div>
 
         {/* Search and Filter */}
-        <div className="mb-6 flex gap-4">
+        <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <input
             type="text"
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-md shadow-sm"
+            className="w-full sm:w-64 px-4 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="w-full sm:w-48 px-4 py-2 border border-gray-300 rounded-md shadow-sm"
+            className="w-full sm:w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">All Roles</option>
             <option value="1">Participant</option>
@@ -317,7 +324,7 @@ const UserManagement = () => {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

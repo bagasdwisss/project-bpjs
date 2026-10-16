@@ -14,16 +14,12 @@ const CoordinatorDashboard = () => {
       setLoading(true);
       setError('');
 
-      const response = await userService.getMyParticipants();
-      if (response.data.success) {
-        const participantsData = response.data.data;
-        setParticipants(participantsData);
-        
-        // Load progress data untuk semua peserta
-        await loadProgressData(participantsData);
-      } else {
-        setError(response.data.message || 'Failed to load participants');
-      }
+      const raw = response.data;
+      const participantsData = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+      setParticipants(participantsData);
+      
+      // Load progress data untuk semua peserta
+      await loadProgressData(participantsData);
     } catch (err) {
       console.error('Error loading participants:', err);
       setError('Cannot load participants data. Please check your connection.');
@@ -133,20 +129,20 @@ const CoordinatorDashboard = () => {
       };
     }
 
-    // Total peserta dan rata-rata progress
-    const totalParticipants = participants.length;
-    const totalProgress = participants.reduce((sum, participant) => {
+    const participantList = Array.isArray(participants) ? participants : [];
+    const totalParticipants = participantList.length;
+    const totalProgress = participantList.reduce((sum, participant) => {
       return sum + (progressData[participant.user_id]?.progress || 0);
     }, 0);
-    const averageProgress = Math.round(totalProgress / totalParticipants);
+    const averageProgress = totalParticipants > 0 ? Math.round(totalProgress / totalParticipants) : 0;
 
     // Total akuisisi semua peserta
-    const totalAkuisisi = participants.reduce((sum, participant) => {
+    const totalAkuisisi = participantList.reduce((sum, participant) => {
       return sum + (progressData[participant.user_id]?.hasilAkuisisiBPU || 0);
     }, 0);
 
     // Peserta dengan akuisisi tertinggi (diurutkan dari yang tertinggi)
-    const participantsWithAkuisisi = participants
+    const participantsWithAkuisisi = participantList
       .map(participant => ({
         ...participant,
         hasilAkuisisiBPU: progressData[participant.user_id]?.hasilAkuisisiBPU || 0,
@@ -163,7 +159,7 @@ const CoordinatorDashboard = () => {
       .slice(0, 5); // 5 terendah
 
     // Peserta yang belum memiliki akuisisi sama sekali
-    const noAkuisisi = participants.filter(participant => {
+    const noAkuisisi = participantList.filter(participant => {
       const hasilAkuisisiBPU = progressData[participant.user_id]?.hasilAkuisisiBPU || 0;
       return hasilAkuisisiBPU === 0;
     });

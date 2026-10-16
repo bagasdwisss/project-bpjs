@@ -27,11 +27,11 @@ const Certificates = () => {
         userService.getMyParticipants()
       ]);
 
-      if (certRes.data.success) {
-        setCertificates(certRes.data.data);
+      if (certRes.data) {
+        setCertificates(Array.isArray(certRes.data.data) ? certRes.data.data : (Array.isArray(certRes.data) ? certRes.data : []));
       }
-      if (userRes.data?.success) {
-        setParticipants(userRes.data.data);
+      if (userRes.data) {
+        setParticipants(Array.isArray(userRes.data.data) ? userRes.data.data : (Array.isArray(userRes.data) ? userRes.data : []));
       }
     } catch (err) {
       console.error('Error loading certificates:', err);
@@ -72,10 +72,10 @@ const Certificates = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const filteredCertificates = certificates.filter((cert) => {
-    const pName = cert.participant || cert.report_name || '';
+  const filteredCertificates = (Array.isArray(certificates) ? certificates : []).filter((cert) => {
+    const pName = cert?.participant || cert?.report_name || '';
     const matchesSearch = pName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || cert.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || cert?.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
