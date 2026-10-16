@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+bpjs-frontend/node_modules/
+bpjs-backend/vendor/
+
+# Production build outputs
+dist/
+bpjs-frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env.local
+.env.*.local
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

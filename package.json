@@ -1,0 +1,16 @@
+{
+  "name": "projectbpjs",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "api/index.js",
+  "scripts": {
+    "build": "npm run build --prefix bpjs-frontend",
+    "dev": "npm run dev --prefix bpjs-frontend",
+    "server": "node bpjs-frontend/api/index.js",
+    "db:init": "node bpjs-frontend/scripts/init_neon_db.js"
+  },
+  "keywords": ["bpjs", "absensi", "nilai", "neon", "postgresql", "vercel"],
+  "author": "",
+  "license": "ISC",
+  "description": "Sistem Informasi Absensi dan Penilaian BPJS Ketenagakerjaan - Ready for Vercel & Neon PostgreSQL"
+}
