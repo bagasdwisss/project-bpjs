@@ -153,8 +153,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start local standalone server if not invoked as a serverless lambda
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+// Start local standalone server only when NOT on Vercel
+if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`🚀 BPJS API server running on port ${PORT}`);
