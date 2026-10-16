@@ -514,14 +514,24 @@ router.get('/certificates/my', authenticateToken, async (req, res) => {
  * GET /api/certificates/list
  * Coordinator / Admin lists all certificates
  */
-router.get('/certificates/list', authenticateToken, async (req, res) => {
+router.get('/certificates/list', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const result = await query(
-      `SELECT c.*, u.full_name as participant_name, u.unique_id as participant_nim
-       FROM certificates c
-       JOIN users u ON c.user_id = u.user_id
-       ORDER BY c.created_at DESC`
-    );
+    let sql = `
+      SELECT c.*, u.full_name as participant_name, u.unique_id as participant_nim
+      FROM certificates c
+      JOIN users u ON c.user_id = u.user_id
+    `;
+    const params = [];
+
+    // Coordinator sees only their own participants' certificates
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      params.push(req.user.user_id);
+      sql += ` WHERE u.coordinator_id = $${params.length}`;
+    }
+
+    sql += ` ORDER BY c.created_at DESC`;
+
+    const result = await query(sql, params);
     return res.json({ success: true, data: result.rows });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -532,7 +542,7 @@ router.get('/certificates/list', authenticateToken, async (req, res) => {
  * POST /api/certificates/generate
  * Issue certificate with SHA-256 cryptographic verification hash
  */
-router.post('/certificates/generate', authenticateToken, async (req, res) => {
+router.post('/certificates/generate', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { user_id, batch_name, predicate, score_average } = req.body;
 
@@ -545,6 +555,13 @@ router.post('/certificates/generate', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Peserta tidak ditemukan.' });
     }
     const user = uRes.rows[0];
+
+    // Coordinator isolation: verify participant is assigned to this coordinator
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      if (user.coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menerbitkan sertifikat untuk anak didik Anda sendiri.' });
+      }
+    }
 
     const certCountRes = await query(`SELECT COUNT(*) FROM certificates`);
     const nextSeq = parseInt(certCountRes.rows[0].count, 10) + 1;
@@ -640,7 +657,7 @@ router.get('/certificates/verify/:certNumber', async (req, res) => {
  * Analyzes participants' attendance, score submissions, and field acquisition
  * Identifies risk indicators and provides targeted intervention tips.
  */
-router.get('/coordinator/early-warning', authenticateToken, async (req, res) => {
+router.get('/coordinator/early-warning', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     let sql = `
       SELECT u.user_id, u.full_name, u.unique_id, 
@@ -743,7 +760,7 @@ router.get('/coordinator/early-warning', authenticateToken, async (req, res) => 
  * GET /api/admin/comparison
  * Returns comparative metrics across Batches and Regional Branch Offices
  */
-router.get('/admin/comparison', authenticateToken, async (req, res) => {
+router.get('/admin/comparison', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     // 1. Batch comparison data
     const batchData = [
@@ -851,7 +868,7 @@ router.get('/admin/comparison', authenticateToken, async (req, res) => {
  * GET /api/admin/forensic-audit
  * Detailed forensic audit logs with anomaly highlights
  */
-router.get('/admin/forensic-audit', authenticateToken, async (req, res) => {
+router.get('/admin/forensic-audit', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const { anomaly_only } = req.query;
 

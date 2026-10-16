@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 
 const router = Router();
@@ -106,7 +106,7 @@ router.delete('/clear/all', authenticateToken, async (req, res) => {
 /**
  * DELETE /api/notifications/coordinator/:id
  */
-router.delete('/coordinator/:id', authenticateToken, async (req, res) => {
+router.delete('/coordinator/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     await query(
       `DELETE FROM notifications WHERE notification_id = $1`,
@@ -140,7 +140,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 /**
  * GET /api/notifications/coordinator
  */
-router.get('/coordinator', authenticateToken, async (req, res) => {
+router.get('/coordinator', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT n.*, u.full_name as recipient_name, u.unique_id as recipient_id
@@ -159,7 +159,7 @@ router.get('/coordinator', authenticateToken, async (req, res) => {
 /**
  * POST /api/notifications/coordinator
  */
-router.post('/coordinator', authenticateToken, async (req, res) => {
+router.post('/coordinator', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { user_id, title, message, type, priority, due_date } = req.body;
 
@@ -183,7 +183,7 @@ router.post('/coordinator', authenticateToken, async (req, res) => {
 /**
  * POST /api/notifications/coordinator/broadcast
  */
-router.post('/coordinator/broadcast', authenticateToken, async (req, res) => {
+router.post('/coordinator/broadcast', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { title, message, priority, type, due_date } = req.body;
 
@@ -219,7 +219,7 @@ router.post('/coordinator/broadcast', authenticateToken, async (req, res) => {
 /**
  * GET /api/notifications/coordinator/participants
  */
-router.get('/coordinator/participants', authenticateToken, async (req, res) => {
+router.get('/coordinator/participants', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT user_id, unique_id, full_name, status, penempatan
@@ -237,7 +237,7 @@ router.get('/coordinator/participants', authenticateToken, async (req, res) => {
 /**
  * GET /api/notifications/coordinator/reminders/settings
  */
-router.get('/coordinator/reminders/settings', authenticateToken, (req, res) => {
+router.get('/coordinator/reminders/settings', authenticateToken, requireRole('Koordinator', 'Administrator'), (req, res) => {
   return res.json({
     success: true,
     data: {
@@ -251,7 +251,7 @@ router.get('/coordinator/reminders/settings', authenticateToken, (req, res) => {
 /**
  * POST /api/notifications/coordinator/reminders/settings
  */
-router.post('/coordinator/reminders/settings', authenticateToken, (req, res) => {
+router.post('/coordinator/reminders/settings', authenticateToken, requireRole('Koordinator', 'Administrator'), (req, res) => {
   return res.json({
     success: true,
     message: 'Pengaturan pengingat berhasil disimpan.'
@@ -265,7 +265,7 @@ router.post('/coordinator/reminders/settings', authenticateToken, (req, res) => 
 /**
  * POST /api/notifications/admin/broadcast/send
  */
-router.post('/admin/broadcast/send', authenticateToken, async (req, res) => {
+router.post('/admin/broadcast/send', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const { title, message, content, priority, target, start_at, end_at, show_on_login } = req.body;
     const msgTitle = title || 'Pengumuman Penting';
@@ -328,7 +328,7 @@ router.post('/admin/broadcast/send', authenticateToken, async (req, res) => {
 /**
  * DELETE /api/notifications/admin/broadcast/:id
  */
-router.delete('/admin/broadcast/:id', authenticateToken, async (req, res) => {
+router.delete('/admin/broadcast/:id', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const { id } = req.params;
     await query(`DELETE FROM broadcast_messages WHERE broadcast_id = $1`, [id]);
@@ -349,7 +349,7 @@ router.delete('/admin/broadcast/:id', authenticateToken, async (req, res) => {
 /**
  * GET /api/notifications/admin/broadcast/history
  */
-router.get('/admin/broadcast/history', authenticateToken, async (req, res) => {
+router.get('/admin/broadcast/history', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT b.*, u.full_name as sender_name

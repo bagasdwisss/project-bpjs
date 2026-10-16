@@ -175,6 +175,18 @@ router.post('/import', authenticateToken, requireRole('Administrator'), async (r
 router.get('/by-coordinator/:coordinatorId', authenticateToken, async (req, res) => {
   try {
     const { coordinatorId } = req.params;
+    const targetCoordinatorId = parseInt(coordinatorId, 10);
+
+    // Peserta cannot browse coordinator rosters
+    if (req.user.role === 'Peserta' || req.user.role_id === 1) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda tidak memiliki izin untuk melihat daftar bimbingan.' });
+    }
+
+    // Koordinator can only view their own participants
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && req.user.user_id !== targetCoordinatorId) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat melihat anak didik bimbingan Anda sendiri.' });
+    }
+
     const result = await query(
       `SELECT u.user_id, u.unique_id, u.full_name, u.role_id, u.coordinator_id, u.status, u.penempatan,
               p.hasil_akuisisi_bpu, p.kunjungan_bpu, p.kunjungan_pu, p.total_poin, p.nilai, p.grade
@@ -182,7 +194,7 @@ router.get('/by-coordinator/:coordinatorId', authenticateToken, async (req, res)
        LEFT JOIN progress p ON u.user_id = p.user_id
        WHERE u.coordinator_id = $1 AND u.role_id = 1
        ORDER BY u.full_name ASC`,
-      [coordinatorId]
+      [targetCoordinatorId]
     );
 
     return res.json({ success: true, data: result.rows });
@@ -224,7 +236,24 @@ router.get('/progress/summary', authenticateToken, async (req, res) => {
 router.get('/:id/progress', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await query(`SELECT * FROM progress WHERE user_id = $1 OR id = $1 LIMIT 1`, [id]);
+    const targetUserId = parseInt(id, 10);
+
+    // IDOR Protection: Peserta can only view their own progress
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && req.user.user_id !== targetUserId) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat melihat progres Anda sendiri.' });
+    }
+
+    // Coordinator isolation: Koordinator can only view their assigned participants
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      if (req.user.user_id !== targetUserId) {
+        const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+        if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+          return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+        }
+      }
+    }
+
+    const result = await query(`SELECT * FROM progress WHERE user_id = $1 OR id = $1 LIMIT 1`, [targetUserId]);
     return res.json({
       success: true,
       data: result.rows[0] || null
@@ -237,9 +266,19 @@ router.get('/:id/progress', authenticateToken, async (req, res) => {
 /**
  * PUT /api/users/:id/progress
  */
-router.put('/:id/progress', authenticateToken, async (req, res) => {
+router.put('/:id/progress', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { id } = req.params;
+    const targetUserId = parseInt(id, 10);
+
+    // Coordinator isolation: Verify mentee belongs to this coordinator
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat memperbarui progres anak didik Anda sendiri.' });
+      }
+    }
+
     const {
       kunjungan_bpu,
       hasil_akuisisi_bpu,
@@ -267,13 +306,13 @@ router.put('/:id/progress', authenticateToken, async (req, res) => {
          grade = EXCLUDED.grade,
          updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [id, kunjungan_bpu || 0, hasil_akuisisi_bpu || 0, kunjungan_pu || 0, video_viralisasi || 0, kehadiran_seminar || 0, kehadiran_sosialisasi || 0, total_poin || 0, nilai || 0, grade || 'E']
+      [targetUserId, kunjungan_bpu || 0, hasil_akuisisi_bpu || 0, kunjungan_pu || 0, video_viralisasi || 0, kehadiran_seminar || 0, kehadiran_sosialisasi || 0, total_poin || 0, nilai || 0, grade || 'E']
     );
 
     await logActivity({
       userId: req.user.user_id,
       type: 'PROGRESS_UPDATED',
-      details: `Memperbarui progres & nilai tugas peserta ID #${id} (Nilai: ${nilai || 0}, Grade: ${grade || '-'})`,
+      details: `Memperbarui progres & nilai tugas peserta ID #${targetUserId} (Nilai: ${nilai || 0}, Grade: ${grade || '-'})`,
       ip: req.ip,
       userAgent: req.headers['user-agent']
     });

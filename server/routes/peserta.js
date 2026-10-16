@@ -282,7 +282,23 @@ router.get('/peserta/:id', authenticateToken, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
     }
-    return res.json({ success: true, data: result.rows[0] });
+
+    const row = result.rows[0];
+
+    // IDOR Protection: Peserta can only view their own acquisition record
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && row.user_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat melihat data akuisisi Anda sendiri.' });
+    }
+
+    // Coordinator isolation
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const uCheck = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [row.user_id]);
+      if (uCheck.rows.length === 0 || uCheck.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
+    return res.json({ success: true, data: row });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -294,6 +310,25 @@ router.get('/peserta/:id', authenticateToken, async (req, res) => {
 router.put('/peserta/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verify existing record ownership
+    const check = await query(`SELECT user_id FROM peserta WHERE peserta_id = $1`, [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
+    }
+
+    const ownerId = check.rows[0].user_id;
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && ownerId !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat mengubah data akuisisi Anda sendiri.' });
+    }
+
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const uCheck = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [ownerId]);
+      if (uCheck.rows.length === 0 || uCheck.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     const {
       nama_peserta,
       nik,
@@ -349,6 +384,25 @@ router.put('/peserta/:id', authenticateToken, async (req, res) => {
 router.delete('/peserta/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verify existing record ownership
+    const check = await query(`SELECT user_id FROM peserta WHERE peserta_id = $1`, [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
+    }
+
+    const ownerId = check.rows[0].user_id;
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && ownerId !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menghapus data akuisisi Anda sendiri.' });
+    }
+
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const uCheck = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [ownerId]);
+      if (uCheck.rows.length === 0 || uCheck.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     await query(`DELETE FROM peserta WHERE peserta_id = $1`, [id]);
     return res.json({ success: true, message: 'Data peserta berhasil dihapus.' });
   } catch (error) {
@@ -362,6 +416,25 @@ router.delete('/peserta/:id', authenticateToken, async (req, res) => {
 router.put('/acquisition-result/:id/confirm-payment', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verify ownership
+    const check = await query(`SELECT user_id FROM peserta WHERE peserta_id = $1`, [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
+    }
+
+    const ownerId = check.rows[0].user_id;
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && ownerId !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat mengonfirmasi pembayaran akuisisi Anda sendiri.' });
+    }
+
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const uCheck = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [ownerId]);
+      if (uCheck.rows.length === 0 || uCheck.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     const result = await query(
       `UPDATE peserta SET status_pendaftaran = 'PEMBAYARAN BERHASIL', updated_at = CURRENT_TIMESTAMP WHERE peserta_id = $1 RETURNING *`,
       [id]

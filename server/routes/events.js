@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 
 const router = Router();
@@ -52,7 +52,7 @@ router.get('/', authenticateToken, async (req, res) => {
 /**
  * POST /api/events
  */
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { batch_id, event_title, event_description, start_datetime, end_datetime } = req.body;
 
@@ -117,7 +117,7 @@ router.post('/', authenticateToken, async (req, res) => {
 /**
  * PUT /api/events/:id
  */
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { id } = req.params;
     const { batch_id, event_title, event_description, start_datetime, end_datetime } = req.body;
@@ -153,7 +153,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 /**
  * DELETE /api/events/:id
  */
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { id } = req.params;
     await query(`DELETE FROM events WHERE event_id = $1`, [id]);

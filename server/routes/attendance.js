@@ -273,9 +273,32 @@ router.get('/statistics', authenticateToken, async (req, res) => {
 router.get('/participant/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    const targetUserId = parseInt(id, 10);
+
+    // IDOR Protection: Peserta can only view their own attendance
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && req.user.user_id !== targetUserId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses dilarang. Anda tidak berhak melihat riwayat presensi pengguna lain.'
+      });
+    }
+
+    // Coordinator isolation: Coordinator can only view attendance of their assigned participants
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      if (req.user.user_id !== targetUserId) {
+        const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+        if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+          return res.status(403).json({
+            success: false,
+            message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.'
+          });
+        }
+      }
+    }
+
     const result = await query(
       `SELECT * FROM attendance_records WHERE user_id = $1 ORDER BY attendance_date DESC`,
-      [id]
+      [targetUserId]
     );
     return res.json({ success: true, data: result.rows });
   } catch (error) {
