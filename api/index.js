@@ -3,6 +3,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+import pool from './db.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
 import gradingRoutes from './routes/grading.js';
@@ -20,6 +25,9 @@ import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
 // Middleware
@@ -36,14 +44,67 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 // Helper router to mount endpoints under both /api/... and /...
 const apiRouter = express.Router();
 
-// Healthcheck
-apiRouter.get('/health', (req, res) => {
+// Real-time Healthcheck & Database Status
+apiRouter.get('/health', async (req, res) => {
+  let dbStatus = 'disconnected';
+  let tables = [];
+  try {
+    const dbTest = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+    dbStatus = 'connected';
+    tables = dbTest.rows.map(r => r.table_name);
+  } catch (err) {
+    dbStatus = `error: ${err.message}`;
+  }
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'BPJS Absensi & Nilai API',
-    database: 'Neon PostgreSQL'
+    database: {
+      provider: 'Neon Serverless PostgreSQL',
+      status: dbStatus,
+      tablesCount: tables.length,
+      initialized: tables.includes('users') && tables.includes('roles'),
+      initHelp: tables.includes('users') ? 'Database ready!' : 'Kunjungi /api/init-db untuk menginisialisasi skema dan data awal'
+    }
   });
+});
+
+// One-Click Database Initialization Endpoint for Vercel + Neon
+apiRouter.all('/init-db', async (req, res) => {
+  try {
+    let sqlPath = path.resolve(__dirname, 'neon_schema.sql');
+    if (!fs.existsSync(sqlPath)) {
+      sqlPath = path.resolve(__dirname, '../neon_schema.sql');
+    }
+
+    if (!fs.existsSync(sqlPath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File neon_schema.sql tidak ditemukan di server.'
+      });
+    }
+
+    const sqlContent = fs.readFileSync(sqlPath, 'utf8');
+    await pool.query(sqlContent);
+
+    res.json({
+      success: true,
+      message: '🎉 Inisialisasi Database Neon PostgreSQL Berhasil!',
+      description: 'Semua tabel, view, dan data awal (roles, default users, batches, dll) telah terpasang.',
+      accounts: {
+        admin: 'ADM001 (Password: password123)',
+        koordinator: 'KO001 (Password: password123)',
+        peserta: 'PES001 (Password: password123)'
+      }
+    });
+  } catch (err) {
+    console.error('Inisialisasi DB Error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal menginisialisasi database: ' + err.message
+    });
+  }
 });
 
 // Mount modular sub-routers

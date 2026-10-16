@@ -6,9 +6,16 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// Neon PostgreSQL requires SSL in production.
 // Neon connection strings look like: postgresql://[user]:[password]@[host]/[dbname]?sslmode=require
-const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || 'postgresql://postgres:postgres@localhost:5432/db_absen_nilai';
+// Vercel's Neon Integration injects POSTGRES_URL, DATABASE_URL, POSTGRES_PRISMA_URL, etc.
+const connectionString = 
+  process.env.DATABASE_URL || 
+  process.env.POSTGRES_URL || 
+  process.env.POSTGRES_PRISMA_URL || 
+  process.env.POSTGRES_URL_NON_POOLING ||
+  (process.env.POSTGRES_HOST 
+    ? `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}/${process.env.POSTGRES_DATABASE}?sslmode=require`
+    : 'postgresql://postgres:postgres@localhost:5432/db_absen_nilai');
 
 const pool = new Pool({
   connectionString,

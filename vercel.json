@@ -1,6 +1,11 @@
 {
   "version": 2,
   "framework": "vite",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "api/neon_schema.sql"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
