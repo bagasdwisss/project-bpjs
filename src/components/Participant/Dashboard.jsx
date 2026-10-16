@@ -14,6 +14,7 @@ import dashboardService from '../../services/DashboardService.js';
 const CalculatorModal = lazy(() => import('../Common/CalculatorModal'));
 const QRCodeModal = lazy(() => import('../Common/QRCodeModal'));
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
+import { DashboardSkeleton } from '../Common/Skeleton';
 
 const ParticipantDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -66,10 +67,7 @@ const ParticipantDashboard = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
-          <div className="w-10 h-10 border-3 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-bold text-[#121214]">Memuat data bimbingan kamu...</p>
-        </div>
+        <DashboardSkeleton />
       </Layout>
     );
   }

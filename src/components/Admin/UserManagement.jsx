@@ -3,6 +3,7 @@ import Layout from '../Layout/Layout';
 import userService from '../../services/userService';
 
 const UserModal = lazy(() => import('./UserModal'));
+import { TableSkeleton } from '../Common/Skeleton';
 import { 
   Users, UserPlus, Upload, Search, Filter, 
   Edit3, Trash2, CheckCircle2, AlertCircle, X, Shield, Sparkles
@@ -288,7 +289,10 @@ const UserManagement = () => {
         </div>
 
         {/* Users Table Card */}
-        <div className="bg-white rounded-[22px] border border-[#EAE9E4] overflow-hidden shadow-sm">
+        {loading ? (
+          <TableSkeleton rows={7} cols={7} />
+        ) : (
+          <div className="bg-white rounded-[22px] border border-[#EAE9E4] overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[#EAE9E4]">
               <thead className="bg-[#FAF9F6]">
@@ -368,6 +372,7 @@ const UserManagement = () => {
             </table>
           </div>
         </div>
+        )}
 
         {/* Modal User & Delete */}
         {showModal && (

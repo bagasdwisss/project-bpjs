@@ -7,6 +7,7 @@ import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
+import { DashboardSkeleton } from '../Common/Skeleton';
 import { 
   Users, TrendingUp, Award, Clock, CheckCircle, 
   AlertCircle, RefreshCw, ChevronRight, Eye, Edit3, 
@@ -179,6 +180,14 @@ const CoordinatorDashboard = () => {
   const gradeACount = participants.filter(p => progressData[p.user_id]?.grade === 'A').length;
 
   const currentSelectedProgress = selectedParticipant ? (progressData[selectedParticipant.user_id] || {}) : {};
+
+  if (loading && participants.length === 0) {
+    return (
+      <Layout>
+        <DashboardSkeleton />
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

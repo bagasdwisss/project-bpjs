@@ -6,6 +6,7 @@ import {
   Filter, Download, BarChart3, Target, AlertCircle
 } from 'lucide-react';
 import api from '../../services/api';
+import { StatRowSkeleton, TableSkeleton } from '../Common/Skeleton';
 
 const Scores = () => {
   const { user } = useContext(AuthContext);
@@ -127,9 +128,13 @@ const Scores = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
-          <div className="w-10 h-10 border-3 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-bold text-[#121214]">Memuat rekapitulasi nilai...</p>
+        <div className="space-y-6">
+          <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm animate-pulse space-y-2">
+            <div className="h-6 w-48 bg-[#E5E4DE] rounded-md"></div>
+            <div className="h-4 w-72 bg-[#E5E4DE] rounded-md"></div>
+          </div>
+          <StatRowSkeleton count={4} />
+          <TableSkeleton rows={5} cols={5} />
         </div>
       </Layout>
     );

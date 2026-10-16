@@ -4,6 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import Layout from '../Layout/Layout';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { TableSkeleton } from '../Common/Skeleton';
 
 // Komponen Toast Berwarna Sistem Intelly Soft Neo-Brutalism
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -634,10 +635,7 @@ const AcquisitionResult = () => {
         {/* Data Table */}
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#121214] border-t-transparent mx-auto"></div>
-            <p className="mt-4 text-xs font-bold text-[#121214]/60">Memuat data hasil akuisisi...</p>
-          </div>
+          <TableSkeleton rows={5} cols={7} />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">

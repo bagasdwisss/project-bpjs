@@ -5,6 +5,7 @@ import Layout from '../Layout/Layout';
 import { notificationService } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { ListSkeleton } from '../Common/Skeleton';
 import { 
   Bell, 
   Trash2, 
@@ -291,9 +292,8 @@ const Notifications = () => {
           </div>
           
           {loading ? (
-            <div className="flex flex-col items-center justify-center p-14 space-y-2">
-              <div className="w-8 h-8 border-2 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs font-bold text-[#121214]">Memuat notifikasi...</p>
+            <div className="p-4">
+              <ListSkeleton items={5} />
             </div>
           ) : notifications.length === 0 ? (
             <div className="py-16 text-center space-y-3">

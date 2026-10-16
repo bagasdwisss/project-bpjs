@@ -3,6 +3,7 @@ import Layout from '../Layout/Layout';
 import userService from '../../services/userService';
 import progressService from '../../services/progressService';
 import ParticipantDetails from './ParticipantDetails';
+import { TableSkeleton } from '../Common/Skeleton';
 import { Users, Search, RefreshCw, Eye, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 
 const Participants = () => {
@@ -170,10 +171,11 @@ const Participants = () => {
         </div>
 
         {/* Participants Bento Table */}
-        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
-          {loading ? (
-            <div className="p-12 text-center text-xs text-[#6E6D6A]">Memuat data peserta bimbingan...</div>
-          ) : sortedAndFilteredParticipants.length === 0 ? (
+        {loading ? (
+          <TableSkeleton rows={6} cols={6} />
+        ) : (
+          <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
+            {sortedAndFilteredParticipants.length === 0 ? (
             <div className="p-12 text-center text-xs text-[#6E6D6A]">
               Tidak ada peserta yang cocok dengan kriteria pencarian.
             </div>
@@ -263,6 +265,7 @@ const Participants = () => {
             </div>
           )}
         </div>
+        )}
 
         {/* Modal Participant Details */}
         {showDetails && (
