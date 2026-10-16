@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Table, Search, Download, Eye, AlertCircle, Upload, CheckCircle, Plus, Edit, XCircle } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import Layout from '../Layout/Layout';
+import api from '../../services/api';
 
 // Komponen Toast
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -135,30 +136,17 @@ const AcquisitionResult = () => {
   useEffect(() => {
     const fetchAcquisitionData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/participant/acquisition-result', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await api.get('/participant/acquisition-result');
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (result.success) {
-          setAcquisitionData(result.data || []);
+        if (response.data?.success) {
+          setAcquisitionData(response.data.data || []);
         } else {
-          console.error('Error fetching acquisition data:', result.message);
-          showToast(`Gagal mengambil data: ${result.message}`, 'error');
+          console.error('Error fetching acquisition data:', response.data?.message);
+          showToast(`Gagal mengambil data: ${response.data?.message || 'Error'}`, 'error');
         }
       } catch (error) {
         console.error('Error fetching acquisition data:', error);
-        showToast(`Terjadi kesalahan saat mengambil data: ${error.message}`, 'error');
+        showToast(`Terjadi kesalahan saat mengambil data: ${error.response?.data?.message || error.message}`, 'error');
       } finally {
         setLoading(false);
       }
@@ -187,29 +175,22 @@ const AcquisitionResult = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
       const endpoint = uploadType === 'payment' 
-        ? `/api/participant/acquisition-result/${selectedItem.peserta_id}/upload-payment-proof`
-        : `/api/participant/acquisition-result/${selectedItem.peserta_id}/upload-socialization-proof`;
+        ? `/participant/acquisition-result/${selectedItem.peserta_id}/upload-payment-proof`
+        : `/participant/acquisition-result/${selectedItem.peserta_id}/upload-socialization-proof`;
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData
+      const response = await api.post(endpoint, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (response.data?.success) {
         // Update data lokal
         setAcquisitionData(prev => prev.map(item => 
           item.peserta_id === selectedItem.peserta_id 
             ? { 
                 ...item, 
                 [uploadType === 'payment' ? 'bukti_pembayaran_link' : 'bukti_sosialisasi_link']: 
-                result.data[uploadType === 'payment' ? 'bukti_pembayaran_link' : 'bukti_sosialisasi_link'] 
+                response.data.data[uploadType === 'payment' ? 'bukti_pembayaran_link' : 'bukti_sosialisasi_link'] 
               }
             : item
         ));
@@ -218,7 +199,7 @@ const AcquisitionResult = () => {
         setShowUploadModal(false);
         setUploadFile(null);
       } else {
-        showToast(`Gagal mengunggah bukti: ${result.message}`, 'error');
+        showToast(`Gagal mengunggah bukti: ${response.data?.message}`, 'error');
       }
     } catch (error) {
       console.error('Error uploading proof:', error);
@@ -231,18 +212,9 @@ const AcquisitionResult = () => {
   const handleConfirmPayment = async (pesertaId) => {
     if (window.confirm('Apakah Anda yakin pembayaran sudah selesai?')) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/participant/acquisition-result/${pesertaId}/confirm-payment`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await api.put(`/participant/acquisition-result/${pesertaId}/confirm-payment`);
 
-        const result = await response.json();
-
-        if (result.success) {
+        if (response.data?.success) {
           // Update data lokal
           setAcquisitionData(prev => prev.map(item =>
             item.peserta_id === pesertaId
@@ -252,7 +224,7 @@ const AcquisitionResult = () => {
 
           showToast('Pembayaran berhasil dikonfirmasi!', 'success');
         } else {
-          showToast(`Gagal mengkonfirmasi pembayaran: ${result.message}`, 'error');
+          showToast(`Gagal mengkonfirmasi pembayaran: ${response.data?.message}`, 'error');
         }
       } catch (error) {
         console.error('Error confirming payment:', error);
@@ -393,11 +365,9 @@ const AcquisitionResult = () => {
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
       const url = isEditMode
-        ? `/api/participant/peserta/${selectedItem.peserta_id}`
-        : '/api/participant/peserta';
-      const method = isEditMode ? 'PUT' : 'POST';
+        ? `/participant/peserta/${selectedItem.peserta_id}`
+        : '/participant/peserta';
 
       // Check if there are files to upload
       const hasFiles = paymentProofFile || socializationProofFile;
@@ -429,64 +399,43 @@ const AcquisitionResult = () => {
           formDataToSend.append('bukti_sosialisasi', socializationProofFile);
         }
 
-        response = await fetch(url, {
-          method: method,
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            // Don't set Content-Type header, let browser set it with boundary for multipart
-          },
-          body: formDataToSend
-        });
+        response = await (isEditMode 
+          ? api.put(url, formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } })
+          : api.post(url, formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } }));
       } else {
         // Use regular JSON for non-file data
         const requestData = {
           ...formData,
           biaya: parseFloat(formData.biaya) || 0,
-          user_id: user.user_id // Menetapkan user_id saat ini
+          user_id: user.user_id
         };
 
-        response = await fetch(url, {
-          method: method,
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData)
-        });
+        response = await (isEditMode ? api.put(url, requestData) : api.post(url, requestData));
       }
 
-      // Check if response is OK
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
+      if (response.data?.success) {
         if (isEditMode) {
           // Update data lokal
           setAcquisitionData(prev => prev.map(item =>
             item.peserta_id === selectedItem.peserta_id
-              ? { ...item, ...result.data }
+              ? { ...item, ...response.data.data }
               : item
           ));
           showToast('Data peserta berhasil diperbarui!', 'success');
         } else {
           // Tambahkan data baru ke awal array
-          setAcquisitionData(prev => [result.data, ...prev]);
+          setAcquisitionData(prev => [response.data.data, ...prev]);
           showToast('Data peserta berhasil ditambahkan!', 'success');
         }
 
         setShowFormModal(false);
         resetForm();
       } else {
-        showToast(`Gagal ${isEditMode ? 'memperbarui' : 'menambahkan'} data: ${result.message}`, 'error');
+        showToast(`Gagal ${isEditMode ? 'memperbarui' : 'menambahkan'} data: ${response.data?.message}`, 'error');
       }
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} data:`, error);
-      showToast(`Terjadi kesalahan saat ${isEditMode ? 'memperbarui' : 'menambahkan'} data: ${error.message}`, 'error');
+      showToast(`Terjadi kesalahan saat ${isEditMode ? 'memperbarui' : 'menambahkan'} data: ${error.response?.data?.message || error.message}`, 'error');
     } finally {
       setSubmitting(false);
     }

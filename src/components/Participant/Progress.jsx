@@ -9,6 +9,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import api from '../../services/api';
+
 const Progress = () => {
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
@@ -16,59 +18,15 @@ const Progress = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [dataFound, setDataFound] = useState(true);
 
-  // Base URL API dinamis
-  const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-
   // Fungsi untuk mengambil data dari database melalui API
   const fetchDataFromAPI = async () => {
     try {
       setLoading(true);
-      
-      // Ambil token dari localStorage - coba beberapa kemungkinan key
-      let token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        token = localStorage.getItem('token');
-      }
-      
-      if (!token) {
-        token = localStorage.getItem('sanctum_token');
-      }
-      
-      if (!token) {
-        console.error('Token tidak ditemukan di localStorage');
-        console.log('Available localStorage keys:', Object.keys(localStorage));
-        setDataFound(false);
-        setLoading(false);
-        return;
-      }
 
-      console.log('Fetching progress with token:', token.substring(0, 20) + '...');
-      console.log('API URL:', `${API_BASE_URL}/participant/progress`);
+      const response = await api.get('/participant/progress');
 
-      // Request ke API endpoint untuk participant
-      const response = await fetch(`${API_BASE_URL}/participant/progress`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-
-      console.log('Response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API Error:', errorData);
-        throw new Error(errorData.message || 'Gagal mengambil data progress');
-      }
-
-      const result = await response.json();
-      console.log('API Response:', result);
-      
-      if (result.success && result.data) {
-        processAPIData(result.data);
+      if (response.data?.success && response.data.data) {
+        processAPIData(response.data.data);
         setLastUpdated(new Date());
         setDataFound(true);
       } else {

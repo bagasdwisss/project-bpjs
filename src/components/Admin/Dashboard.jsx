@@ -113,7 +113,7 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Admin</p>
-                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">3</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalAdmins ?? 1}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Superuser</p>
                 </div>
               </div>

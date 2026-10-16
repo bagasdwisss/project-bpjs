@@ -64,8 +64,9 @@ const formatDistance = (meters) => {
   return `${km < 10 ? km.toFixed(2) : km.toFixed(1)} km`;
 };
 
-// Titik Kantor Resmi BPJS Ketenagakerjaan
-const OFFICE_LOCATION = {
+// Titik Default Kantor Resmi BPJS Ketenagakerjaan
+const DEFAULT_OFFICE_LOCATION = {
+  id: 1,
   name: 'Kantor Cabang BPJS Ketenagakerjaan Medan Kota',
   address: 'BPJS, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153',
   lat: 3.575556,
@@ -92,6 +93,9 @@ const Attendance = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [toast, setToast] = useState(null);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
+
+  // Dynamic Office Location from Backend
+  const [officeLocation, setOfficeLocation] = useState(DEFAULT_OFFICE_LOCATION);
 
   // Geofencing & Office Location State
   const [currentCoords, setCurrentCoords] = useState(null);
@@ -127,8 +131,28 @@ const Attendance = () => {
   const showToast = (message, type = 'info') => setToast({ message, type });
   const closeToast = () => setToast(null);
 
+  const loadOfficeLocation = async () => {
+    try {
+      const res = await api.get('/participant/attendance/office');
+      if (res.data?.success && res.data.office) {
+        const off = res.data.office;
+        setOfficeLocation({
+          id: off.id || DEFAULT_OFFICE_LOCATION.id,
+          name: off.name || DEFAULT_OFFICE_LOCATION.name,
+          address: off.address || DEFAULT_OFFICE_LOCATION.address,
+          lat: Number(off.latitude) || DEFAULT_OFFICE_LOCATION.lat,
+          lon: Number(off.longitude) || DEFAULT_OFFICE_LOCATION.lon,
+          radiusMeters: Number(off.radius_meters) || DEFAULT_OFFICE_LOCATION.radiusMeters
+        });
+      }
+    } catch (err) {
+      console.warn('Could not load dynamic office location, using default:', err);
+    }
+  };
+
   const loadInitialData = async () => {
     await Promise.all([
+      loadOfficeLocation(),
       loadAttendanceData(),
       loadLeaveHistory()
     ]);
@@ -199,10 +223,10 @@ const Attendance = () => {
 
         setCurrentCoords({ lat, lon, accuracy });
 
-        // Calculate distance to BPJS Kapten Patimura Medan office
-        const dist = calculateDistance(lat, lon, OFFICE_LOCATION.lat, OFFICE_LOCATION.lon);
+        // Calculate distance to active BPJS office
+        const dist = calculateDistance(lat, lon, officeLocation.lat, officeLocation.lon);
         setDistanceToOffice(dist);
-        setIsWithinRadius(dist <= OFFICE_LOCATION.radiusMeters);
+        setIsWithinRadius(dist <= officeLocation.radiusMeters);
 
         // Reverse Geocode
         try {
@@ -324,12 +348,12 @@ const Attendance = () => {
 
       const payload = {
         status,
-        notes: notes || (isWithinRadius ? 'Presensi dalam radius Kantor BPJS Medan Kota' : 'Presensi di luar radius kantor resmi (Verifikasi Koordinator)'),
+        notes: notes || (isWithinRadius ? `Presensi dalam radius ${officeLocation.name}` : 'Presensi di luar radius kantor resmi (Verifikasi Koordinator)'),
         coordinates: `${currentCoords.lat},${currentCoords.lon}`,
-        address: locationAddress || OFFICE_LOCATION.address,
+        address: locationAddress || officeLocation.address,
         device_info: navigator.userAgent,
         selfie_image_url: selfieImage,
-        geofence_id: 1,
+        geofence_id: officeLocation.id || 1,
         distance_meters: distanceToOffice !== null ? distanceToOffice : 0,
         is_mock_location: isMockLocation
       };
@@ -343,7 +367,7 @@ const Attendance = () => {
           status,
           checkIn: res.data.data.check_in_time,
           notes: res.data.data.notes,
-          location: locationAddress || OFFICE_LOCATION.address,
+          location: locationAddress || officeLocation.address,
           selfie: selfieImage
         });
         await loadAttendanceData();
@@ -510,15 +534,15 @@ const Attendance = () => {
                     </div>
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/60">Titik Kantor Presensi</span>
-                      <h3 className="text-xs font-black text-[#121214]">{OFFICE_LOCATION.name}</h3>
+                      <h3 className="text-xs font-black text-[#121214]">{officeLocation.name}</h3>
                     </div>
                   </div>
                   <span className="text-[10px] font-black bg-[#B8C96E] text-[#121214] px-2 py-0.5 rounded-full border border-[#121214]">
-                    Radius {OFFICE_LOCATION.radiusMeters}m
+                    Radius {officeLocation.radiusMeters}m
                   </span>
                 </div>
                 <p className="text-[11px] text-[#121214]/75 font-medium leading-relaxed bg-[#F5F4F0] p-2.5 rounded-lg border border-[#121214]/10">
-                  {OFFICE_LOCATION.address}
+                  {officeLocation.address}
                 </p>
               </div>
 

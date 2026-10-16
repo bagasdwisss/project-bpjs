@@ -6,6 +6,64 @@ import { authenticateToken } from '../middleware/auth.js';
 const router = Router();
 
 /**
+ * GET /api/participant/progress
+ */
+router.get('/progress', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+
+    const result = await query(
+      `SELECT p.*, u.full_name, u.unique_id, COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email,
+              c.full_name as coordinator_name
+       FROM progress p
+       JOIN users u ON p.user_id = u.user_id
+       LEFT JOIN users c ON u.coordinator_id = c.user_id
+       WHERE p.user_id = $1
+       LIMIT 1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      // Auto-initialize progress row if not yet created
+      let progRow;
+      const existing = await query(`SELECT * FROM progress WHERE user_id = $1`, [userId]);
+      if (existing.rows.length > 0) {
+        progRow = existing.rows[0];
+      } else {
+        const insertRes = await query(
+          `INSERT INTO progress (user_id, created_at, updated_at)
+           VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           RETURNING *`,
+          [userId]
+        );
+        progRow = insertRes.rows[0];
+      }
+
+      const userRes = await query(
+        `SELECT u.full_name, u.unique_id, COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email,
+                c.full_name as coordinator_name
+         FROM users u
+         LEFT JOIN users c ON u.coordinator_id = c.user_id
+         WHERE u.user_id = $1`,
+        [userId]
+      );
+
+      return res.json({
+        success: true,
+        data: {
+          ...(progRow || {}),
+          ...(userRes.rows[0] || {})
+        }
+      });
+    }
+
+    return res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * GET /api/participant/acquisition-result
  */
 router.get('/acquisition-result', authenticateToken, async (req, res) => {

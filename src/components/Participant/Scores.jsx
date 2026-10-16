@@ -5,6 +5,7 @@ import {
   Award, TrendingUp, FileText, Calendar, 
   Filter, Download, BarChart3, Target, AlertCircle
 } from 'lucide-react';
+import api from '../../services/api';
 
 const Scores = () => {
   const { user } = useContext(AuthContext);
@@ -31,60 +32,28 @@ const Scores = () => {
       setLoading(true);
       setError(null);
       
-      // Validasi bahwa token tersedia
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Token otentikasi tidak ditemukan. Silakan login kembali.');
+      const response = await api.get('/participant/scores');
+      
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || 'Gagal mengambil data skor');
       }
       
-      // Gunakan endpoint yang sesuai dengan struktur API backend
-      // Untuk peserta, endpointnya adalah /api/participant/scores
-      const response = await fetch('/api/participant/scores', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Jika menggunakan auth
-          'Content-Type': 'application/json',
-        }
-      });
-
-      // Baca teks respons terlebih dahulu untuk debugging
-      const responseText = await response.text();
-      console.log('Raw response:', responseText.substring(0, 500)); // Log awal respons
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Cek apakah response adalah JSON sebelum parsing
-      let responseJson;
-      try {
-        responseJson = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Response is not JSON. Raw response:', responseText.substring(0, 500));
-        throw new Error('Response is not JSON: ' + responseText.substring(0, 200));
-      }
-      
-      // Cek apakah response dalam format yang diharapkan
-      if (!responseJson.success) {
-        throw new Error(responseJson.message || 'Gagal mengambil data skor');
-      }
-      
-      // Gunakan data dari respons API backend
-      const scoresData = Array.isArray(responseJson.data) 
-        ? responseJson.data 
-        : (Array.isArray(responseJson) ? responseJson : []);
+      const scoresData = Array.isArray(response.data.data) 
+        ? response.data.data 
+        : (Array.isArray(response.data) ? response.data : []);
       
       // Transformasi data dari struktur database ke format yang diharapkan oleh UI
       const transformedScores = scoresData.map(score => ({
         id: score.score_id || score.id,
-        title: score.module?.module_name || `Nilai Modul #${score.module_id}`, // Gunakan nama modul jika tersedia
-        score: score.score_value,
-        maxScore: score.max_score || 100, // Gunakan max_score dari database jika tersedia
-        type: score.score_type || 'assessment', // Gunakan field type dari database jika ada
-        module: score.module?.module_name || `Modul #${score.module_id}`, // Gunakan nama modul jika tersedia
+        title: score.module_name || score.module?.module_name || `Nilai Modul #${score.module_id}`,
+        score: Number(score.score_value) || 0,
+        maxScore: Number(score.max_score) || 100,
+        type: score.score_type || 'assessment',
+        module: score.module_name || score.module?.module_name || `Modul #${score.module_id}`,
         date: score.graded_at || score.created_at,
-        gradedBy: score.grader_name || `Koordinator #${score.coordinator_id || 'N/A'}`, // Gunakan nama koordinator jika tersedia
-        feedback: score.comments || 'Tidak ada komentar',
-        weight: 25 // Bobot bisa disesuaikan sesuai kebutuhan
+        gradedBy: score.coordinator_name || score.grader_name || `Koordinator`,
+        feedback: score.comments || 'Belum ada catatan pembimbing',
+        weight: 25
       }));
       
       setScores(transformedScores);
@@ -94,13 +63,7 @@ const Scores = () => {
       setModules(['all', ...uniqueModules]);
     } catch (err) {
       console.error('Error fetching score data:', err);
-      
-      // Jika error karena bukan JSON, tampilkan pesan yang lebih informatif
-      if (err.message.includes('Unexpected token') && err.message.includes('<!doctype')) {
-        setError('API mengembalikan error page. Pastikan backend berjalan dan endpoint tersedia.');
-      } else {
-        setError(`Gagal memuat data nilai: ${err.message}`);
-      }
+      setError(err.response?.data?.message || err.message || 'Gagal memuat data nilai');
     } finally {
       setLoading(false);
     }

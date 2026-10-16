@@ -43,6 +43,51 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/participant/attendance/office
+ * Returns active office geofence location dynamically from database
+ */
+router.get('/office', authenticateToken, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, name, address, latitude, longitude, radius_meters, category, is_active
+       FROM geofence_locations
+       WHERE category = 'kantor' AND is_active = TRUE
+       ORDER BY id ASC
+       LIMIT 1`
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          id: 1,
+          name: 'Kantor Cabang BPJS Ketenagakerjaan Medan Kota',
+          address: 'BPJS, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153',
+          latitude: 3.575556,
+          longitude: 98.665278,
+          radius_meters: 150
+        }
+      });
+    }
+
+    const row = result.rows[0];
+    return res.json({
+      success: true,
+      data: {
+        id: row.id,
+        name: row.name,
+        address: row.address,
+        latitude: parseFloat(row.latitude),
+        longitude: parseFloat(row.longitude),
+        radius_meters: parseInt(row.radius_meters, 10) || 150
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * POST /api/participant/attendance/check-in
  */
 router.post('/check-in', authenticateToken, async (req, res) => {
@@ -93,31 +138,44 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       });
     }
 
-    // Validate geofence_id against foreign key
-    let validGeofenceId = null;
-    if (geofence_id) {
-      const parsedId = parseInt(geofence_id, 10);
-      if (!isNaN(parsedId)) {
-        const checkG = await query(`SELECT id FROM geofence_locations WHERE id = $1`, [parsedId]);
-        if (checkG.rows.length > 0) {
-          validGeofenceId = parsedId;
+    // Dynamically retrieve active office geofence from database
+    const officeRes = await query(
+      `SELECT id, name, address, latitude, longitude, radius_meters 
+       FROM geofence_locations 
+       WHERE category = 'kantor' AND is_active = TRUE 
+       ORDER BY id ASC 
+       LIMIT 1`
+    );
+    const activeOffice = officeRes.rows[0];
+
+    const validGeofenceId = activeOffice ? activeOffice.id : (geofence_id || null);
+    const officeAddress = address || (activeOffice ? activeOffice.address : 'BPJS, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153');
+
+    // Dynamic distance calculation on server side if coordinates provided
+    let calculatedDistance = null;
+    if (coordinates && activeOffice) {
+      const parts = coordinates.split(',');
+      if (parts.length === 2) {
+        const cLat = parseFloat(parts[0]);
+        const cLon = parseFloat(parts[1]);
+        if (!isNaN(cLat) && !isNaN(cLon)) {
+          const R = 6371e3;
+          const rLat1 = (cLat * Math.PI) / 180;
+          const rLat2 = (parseFloat(activeOffice.latitude) * Math.PI) / 180;
+          const dLat = ((parseFloat(activeOffice.latitude) - cLat) * Math.PI) / 180;
+          const dLon = ((parseFloat(activeOffice.longitude) - cLon) * Math.PI) / 180;
+          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          calculatedDistance = Math.round(R * c);
         }
       }
     }
-    if (!validGeofenceId) {
-      const defaultG = await query(`SELECT id FROM geofence_locations WHERE category = 'kantor' LIMIT 1`);
-      if (defaultG.rows.length > 0) {
-        validGeofenceId = defaultG.rows[0].id;
-      }
-    }
 
-    // Validate distance_meters
-    let validDistance = null;
-    if (distance_meters !== undefined && distance_meters !== null && !isNaN(Number(distance_meters))) {
-      validDistance = Math.round(Number(distance_meters) * 100) / 100;
+    // Fallback to client submitted distance if server calculation could not parse
+    let finalDistance = calculatedDistance;
+    if (finalDistance === null && distance_meters !== undefined && distance_meters !== null && !isNaN(Number(distance_meters))) {
+      finalDistance = Math.round(Number(distance_meters) * 100) / 100;
     }
-
-    const defaultOfficeAddress = 'BPJS Ketenagakerjaan Medan Kota, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153';
 
     const result = await query(
       `INSERT INTO attendance_records (
@@ -135,12 +193,12 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         normalizedStatus,
         notes || null,
         coordinates || null,
-        address || defaultOfficeAddress,
+        officeAddress,
         req.ip || '127.0.0.1',
         device_info || req.headers['user-agent'] || null,
         selfie_image_url || null,
         validGeofenceId,
-        validDistance,
+        finalDistance,
         Boolean(is_mock_location)
       ]
     );

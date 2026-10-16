@@ -66,7 +66,10 @@ const Analysis = () => {
       const response = await gradingService.getParticipants(filters);
 
       if (response.success) {
-        setParticipants(response.data.participants || []);
+        const parts = Array.isArray(response.data) 
+          ? response.data 
+          : (Array.isArray(response.data?.participants) ? response.data.participants : []);
+        setParticipants(parts);
       } else {
         setError(response.message || 'Gagal memuat data peserta');
       }

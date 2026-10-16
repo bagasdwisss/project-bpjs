@@ -91,11 +91,38 @@ const ParticipantDashboard = () => {
     );
   }
 
-  const { stats, recent_scores = [], upcoming_events = [], unread_notifications = 0 } = dashboardData;
-  const attendance = stats?.attendance || { percentage: 0, effectivePresent: 0, total: 0, present: 0, izin: 0, sick: 0, absent: 0, late: 0, month: 'Bulan Ini' };
+  const stats = dashboardData.stats || {};
+  const effectiveScores = dashboardData.recentScores || dashboardData.recent_scores || [];
+  const effectiveEvents = dashboardData.upcomingEvents || dashboardData.upcoming_events || [];
+  const effectiveUnread = dashboardData.unreadNotifications ?? dashboardData.unread_notifications ?? 0;
+
+  const attendance = stats.attendance || {};
+  const attTotal = attendance.total || 0;
+  const attPresent = attendance.present ?? attendance.hadir ?? attendance.effectivePresent ?? 0;
+  const attIzin = attendance.izin ?? attendance.permission ?? 0;
+  const attSick = attendance.sick ?? attendance.sakit ?? 0;
+  const attAbsent = attendance.absent ?? attendance.alfa ?? 0;
+  const attLate = attendance.late ?? attendance.terlambat ?? 0;
+  const attPercentage = attendance.rate ?? attendance.percentage ?? (attTotal > 0 ? Math.round((attPresent / attTotal) * 100) : 100);
+
   const targetAkuisisi = 20;
-  const akuisisiBPU = stats?.hasilAkuisisiBPU || 0;
+  const akuisisiBPU = stats.hasilAkuisisiBPU ?? stats.akuisisiBPU ?? 0;
   const progressPct = Math.min(100, Math.round((akuisisiBPU / targetAkuisisi) * 100));
+
+  const averageScore = stats.averageScore && stats.averageScore > 0 ? Number(stats.averageScore) : null;
+  const maxScore = stats.maxScore && stats.maxScore > 0 ? Number(stats.maxScore) : null;
+  const dynamicGrade = stats.grade && stats.grade !== 'E' ? stats.grade : (
+    averageScore !== null ? (
+      averageScore >= 85 ? 'Grade A' :
+      averageScore >= 75 ? 'Grade B' :
+      averageScore >= 60 ? 'Grade C' : 'Grade D'
+    ) : '-'
+  );
+  const dynamicPredicate = 
+    dynamicGrade === 'Grade A' ? 'Sangat Kompeten' :
+    dynamicGrade === 'Grade B' ? 'Kompeten' :
+    dynamicGrade === 'Grade C' ? 'Cukup Kompeten' :
+    dynamicGrade === 'Grade D' ? 'Perlu Bimbingan' : 'Belum Ada Evaluasi';
 
   return (
     <Layout>
@@ -160,7 +187,7 @@ const ParticipantDashboard = () => {
                   Target Akuisisi Kepesertaan BPU
                 </span>
                 <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                  Target: 20
+                  Target: {targetAkuisisi}
                 </span>
               </div>
 
@@ -205,32 +232,32 @@ const ParticipantDashboard = () => {
                   Tingkat Kehadiran Magang
                 </span>
                 <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                  {attendance.percentage}% Hadir
+                  {attPercentage}% Hadir
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hadir Efektif</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attendance.effectivePresent || 0} Hari</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">Dari {attendance.total || 0} hari kerja</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attPresent} Hari</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Dari {attTotal} hari tercatat</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Izin & Sakit</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{(attendance.izin || 0) + (attendance.sick || 0)} Hari</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attIzin + attSick} Hari</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat resmi</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Terlambat</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attendance.late || 0} Kali</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">Batas toleransi aman</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attLate} Kali</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Pukul 08:00 WIB</p>
                 </div>
               </div>
             </div>
 
             <div className="pt-4 flex items-center justify-between text-xs font-bold">
-              <span>Periode: {attendance.month || 'Bulan Berjalan'}</span>
-              <span className="text-[#121214]/70">Presensi Terverifikasi</span>
+              <span>Rekap Kehadiran Presensi</span>
+              <span className="text-[#121214]/70">{attAbsent > 0 ? `${attAbsent} Hari Alpa` : 'Presensi Terverifikasi'}</span>
             </div>
           </div>
 
@@ -246,7 +273,7 @@ const ParticipantDashboard = () => {
                   Evaluasi Akademik & Nilai
                 </span>
                 <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                  Peringkat #{stats.rank !== '-' ? stats.rank : '1'}
+                  {stats.rank && stats.rank !== '-' ? `Peringkat #${stats.rank}` : 'Peringkat #1'}
                 </span>
               </div>
 
@@ -254,28 +281,30 @@ const ParticipantDashboard = () => {
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Rata-Rata</p>
                   <p className="text-2xl font-black text-[#121214] mt-0.5">
-                    {stats.averageScore && stats.averageScore > 0 ? stats.averageScore.toFixed(1) : '88.5'}
+                    {averageScore !== null ? averageScore.toFixed(1) : '-'}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Skala 100</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Tertinggi</p>
                   <p className="text-2xl font-black text-[#121214] mt-0.5">
-                    {stats.maxScore && stats.maxScore > 0 ? stats.maxScore : '95'}
+                    {maxScore !== null ? maxScore : '-'}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Ujian / Tugas</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Predikat</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">Grade A</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">Sangat Kompeten</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{dynamicGrade}</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">{dynamicPredicate}</p>
                 </div>
               </div>
             </div>
 
             <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
               <span>Standar Minimal Kelulusan: 75.0</span>
-              <span className="text-[#121214]/80">Status: Memenuhi</span>
+              <span className="text-[#121214]/80">
+                {averageScore !== null ? (averageScore >= 75 ? 'Status: Memenuhi' : 'Status: Perlu Peningkatan') : 'Status: Menunggu Nilai'}
+              </span>
             </div>
           </div>
 
@@ -291,24 +320,30 @@ const ParticipantDashboard = () => {
                   Modul & Notifikasi
                 </span>
                 <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                  {unread_notifications} Pesan Baru
+                  {effectiveUnread} Pesan Baru
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Modul Selesai</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">4 / 4</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                    {stats.completedModules ?? 0} / {stats.totalModules ?? 4}
+                  </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum Inti</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Tugas Terkumpul</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">8 Tugas</p>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Tugas Dinilai</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                    {stats.totalScores ?? 0} Nilai
+                  </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Dinilai Koordinator</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hasil Akuisisi</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">BPU & PU</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                    {akuisisiBPU} BPU
+                  </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat di DB</p>
                 </div>
               </div>
@@ -338,23 +373,23 @@ const ParticipantDashboard = () => {
             {/* Attendance Status Badges Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
-                <p className="text-lg font-black text-emerald-600">{attendance.present || 0}</p>
+                <p className="text-lg font-black text-emerald-600">{attPresent}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Hadir</p>
               </div>
               <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
-                <p className="text-lg font-black text-[#1F4275]">{attendance.izin || 0}</p>
+                <p className="text-lg font-black text-[#1F4275]">{attIzin}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Izin</p>
               </div>
               <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
-                <p className="text-lg font-black text-amber-500">{attendance.sick || 0}</p>
+                <p className="text-lg font-black text-amber-500">{attSick}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Sakit</p>
               </div>
               <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
-                <p className="text-lg font-black text-rose-500">{attendance.absent || 0}</p>
+                <p className="text-lg font-black text-rose-500">{attAbsent}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Alpa</p>
               </div>
               <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
-                <p className="text-lg font-black text-purple-600">{attendance.late || 0}</p>
+                <p className="text-lg font-black text-purple-600">{attLate}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Terlambat</p>
               </div>
             </div>
@@ -392,27 +427,16 @@ const ParticipantDashboard = () => {
             {/* Recent Scores */}
             <div className="space-y-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#6E6D6A]">Evaluasi Modul Terakhir</p>
-              {recent_scores.length === 0 ? (
-                <div className="p-3.5 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-8 h-8 rounded-[10px] bg-[#FCE373] text-[#121214] flex items-center justify-center font-bold">
-                      A
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#121214]">Simulasi Sosialisasi BPU</p>
-                      <p className="text-[10px] text-[#6E6D6A]">Nilai: 92.0 • Selesai</p>
-                    </div>
-                  </div>
-                  <span className="text-[11px] font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                    Lulus
-                  </span>
+              {effectiveScores.length === 0 ? (
+                <div className="p-4 bg-[#FAF9F6] rounded-[16px] border border-dashed border-[#EAE9E4] text-center text-xs text-[#6E6D6A]">
+                  Belum ada evaluasi nilai yang diinput oleh pembimbing.
                 </div>
               ) : (
-                recent_scores.slice(0, 3).map((sc, i) => (
+                effectiveScores.slice(0, 3).map((sc, i) => (
                   <div key={sc.score_id || i} className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] flex items-center justify-between text-xs">
                     <div>
                       <p className="font-bold text-[#121214]">{sc.module_name || 'Modul Pelatihan'}</p>
-                      <p className="text-[10px] text-[#6E6D6A]">{sc.score_type || 'Evaluasi'}</p>
+                      <p className="text-[10px] text-[#6E6D6A]">{sc.comments || sc.score_type || 'Evaluasi'}</p>
                     </div>
                     <span className="font-black text-[#121214] text-sm bg-white px-3 py-1 rounded-full border border-[#EAE9E4]">
                       {sc.score_value}
@@ -425,19 +449,17 @@ const ParticipantDashboard = () => {
             {/* Upcoming Events */}
             <div className="pt-2 border-t border-[#F0EFEA] space-y-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#6E6D6A]">Jadwal Terdekat</p>
-              {upcoming_events.length === 0 ? (
-                <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-xs space-y-1">
-                  <div className="flex items-center justify-between font-bold text-[#121214]">
-                    <span>Sosialisasi Komunitas Pekerja</span>
-                    <span className="text-[10px] bg-[#F5C6EC] text-[#121214] px-2 py-0.5 rounded-full font-bold">08:30 WIB</span>
-                  </div>
-                  <p className="text-[11px] text-[#6E6D6A]">Balai Warga Kelurahan • Bersama Koordinator</p>
+              {effectiveEvents.length === 0 ? (
+                <div className="p-4 bg-[#FAF9F6] rounded-[16px] border border-dashed border-[#EAE9E4] text-center text-xs text-[#6E6D6A]">
+                  Belum ada agenda kegiatan terdekat yang dijadwalkan.
                 </div>
               ) : (
-                upcoming_events.slice(0, 2).map((ev, i) => (
+                effectiveEvents.slice(0, 2).map((ev, i) => (
                   <div key={ev.event_id || i} className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-xs">
                     <p className="font-bold text-[#121214]">{ev.event_title}</p>
-                    <p className="text-[10px] text-[#6E6D6A] mt-0.5">{new Date(ev.start_datetime).toLocaleDateString('id-ID')}</p>
+                    <p className="text-[10px] text-[#6E6D6A] mt-0.5">
+                      {new Date(ev.start_datetime).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
+                    </p>
                   </div>
                 ))
               )}

@@ -264,6 +264,7 @@ router.get('/admin', authenticateToken, requireRole('Administrator'), async (req
         (SELECT COUNT(*) FROM users) as total_users,
         (SELECT COUNT(*) FROM users WHERE role_id = 1 AND status = 'Aktif') as active_participants,
         (SELECT COUNT(*) FROM users WHERE role_id = 2) as total_coordinators,
+        (SELECT COUNT(*) FROM users WHERE role_id = 3) as total_admins,
         (SELECT COUNT(*) FROM batches) as total_batches,
         (SELECT COUNT(*) FROM modules) as total_modules
     `);
@@ -300,12 +301,15 @@ router.get('/admin', authenticateToken, requireRole('Administrator'), async (req
           totalUsers: parseInt(counts.total_users, 10) || 0,
           activeParticipants: parseInt(counts.active_participants, 10) || 0,
           totalCoordinators: parseInt(counts.total_coordinators, 10) || 0,
+          totalAdmins: parseInt(counts.total_admins, 10) || 0,
           totalBatches: parseInt(counts.total_batches, 10) || 0,
           totalModules: parseInt(counts.total_modules, 10) || 0,
           systemHealth: '100% Online'
         },
         recentActivities: activitiesRes.rows,
+        recent_activities: activitiesRes.rows,
         upcomingEvents: eventsRes.rows,
+        upcoming_events: eventsRes.rows,
         unreadNotifications: parseInt(notifRes.rows[0].unread, 10) || 0
       }
     });
