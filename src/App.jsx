@@ -145,6 +145,11 @@ function App() {
                 <CoordinatorReminders />
               </ProtectedRoute>
             } />
+            <Route path="/coordinator/calendar" element={
+              <ProtectedRoute allowedRoles={['Koordinator']}>
+                <ParticipantCalendar />
+              </ProtectedRoute>
+            } />
 
             {/* Admin Routes */}
             <Route path="/admin/dashboard" element={

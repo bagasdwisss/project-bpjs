@@ -3,6 +3,7 @@ import Layout from '../Layout/Layout';
 import gradingService from '../../services/gradingService';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
+import { FileText, Users } from 'lucide-react';
 
 const Grading = () => {
   const { user } = useContext(AuthContext);
@@ -412,7 +413,7 @@ const Grading = () => {
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
             {(!participants || participants.length === 0) ? (
               <div className="text-center py-12">
-                <div className="text-gray-400 text-6xl mb-4">📝</div>
+                <FileText className="w-12 h-12 text-[#A09F9B] mx-auto mb-3" />
                 <h3 className="text-sm font-medium text-gray-900">Tidak ada assignment</h3>
                 <p className="mt-1 text-sm text-gray-500">{search || coordinatorFilter ? 'Tidak ada assignment yang sesuai dengan filter.' : 'Tidak ada assignment tersedia untuk grading.'}</p>
               </div>
@@ -567,7 +568,7 @@ const Grading = () => {
                     </div>
                   ) : availableParticipants.length === 0 ? (
                     <div className="text-center py-8 bg-[#FAF9F6] rounded-2xl border border-[#EAE9E4]">
-                      <div className="text-gray-400 text-3xl mb-2">👥</div>
+                      <Users className="w-8 h-8 text-[#A09F9B] mx-auto mb-2" />
                       <p className="text-xs font-bold text-[#121214]">Tidak ada peserta yang tersedia</p>
                       <p className="text-[11px] text-[#121214]/50 mt-1">Semua peserta binaan Anda sudah terdaftar di penilaian.</p>
                     </div>

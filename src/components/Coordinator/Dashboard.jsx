@@ -271,7 +271,7 @@ const CoordinatorDashboard = () => {
                   <div className="text-[11px] text-gray-700 bg-white p-2 rounded-lg border border-[#121214]/15">
                     <strong>Indikator:</strong> {warn.reasons.join(', ')}
                     <div className="text-emerald-800 font-medium mt-1">
-                      💡 <strong>Saran AI:</strong> {warn.intervention}
+                      <strong>Saran AI:</strong> {warn.intervention}
                     </div>
                   </div>
 
@@ -762,9 +762,10 @@ const CoordinatorDashboard = () => {
                     href={reviewModal.leave.attachment_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 text-emerald-700 hover:underline font-bold text-[11px] pt-1"
+                    className="inline-flex items-center gap-1.5 text-emerald-700 hover:underline font-bold text-[11px] pt-1"
                   >
-                    <span>📎 Lihat Surat Dokter / Dokumen Bukti</span>
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Lihat Surat Dokter / Dokumen Bukti</span>
                   </a>
                 )}
               </div>

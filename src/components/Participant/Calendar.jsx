@@ -1,25 +1,65 @@
 import React, { useState, useEffect, useContext } from 'react';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { eventService } from '../../services/eventService';
-import { Calendar as CalendarIcon, Clock, MapPin, Users, Bell, FileText, Award, ClipboardList, RefreshCw, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import batchService from '../../services/batchService';
+import NeoDatePicker from '../Common/NeoDatePicker';
+import NeoSelect from '../Common/NeoSelect';
+import { 
+  Calendar as CalendarIcon, 
+  Clock, 
+  MapPin, 
+  Users, 
+  Bell, 
+  FileText, 
+  Award, 
+  ClipboardList, 
+  RefreshCw, 
+  AlertCircle, 
+  ChevronLeft, 
+  ChevronRight,
+  Plus,
+  Trash2,
+  X
+} from 'lucide-react';
 
 const Calendar = () => {
   const { user } = useContext(AuthContext);
+  const { toast, confirm } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [view, setView] = useState('month');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch events dari Laravel API
+  const [formData, setFormData] = useState({
+    event_title: '',
+    event_description: '',
+    start_datetime: '',
+    end_datetime: '',
+    batch_id: ''
+  });
+
+  const isPrivileged = Boolean(
+    user?.role_id === 2 || 
+    user?.role_id === 3 || 
+    user?.role === 'Koordinator' || 
+    user?.role === 'Administrator' || 
+    user?.role === 'Admin'
+  );
+
+  // Fetch events
   const fetchEvents = async () => {
     try {
       setError(null);
-      console.log('Fetching events...');
-      const result = await eventService.getParticipantEvents();
+      const result = await eventService.getEvents();
       
       console.log('Calendar component received:', result);
       
@@ -68,11 +108,89 @@ const Calendar = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+    if (isPrivileged) {
+      batchService.getAll()
+        .then((res) => {
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            setBatches(res.data.data);
+          }
+        })
+        .catch((err) => console.error('Failed to load batches:', err));
+    }
+  }, [isPrivileged]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchEvents();
+  };
+
+  const handleCreateEvent = async (e) => {
+    e.preventDefault();
+    if (!formData.event_title || !formData.start_datetime || !formData.end_datetime) {
+      toast.error('Judul agenda, waktu mulai, dan waktu selesai wajib diisi.');
+      return;
+    }
+    if (new Date(formData.end_datetime) < new Date(formData.start_datetime)) {
+      toast.error('Waktu selesai tidak boleh lebih awal dari waktu mulai.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        event_title: formData.event_title,
+        event_description: formData.event_description,
+        start_datetime: formData.start_datetime,
+        end_datetime: formData.end_datetime,
+        batch_id: formData.batch_id ? Number(formData.batch_id) : (batches[0]?.batch_id || 1)
+      };
+      const res = await eventService.createEvent(payload);
+      if (res.success) {
+        toast.success('Agenda kegiatan berhasil ditambahkan dan disiarkan ke semua peserta.');
+        setShowCreateModal(false);
+        setFormData({
+          event_title: '',
+          event_description: '',
+          start_datetime: '',
+          end_datetime: '',
+          batch_id: ''
+        });
+        fetchEvents();
+      } else {
+        toast.error(res.message || 'Gagal menambahkan agenda.');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Terjadi kesalahan saat menambahkan agenda.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId, eventTitle) => {
+    const ok = await confirm({
+      title: 'Hapus Agenda Kegiatan',
+      message: `Apakah Anda yakin ingin menghapus agenda "${eventTitle}"? Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await eventService.deleteEvent(eventId);
+      if (res.success) {
+        toast.success('Agenda kegiatan berhasil dihapus.');
+        setSelectedEvent(null);
+        fetchEvents();
+      } else {
+        toast.error(res.message || 'Gagal menghapus agenda.');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Terjadi kesalahan saat menghapus agenda.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Navigation functions
@@ -400,13 +518,22 @@ const Calendar = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Kalender Kegiatan & Agenda 📅
+              Kalender Kegiatan & Agenda
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
               Jadwal pelaksanaan sosialisasi, evaluasi ujian, dan agenda bimbingan koordinator
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {isPrivileged && (
+              <button 
+                onClick={() => setShowCreateModal(true)} 
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white border-2 border-[#121214] rounded-full text-xs font-bold hover:bg-neutral-800 shadow-[3px_3px_0px_#121214] transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Tambah Agenda
+              </button>
+            )}
             <button 
               onClick={handleRefresh} 
               disabled={refreshing} 
@@ -586,14 +713,130 @@ const Calendar = () => {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                {isPrivileged ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteEvent(selectedEvent.event_id, selectedEvent.event_title)}
+                    disabled={isDeleting}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-rose-50 text-rose-700 border-2 border-rose-300 rounded-full text-xs font-bold hover:bg-rose-100 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {isDeleting ? 'Menghapus...' : 'Hapus Agenda'}
+                  </button>
+                ) : <div />}
+                <div>
+                  <button
+                    onClick={() => setSelectedEvent(null)}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm"
+                  >
+                    Tutup Informasi
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Event Modal (Intelly Soft Neo-Brutalist) */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-[26px] border-2 border-[#121214] p-6 sm:p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-[6px_6px_0px_#121214]">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-lg font-black text-[#121214] tracking-tight">
+                    Tambah Agenda Kegiatan
+                  </h3>
+                  <p className="text-xs text-[#6E6D6A] mt-0.5">
+                    Agenda baru otomatis memicu notifikasi ke akun peserta dan koordinator
+                  </p>
+                </div>
                 <button
-                  onClick={() => setSelectedEvent(null)}
-                  className="px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm"
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] hover:bg-[#EAE9E4] flex items-center justify-center text-[#121214] transition-colors"
                 >
-                  Tutup Informasi
+                  <X className="w-4 h-4" />
                 </button>
               </div>
+
+              <form onSubmit={handleCreateEvent} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
+                    Judul Agenda <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.event_title}
+                    onChange={(e) => setFormData({ ...formData, event_title: e.target.value })}
+                    placeholder="Contoh: Evaluasi Tengah Periode / Ujian Kompetensi"
+                    className="w-full bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl px-4 py-2.5 text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
+                    Deskripsi Kegiatan
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.event_description}
+                    onChange={(e) => setFormData({ ...formData, event_description: e.target.value })}
+                    placeholder="Instruksi, ruangan, atau link virtual meeting..."
+                    className="w-full bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl px-4 py-2.5 text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <NeoDatePicker
+                    label="Waktu Mulai"
+                    required
+                    type="datetime-local"
+                    value={formData.start_datetime}
+                    onChange={(e) => setFormData({ ...formData, start_datetime: e.target.value })}
+                    placeholder="Pilih tanggal & waktu mulai"
+                  />
+                  <NeoDatePicker
+                    label="Waktu Selesai"
+                    required
+                    type="datetime-local"
+                    value={formData.end_datetime}
+                    onChange={(e) => setFormData({ ...formData, end_datetime: e.target.value })}
+                    placeholder="Pilih tanggal & waktu selesai"
+                  />
+                </div>
+
+                <div>
+                  <NeoSelect
+                    label="Target Batch Magang"
+                    value={formData.batch_id}
+                    onChange={(e) => setFormData({ ...formData, batch_id: e.target.value })}
+                    placeholder="Pilih batch (default: batch pertama)"
+                    options={batches.map((b) => ({
+                      value: String(b.batch_id),
+                      label: `${b.batch_name} (${b.status || 'Aktif'})`
+                    }))}
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-[#F0EFEA] flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2.5 bg-white border-2 border-[#121214] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2.5 bg-[#121214] text-white border-2 border-[#121214] rounded-full text-xs font-bold hover:bg-neutral-800 shadow-[3px_3px_0px_#121214] transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isSubmitting ? 'Menyimpan...' : 'Simpan & Siarkan Agenda'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

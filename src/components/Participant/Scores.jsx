@@ -82,10 +82,10 @@ const Scores = () => {
   };
 
   const getScoreIcon = (score) => {
-    if (score >= 90) return '🏆';
-    if (score >= 80) return '⭐';
-    if (score >= 70) return '📊';
-    return '📝';
+    if (score >= 90) return <Award className="w-5 h-5 text-[#121214]" />;
+    if (score >= 80) return <TrendingUp className="w-5 h-5 text-[#121214]" />;
+    if (score >= 70) return <BarChart3 className="w-5 h-5 text-[#121214]" />;
+    return <FileText className="w-5 h-5 text-[#121214]" />;
   };
 
   const getGradeText = (score) => {
@@ -165,7 +165,7 @@ const Scores = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Nilai & Hasil Evaluasi 📊
+              Nilai & Hasil Evaluasi
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
               Pantau perkembangan capaian kompetensi magang dan umpan balik langsung dari koordinator
@@ -431,18 +431,18 @@ const Scores = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium pt-2">
             <div className="p-3.5 bg-white/60 rounded-xl space-y-1.5 backdrop-blur-sm">
-              <p><strong className="text-[#121214]">📈 Tren Capaian:</strong> {overallAverage >= 80 ? 'Sangat Baik (Stabil)' : overallAverage >= 70 ? 'Cukup (Perlu Ditingkatkan)' : 'Perlu Pendampingan Khusus'}</p>
-              <p><strong className="text-[#121214]">🎯 Standar Kelulusan:</strong> Minimal 75.0% di setiap modul kompetensi inti</p>
+              <p><strong className="text-[#121214]">Tren Capaian:</strong> {overallAverage >= 80 ? 'Sangat Baik (Stabil)' : overallAverage >= 70 ? 'Cukup (Perlu Ditingkatkan)' : 'Perlu Pendampingan Khusus'}</p>
+              <p><strong className="text-[#121214]">Standar Kelulusan:</strong> Minimal 75.0% di setiap modul kompetensi inti</p>
             </div>
             <div className="p-3.5 bg-white/60 rounded-xl space-y-1.5 backdrop-blur-sm">
-              <p><strong className="text-[#121214]">⭐ Modul Unggulan:</strong> {(() => {
+              <p><strong className="text-[#121214]">Modul Unggulan:</strong> {(() => {
                 const nonAllModules = modules.filter(m => m !== 'all');
                 return nonAllModules.length > 0 ? 
                   nonAllModules.reduce((best, current) => 
                     calculateModuleAverage(current) > calculateModuleAverage(best) ? current : best
                   ) : 'Modul Pembelajaran BPJS';
               })()}</p>
-              <p><strong className="text-[#121214]">🏆 Evaluasi Memenuhi Target:</strong> {scores.filter(s => s.score >= 75).length} dari {scores.length} penilaian</p>
+              <p><strong className="text-[#121214]">Evaluasi Memenuhi Target:</strong> {scores.filter(s => s.score >= 75).length} dari {scores.length} penilaian</p>
             </div>
           </div>
         </div>

@@ -272,4 +272,17 @@ router.put('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /session-check
+ * Live heartbeat endpoint to verify session validity and detect concurrent logins immediately
+ */
+router.get('/session-check', authenticateToken, (req, res) => {
+  return res.json({
+    success: true,
+    valid: true,
+    user_id: req.user.user_id,
+    session_token: req.user.current_session_token
+  });
+});
+
 export default router;

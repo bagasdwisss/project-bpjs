@@ -148,8 +148,8 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
             </label>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { value: 'kantor', label: '🏢 Kantor (WFO)', desc: 'Penugasan di Kantor Cabang' },
-                { value: 'lapangan', label: '📍 Lapangan (Survey)', desc: 'Penugasan Luar / Lapangan' }
+                { value: 'kantor', label: 'Kantor (WFO)', desc: 'Penugasan di Kantor Cabang' },
+                { value: 'lapangan', label: 'Lapangan (Survey)', desc: 'Penugasan Luar / Lapangan' }
               ].map(p => {
                 const isSelected = formData.penempatan === p.value;
                 return (

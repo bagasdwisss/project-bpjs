@@ -167,7 +167,7 @@ const Progress = () => {
               Koordinator: {progressData.userInfo?.koordinator || 'Pembimbing BPJS'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Progress & Capaian Magang 🎯
+              Progress & Capaian Magang
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-0.5">
               Pantau target akuisisi kepesertaan BPU, kunjungan lapangan, dan evaluasi poin kumulatif

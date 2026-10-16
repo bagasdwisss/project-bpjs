@@ -105,8 +105,8 @@ api.request = async function (config) {
     return originalRequest(config);
   }
 
-  // Bypass cache if explicitly requested
-  if (config.skipCache) {
+  // Bypass cache if explicitly requested or for session validation
+  if (config.skipCache || config.url?.includes('session-check')) {
     return originalRequest(config);
   }
 

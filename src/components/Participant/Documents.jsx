@@ -192,7 +192,7 @@ const Documents = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Basis Dokumen & Modul 📁
+              Basis Dokumen & Modul
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
               Pusat unduhan materi pelatihan, panduan magang, formulir, dan penyerahan tugas resmi
@@ -332,13 +332,13 @@ const Documents = () => {
                           <p className="text-xs text-[#6E6D6A] mb-2 line-clamp-1">{doc.description}</p>
                           
                           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-[#8A8985]">
-                            <span>💾 {doc.size || '1.2 MB'}</span>
+                            <span>{doc.size || '1.2 MB'}</span>
                             <span>•</span>
-                            <span>📅 {new Date(doc.uploadDate || Date.now()).toLocaleDateString('id-ID')}</span>
+                            <span>{new Date(doc.uploadDate || Date.now()).toLocaleDateString('id-ID')}</span>
                             <span>•</span>
-                            <span>👤 {doc.uploadedBy || 'Admin BPJS'}</span>
+                            <span>{doc.uploadedBy || 'Admin BPJS'}</span>
                             <span>•</span>
-                            <span>⬇️ {doc.downloadCount || 0}x</span>
+                            <span>{doc.downloadCount || 0}x diunduh</span>
                           </div>
                         </div>
                       </div>

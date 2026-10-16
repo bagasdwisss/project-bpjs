@@ -29,5 +29,25 @@ export const eventService = {
     } catch (error) {
       throw error.response?.data || error;
     }
+  },
+
+  // Delete event (for coordinator/admin)
+  deleteEvent: async (id) => {
+    try {
+      const response = await api.delete(`/events/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Update event
+  updateEvent: async (id, eventData) => {
+    try {
+      const response = await api.put(`/events/${id}`, eventData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
   }
 };

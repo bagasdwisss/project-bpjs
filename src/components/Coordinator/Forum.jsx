@@ -100,7 +100,7 @@ const CoordinatorForum = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Forum Diskusi & Tanya Jawab 💬
+              Forum Diskusi & Tanya Jawab
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
               Ruang komunikasi interaktif antara koordinator dan peserta pelatihan

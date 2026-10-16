@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { X, Eye, EyeOff } from 'lucide-react';
+import { X, Eye, EyeOff, Key } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import authService from '../../services/authService';
 
@@ -108,7 +108,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
         <div className="flex items-center justify-between p-6 border-b border-[#EAE9E4]">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-xl bg-[#F5C6EC] flex items-center justify-center text-[#121214] font-bold text-sm shadow-sm">
-              🔑
+              <Key className="w-4 h-4 text-[#121214]" />
             </div>
             <div>
               <h2 className="text-base font-bold text-[#121214]">Ganti Kata Sandi</h2>

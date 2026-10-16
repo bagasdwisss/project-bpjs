@@ -152,20 +152,20 @@ const Broadcast = () => {
     if (p === 'Sangat Penting') {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#F5C6EC] text-[#8B2471] border border-[#121214] shadow-[1px_1px_0px_#121214]">
-          ⚡ Sangat Penting (Tengah)
+          Sangat Penting (Tengah)
         </span>
       );
     }
     if (p === 'Penting') {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FCE373] text-[#856B12] border border-[#121214] shadow-[1px_1px_0px_#121214]">
-          ⭐ Penting (Tengah)
+          Penting (Tengah)
         </span>
       );
     }
     return (
       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#B8C96E] text-[#3C4A11] border border-[#121214] shadow-[1px_1px_0px_#121214]">
-        📌 Biasa (Pojok Kanan)
+        Biasa (Pojok Kanan)
       </span>
     );
   };
@@ -262,9 +262,9 @@ const Broadcast = () => {
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   options={[
-                    { value: 'all', label: '👥 Semua Pengguna (Peserta & Koordinator)' },
-                    { value: 'participants', label: '🎓 Hanya Peserta Magang' },
-                    { value: 'coordinators', label: '👔 Hanya Koordinator' }
+                    { value: 'all', label: 'Semua Pengguna (Peserta & Koordinator)' },
+                    { value: 'participants', label: 'Hanya Peserta Magang' },
+                    { value: 'coordinators', label: 'Hanya Koordinator' }
                   ]}
                 />
 
@@ -273,9 +273,9 @@ const Broadcast = () => {
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                   options={[
-                    { value: 'Biasa', label: '💬 Biasa ➔ Toast Pojok Kanan Atas' },
-                    { value: 'Penting', label: '⚠️ Penting ➔ Dialog Modal Tengah Layar' },
-                    { value: 'Sangat Penting', label: '🚨 Sangat Penting ➔ Urgent Modal Utama' }
+                    { value: 'Biasa', label: 'Biasa (Toast Notifikasi)' },
+                    { value: 'Penting', label: 'Penting (Dialog Modal Layar)' },
+                    { value: 'Sangat Penting', label: 'Sangat Penting (Modal Darurat)' }
                   ]}
                 />
               </div>
@@ -491,7 +491,7 @@ const Broadcast = () => {
                     <div className="space-y-1 text-[10px] text-[#121214]/60 font-medium pt-1 border-t border-[#EAE9E4]/60">
                       <div className="flex items-center justify-between">
                         <span>Target: <strong className="text-[#121214]">{item.target_role === 'all' ? 'Semua Pengguna' : item.target_role === 'participants' ? 'Peserta Magang' : 'Koordinator'}</strong></span>
-                        <span>{item.show_on_login ? '🔄 Muncul Setiap Login' : '1x Tampil'}</span>
+                        <span>{item.show_on_login ? 'Muncul Setiap Login' : '1x Tampil'}</span>
                       </div>
                       
                       {(item.start_at || item.end_at) && (

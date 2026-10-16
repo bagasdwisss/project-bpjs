@@ -314,9 +314,9 @@ const Reminders = () => {
                   value={newNotification.type}
                   onChange={(e) => setNewNotification({ ...newNotification, type: e.target.value })}
                   options={[
-                    { value: 'reminder', label: '⏰ Pengingat (Reminder)' },
-                    { value: 'announcement', label: '📢 Pengumuman (Announcement)' },
-                    { value: 'alert', label: '🚨 Penting / Alert' }
+                    { value: 'reminder', label: 'Pengingat' },
+                    { value: 'announcement', label: 'Pengumuman' },
+                    { value: 'alert', label: 'Peringatan Penting' }
                   ]}
                 />
                 
@@ -325,9 +325,9 @@ const Reminders = () => {
                   value={newNotification.priority}
                   onChange={(e) => setNewNotification({ ...newNotification, priority: e.target.value })}
                   options={[
-                    { value: 'low', label: '🟢 Rendah (Low)' },
-                    { value: 'medium', label: '🟡 Sedang (Medium)' },
-                    { value: 'high', label: '🔴 Tinggi (High)' }
+                    { value: 'low', label: 'Rendah' },
+                    { value: 'medium', label: 'Sedang' },
+                    { value: 'high', label: 'Tinggi' }
                   ]}
                 />
 
@@ -336,9 +336,9 @@ const Reminders = () => {
                   value={newNotification.recipients[0]}
                   onChange={(e) => setNewNotification({ ...newNotification, recipients: [e.target.value] })}
                   options={[
-                    { value: 'all', label: '👥 Semua Pengguna' },
-                    { value: 'participants', label: '🎓 Khusus Peserta' },
-                    { value: 'coordinators', label: '👔 Khusus Koordinator' }
+                    { value: 'all', label: 'Semua Pengguna' },
+                    { value: 'participants', label: 'Khusus Peserta' },
+                    { value: 'coordinators', label: 'Khusus Koordinator' }
                   ]}
                 />
               </div>

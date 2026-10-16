@@ -374,9 +374,9 @@ function AdminBatchManagement() {
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   options={[
-                    { value: 'Aktif', label: '🟢 Aktif' },
-                    { value: 'Selesai', label: '⚪ Selesai' },
-                    { value: 'Direncanakan', label: '🟡 Direncanakan' }
+                    { value: 'Aktif', label: 'Aktif' },
+                    { value: 'Selesai', label: 'Selesai' },
+                    { value: 'Direncanakan', label: 'Direncanakan' }
                   ]}
                 />
                 <div className="flex justify-end gap-2.5 pt-3 border-t border-[#EAE9E4]">

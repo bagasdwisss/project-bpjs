@@ -27,8 +27,8 @@ const CalculatorModal = ({ isOpen, onClose }) => {
 
   const handleCopyPitch = () => {
     const pitchText = `Halo Bapak/Ibu! Lindungi diri dan keluarga dengan BPJS Ketenagakerjaan BPU:
-💰 Iuran Hemat: Hanya ${formatIDR(totalMonthlyFee)}/bulan (${includeJHT ? 'JKK + JKM + JHT' : 'JKK + JKM'})!
-🛡️ Manfaat Perlindungan Nyata:
+- Iuran Hemat: Hanya ${formatIDR(totalMonthlyFee)}/bulan (${includeJHT ? 'JKK + JKM + JHT' : 'JKK + JKM'})!
+- Manfaat Perlindungan Nyata:
 1. Santunan Kematian (JKM): ${formatIDR(santunanKematianJKM)}
 2. Beasiswa 2 Anak: s.d. ${formatIDR(beasiswaMaksimal)} (TK s.d. Sarjana S1)
 3. Biaya Pengobatan Kecelakaan Kerja (JKK): TANPA BATAS (Unlimited sesuai medis)

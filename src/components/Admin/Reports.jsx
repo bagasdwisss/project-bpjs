@@ -174,10 +174,10 @@ const Reports = () => {
               onChange={(e) => setSelectedReport(e.target.value)}
               placeholder=""
               options={[
-                { value: 'monthly', label: '📊 Laporan Bulanan (Monthly Summary)' },
-                { value: 'performance', label: '⭐ Laporan Kinerja & Poin Akuisisi' },
-                { value: 'attendance', label: '🕒 Laporan Rekapitulasi Presensi' },
-                { value: 'scores', label: '📝 Analisis Penilaian Koordinator' }
+                { value: 'monthly', label: 'Laporan Bulanan' },
+                { value: 'performance', label: 'Laporan Kinerja & Akuisisi' },
+                { value: 'attendance', label: 'Laporan Rekapitulasi Presensi' },
+                { value: 'scores', label: 'Analisis Penilaian Koordinator' }
               ]}
             />
 

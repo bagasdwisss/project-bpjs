@@ -48,6 +48,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { path: '/coordinator/analysis', icon: BarChart3, label: 'Analisis Metrik' },
         ],
         tools: [
+          { path: '/coordinator/calendar', icon: Calendar, label: 'Agenda & Jadwal' },
           { path: '/coordinator/reminders', icon: Bell, label: 'Pengingat' },
           { isChat: true, icon: MessageSquare, label: 'Chat Bimbingan' },
         ]

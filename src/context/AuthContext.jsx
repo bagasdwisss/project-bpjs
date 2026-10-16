@@ -126,6 +126,87 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user]);
 
+  // Real-time Concurrent Session Tracker (Instant Kick-out without Refresh)
+  useEffect(() => {
+    if (!user) return;
+
+    let isChecking = false;
+    const verifySession = async () => {
+      if (isChecking) return;
+      isChecking = true;
+      try {
+        await api.get('/session-check', { skipCache: true });
+      } catch (err) {
+        if (err.response?.status === 401) {
+          const code = err.response?.data?.code;
+          authService.logout();
+          setUser(null);
+          setCoordinator(null);
+          localStorage.removeItem('last_active_time');
+          if (code === 'CONCURRENT_LOGIN_DETECTED') {
+            window.location.href = '/login?reason=concurrent_session';
+          } else {
+            window.location.href = '/login?reason=session_expired';
+          }
+        }
+      } finally {
+        isChecking = false;
+      }
+    };
+
+    // Fast 3-second heartbeat for instant detection across separate devices / browsers
+    const heartbeatInterval = setInterval(verifySession, 3000);
+
+    // Cross-tab broadcast detection for instant same-browser kickout
+    let channel;
+    try {
+      channel = new BroadcastChannel('bpjs_session_channel');
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'CONCURRENT_LOGIN') {
+          authService.logout();
+          setUser(null);
+          setCoordinator(null);
+          localStorage.removeItem('last_active_time');
+          window.location.href = '/login?reason=concurrent_session';
+        }
+      };
+    } catch {
+      // Fallback to interval
+    }
+
+    // Storage event for instant same-browser cross-tab displacement
+    const handleStorageChange = (e) => {
+      if (e.key === 'token') {
+        const currentToken = localStorage.getItem('token');
+        if (!currentToken) {
+          authService.logout();
+          setUser(null);
+          setCoordinator(null);
+          window.location.href = '/login?reason=concurrent_session';
+        } else {
+          verifySession();
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        verifySession();
+      }
+    };
+    window.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', verifySession);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', verifySession);
+    };
+  }, [user]);
+
   const login = async (uniqueId, password) => {
     try {
       setError(null);
@@ -140,6 +221,13 @@ export const AuthProvider = ({ children }) => {
         const currentUser = authService.getCurrentUser();
         console.log('Setting user state after login:', currentUser);
         
+        // Notify other tabs immediately
+        try {
+          const channel = new BroadcastChannel('bpjs_session_channel');
+          channel.postMessage({ type: 'CONCURRENT_LOGIN', timestamp: Date.now() });
+          setTimeout(() => channel.close(), 200);
+        } catch {}
+
         // Update state secara synchronous
         setUser(currentUser);
         

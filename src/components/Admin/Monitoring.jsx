@@ -235,8 +235,9 @@ const Monitoring = () => {
                           <td className="px-4 py-3 text-xs text-gray-800">
                             <div>{log.details || '-'}</div>
                             {isAnomaly && log.anomaly_reason && (
-                              <div className="text-[10px] text-rose-800 font-bold mt-1 bg-white/80 p-1 rounded border border-rose-300">
-                                ⚠️ {log.anomaly_reason}
+                              <div className="text-[10px] text-rose-800 font-bold mt-1 bg-white/80 p-1 rounded border border-rose-300 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                                <span>{log.anomaly_reason}</span>
                               </div>
                             )}
                           </td>

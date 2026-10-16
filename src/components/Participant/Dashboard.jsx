@@ -130,7 +130,7 @@ const ParticipantDashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Selamat Pagi, {user?.full_name?.split(' ')[0] || 'Peserta'} 👋
+              Selamat Datang, {user?.full_name?.split(' ')[0] || 'Peserta'}
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
               Penempatan: <span className="font-bold text-[#121214] capitalize">{user?.penempatan || 'Kantor Cabang'}</span> • Capaian akuisisi kamu saat ini mencapai <span className="font-bold text-[#121214]">{progressPct}%</span>.
