@@ -177,6 +177,8 @@ router.put('/leaves/:id/status', authenticateToken, async (req, res) => {
          ON CONFLICT DO NOTHING`,
         [leave.user_id, leave.start_date, attendanceStatus, `Disetujui koordinator: ${leave.reason}`]
       );
+    }
+
     // Audit Log for Admin Monitoring
     await logActivity({
       userId: reviewerId,
