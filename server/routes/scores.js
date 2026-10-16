@@ -1,7 +1,7 @@
 // api/routes/scores.js
 import { Router } from 'express';
 import { query } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -91,7 +91,7 @@ router.get('/participant/:id', authenticateToken, async (req, res) => {
 /**
  * POST /api/coordinator/scores
  */
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { user_id, module_id, score_value, comments, graded_at } = req.body;
 
@@ -115,7 +115,7 @@ router.post('/', authenticateToken, async (req, res) => {
 /**
  * PUT /api/coordinator/scores/:id
  */
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { id } = req.params;
     const { score_value, comments } = req.body;
@@ -142,7 +142,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 /**
  * DELETE /api/coordinator/scores/:id
  */
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { id } = req.params;
     await query(`DELETE FROM scores WHERE score_id = $1`, [id]);

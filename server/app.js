@@ -30,6 +30,18 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Security: Disable X-Powered-By to prevent technology fingerprinting
+app.disable('x-powered-by');
+
+// Security Headers Middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 // Optimasi HTTP Caching & Request: Strong ETag untuk 304 Not Modified
 app.set('etag', 'strong');
 
@@ -38,7 +50,7 @@ app.use(cors({
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-init-key']
 }));
 
 app.use((req, res, next) => {
@@ -54,34 +66,35 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 // Helper router to mount endpoints under both /api/... and /...
 const apiRouter = express.Router();
 
-// Real-time Healthcheck & Database Status
+// Real-time Healthcheck & Database Status (Sanitized: No Schema or Stacktrace Leak)
 apiRouter.get('/health', async (req, res) => {
-  let dbStatus = 'disconnected';
-  let tables = [];
+  let isDbConnected = false;
   try {
-    const dbTest = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
-    dbStatus = 'connected';
-    tables = dbTest.rows.map(r => r.table_name);
+    await pool.query('SELECT 1');
+    isDbConnected = true;
   } catch (err) {
-    dbStatus = `error: ${err.message}`;
+    isDbConnected = false;
   }
 
   res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
+    status: isDbConnected ? 'healthy' : 'degraded',
     service: 'BPJSTK Absensi & Nilai API',
-    database: {
-      provider: 'Neon Serverless PostgreSQL',
-      status: dbStatus,
-      tablesCount: tables.length,
-      initialized: tables.includes('users') && tables.includes('roles'),
-      initHelp: tables.includes('users') ? 'Database ready!' : 'Database sedang dipersiapkan'
-    }
+    timestamp: new Date().toISOString()
   });
 });
 
-// One-Click Database Initialization Endpoint for Vercel + Neon
+// Protected Database Initialization Endpoint (Requires secret key, blocks unauthenticated wiping)
 apiRouter.all('/init-db', async (req, res) => {
+  const initKey = req.headers['x-init-key'] || req.query.key;
+  const expectedKey = process.env.INIT_DB_KEY;
+
+  if (!expectedKey || initKey !== expectedKey) {
+    return res.status(403).json({
+      success: false,
+      message: 'Akses ditolak. Operasi inisialisasi basis data memerlukan otentikasi kunci administratif khusus.'
+    });
+  }
+
   try {
     let sqlPath = path.resolve(__dirname, '../neon_schema.sql');
     if (!fs.existsSync(sqlPath)) {
@@ -96,19 +109,14 @@ apiRouter.all('/init-db', async (req, res) => {
 
     res.json({
       success: true,
-      message: '🎉 Inisialisasi Database Neon PostgreSQL Berhasil!',
-      description: 'Semua tabel, view, dan data awal (roles, default users, batches, dll) telah terpasang.',
-      accounts: {
-        admin: 'ADM001 (Password: password123)',
-        koordinator: 'KO001 (Password: password123)',
-        peserta: 'PES001 (Password: password123)'
-      }
+      message: 'Inisialisasi Database Neon PostgreSQL Berhasil.',
+      timestamp: new Date().toISOString()
     });
   } catch (err) {
     console.error('Inisialisasi DB Error:', err);
     res.status(500).json({
       success: false,
-      message: 'Gagal menginisialisasi database: ' + err.message
+      message: 'Gagal menginisialisasi database.'
     });
   }
 });

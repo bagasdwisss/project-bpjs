@@ -21,18 +21,42 @@ const logActivity = async (userId, type, details, ip) => {
   }
 };
 
+// In-Memory Brute-Force Rate Limiter
+const loginAttempts = new Map();
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 Menit
+
+// Dummy hash for constant-time comparison against timing attacks
+const DUMMY_HASH = '$2a$10$w8T9c0l12F4tU2bO0wT3teqO64h3x4n0s8a1v5y8g3j2k1l9m0n1o';
+
 /**
  * POST /login
  */
 router.post('/login', async (req, res) => {
   try {
     const { unique_id, password } = req.body;
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
     if (!unique_id || !password) {
       return res.status(400).json({
         success: false,
         message: 'Nomor Identitas (Unique ID) dan Kata Sandi wajib diisi.'
       });
+    }
+
+    const rateKey = `${clientIp}_${unique_id.trim().toUpperCase()}`;
+    const attemptRecord = loginAttempts.get(rateKey);
+
+    if (attemptRecord && attemptRecord.attempts >= MAX_FAILED_ATTEMPTS) {
+      const timeRemaining = Math.ceil((attemptRecord.lockUntil - Date.now()) / 60000);
+      if (Date.now() < attemptRecord.lockUntil) {
+        return res.status(429).json({
+          success: false,
+          message: `Terlalu banyak percobaan login yang gagal. Akun terkunci sementara demi keamanan. Coba lagi dalam ${timeRemaining} menit.`
+        });
+      } else {
+        loginAttempts.delete(rateKey);
+      }
     }
 
     const userRes = await query(
@@ -43,10 +67,19 @@ router.post('/login', async (req, res) => {
       [unique_id.trim()]
     );
 
+    // Prevent User Enumeration: if user doesn't exist, perform dummy compare to prevent timing side-channel
     if (userRes.rows.length === 0) {
-      return res.status(404).json({
+      await bcrypt.compare(password, DUMMY_HASH).catch(() => {});
+      const current = loginAttempts.get(rateKey) || { attempts: 0, lockUntil: 0 };
+      current.attempts += 1;
+      if (current.attempts >= MAX_FAILED_ATTEMPTS) {
+        current.lockUntil = Date.now() + LOCKOUT_MS;
+      }
+      loginAttempts.set(rateKey, current);
+
+      return res.status(401).json({
         success: false,
-        message: 'Pengguna tidak ditemukan.'
+        message: 'Nomor Identitas atau Kata Sandi yang Anda masukkan salah.'
       });
     }
 
@@ -59,28 +92,37 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Verify password with bcrypt (or allow default password123 as fallback for freshly migrated databases)
+    // Verify password strictly with bcrypt or legacy plaintext match (NO master backdoor password)
     let isMatch = false;
     if (user.password_hash) {
-      try {
-        isMatch = await bcrypt.compare(password, user.password_hash);
-      } catch (e) {
-        isMatch = false;
+      if (user.password_hash.startsWith('$2a$') || user.password_hash.startsWith('$2b$')) {
+        try {
+          isMatch = await bcrypt.compare(password, user.password_hash);
+        } catch (e) {
+          isMatch = false;
+        }
+      } else {
+        // Safe check for legacy non-bcrypt stored seeds
+        isMatch = (password.trim() === user.password_hash.trim());
       }
     }
 
-    // Allow master/demo passwords if hash comparison failed on imported legacy hashes
-    const masterPasswords = ['password123', 'admin123', 'pass1', 'pass2', 'pass3', 'password', 'bpjs123'];
-    if (!isMatch && masterPasswords.includes(password.trim())) {
-      isMatch = true;
-    }
-
     if (!isMatch) {
+      const current = loginAttempts.get(rateKey) || { attempts: 0, lockUntil: 0 };
+      current.attempts += 1;
+      if (current.attempts >= MAX_FAILED_ATTEMPTS) {
+        current.lockUntil = Date.now() + LOCKOUT_MS;
+      }
+      loginAttempts.set(rateKey, current);
+
       return res.status(401).json({
         success: false,
-        message: 'Kredensial tidak valid (Kata sandi salah).'
+        message: 'Nomor Identitas atau Kata Sandi yang Anda masukkan salah.'
       });
     }
+
+    // Successful login: reset failed attempts
+    loginAttempts.delete(rateKey);
 
     const sessionToken = crypto.randomUUID();
     await query(

@@ -1,7 +1,7 @@
 // api/routes/peserta.js
 import { Router } from 'express';
 import { query } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -169,6 +169,20 @@ const verifyAcquisitionHandler = async (req, res) => {
     const { status_pendaftaran } = req.body;
     const newStatus = status_pendaftaran || 'PEMBAYARAN BERHASIL';
 
+    // Coordinator isolation: verify acquisition belongs to an assigned student
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(
+        `SELECT u.coordinator_id 
+         FROM peserta p 
+         JOIN users u ON p.user_id = u.user_id 
+         WHERE p.peserta_id = $1`,
+        [id]
+      );
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat memverifikasi akuisisi anak didik Anda sendiri.' });
+      }
+    }
+
     const result = await query(
       `UPDATE peserta
        SET status_pendaftaran = $1, updated_at = CURRENT_TIMESTAMP
@@ -191,8 +205,8 @@ const verifyAcquisitionHandler = async (req, res) => {
   }
 };
 
-router.put('/coordinator/acquisitions/:id/verify', authenticateToken, verifyAcquisitionHandler);
-router.put('/acquisitions/:id/verify', authenticateToken, verifyAcquisitionHandler);
+router.put('/coordinator/acquisitions/:id/verify', authenticateToken, requireRole('Koordinator', 'Administrator'), verifyAcquisitionHandler);
+router.put('/acquisitions/:id/verify', authenticateToken, requireRole('Koordinator', 'Administrator'), verifyAcquisitionHandler);
 
 /**
  * POST /api/participant/peserta

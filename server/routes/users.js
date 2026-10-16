@@ -25,12 +25,17 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const params = [];
 
-    // Coordinator Isolation: A coordinator may ONLY view participants under their own guidance
-    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
-      if (!role_id || parseInt(role_id, 10) === 1) {
-        params.push(req.user.user_id);
-        sql += ` AND u.coordinator_id = $${params.length} AND u.role_id = 1`;
-      }
+    // Role-based data scoping
+    if (req.user.role === 'Peserta' || req.user.role_id === 1) {
+      // Participant cannot browse other users
+      return res.status(403).json({
+        success: false,
+        message: 'Akses dilarang. Peserta tidak memiliki izin untuk melihat direktori pengguna lain.'
+      });
+    } else if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      // Coordinator may ONLY view participants under their own guidance
+      params.push(req.user.user_id);
+      sql += ` AND u.coordinator_id = $${params.length} AND u.role_id = 1`;
     } else if (role_id) {
       params.push(role_id);
       sql += ` AND u.role_id = $${params.length}`;
@@ -285,6 +290,24 @@ router.put('/:id/progress', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    const targetId = parseInt(id, 10);
+
+    // IDOR Protection:
+    // If Peserta, can ONLY view own user profile
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && targetId !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat melihat profil Anda sendiri.' });
+    }
+
+    // If Koordinator, can only view own profile or their assigned participants
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      if (targetId !== req.user.user_id) {
+        const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetId]);
+        if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+          return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat melihat anak didik Anda sendiri.' });
+        }
+      }
+    }
+
     const result = await query(
       `SELECT u.user_id, u.unique_id, u.full_name, u.role_id, u.coordinator_id, u.status, u.penempatan,
               u.created_at, u.updated_at, r.role_name, c.full_name AS coordinator_name
@@ -292,11 +315,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
        LEFT JOIN roles r ON u.role_id = r.role_id
        LEFT JOIN users c ON u.coordinator_id = c.user_id
        WHERE u.user_id = $1`,
-      [id]
+      [targetId]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan.' });
     }
 
     return res.json({ success: true, data: result.rows[0] });
@@ -308,7 +331,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 /**
  * PUT /api/users/:id
  */
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const { id } = req.params;
     const { unique_id, full_name, password, role_id, coordinator_id, status, penempatan } = req.body;

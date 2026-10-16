@@ -8,7 +8,7 @@ const router = Router();
 /**
  * GET /api/admin/monitoring/activity-logs
  */
-router.get('/monitoring/activity-logs', authenticateToken, async (req, res) => {
+router.get('/monitoring/activity-logs', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT a.log_id, a.activity_type, a.details, a.ip_address, a.created_at,
@@ -32,7 +32,7 @@ router.get('/monitoring/activity-logs', authenticateToken, async (req, res) => {
 /**
  * GET /api/admin/monitoring/system-stats
  */
-router.get('/monitoring/system-stats', authenticateToken, async (req, res) => {
+router.get('/monitoring/system-stats', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const usersCount = await query(`SELECT COUNT(*) as count FROM users WHERE status = 'Aktif'`);
     const logsCount = await query(`SELECT COUNT(*) as count FROM activity_logs`);
@@ -57,7 +57,7 @@ router.get('/monitoring/system-stats', authenticateToken, async (req, res) => {
 /**
  * GET /api/admin/monitoring/active-users
  */
-router.get('/monitoring/active-users', authenticateToken, async (req, res) => {
+router.get('/monitoring/active-users', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT u.user_id, u.unique_id, u.full_name, r.role_name, u.updated_at as last_activity
@@ -75,7 +75,7 @@ router.get('/monitoring/active-users', authenticateToken, async (req, res) => {
 /**
  * POST /api/admin/reports/generate
  */
-router.post('/reports/generate', authenticateToken, async (req, res) => {
+router.post('/reports/generate', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const { report_type, start_date, end_date } = req.body;
 
@@ -113,7 +113,7 @@ router.post('/reports/generate', authenticateToken, async (req, res) => {
 /**
  * GET /api/admin/reports/history
  */
-router.get('/reports/history', authenticateToken, async (req, res) => {
+router.get('/reports/history', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT r.*, u.full_name as generated_by_name
@@ -154,7 +154,7 @@ router.post('/backup/create', authenticateToken, requireRole('Administrator'), a
 /**
  * GET /api/admin/backup/list
  */
-router.get('/backup/list', authenticateToken, async (req, res) => {
+router.get('/backup/list', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT b.*, u.full_name as created_by_name
@@ -190,7 +190,7 @@ router.post('/backup/:id/restore', authenticateToken, requireRole('Administrator
 /**
  * GET /api/coordinator/certificates/history
  */
-router.get('/coordinator/certificates/history', authenticateToken, async (req, res) => {
+router.get('/coordinator/certificates/history', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT r.log_id as id, r.report_name, r.generated_at as "issueDate", r.file_path,
@@ -210,7 +210,7 @@ router.get('/coordinator/certificates/history', authenticateToken, async (req, r
 /**
  * POST /api/coordinator/certificates/generate
  */
-router.post('/coordinator/certificates/generate', authenticateToken, async (req, res) => {
+router.post('/coordinator/certificates/generate', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { participant_id, type } = req.body;
     const certType = type || 'Completion';

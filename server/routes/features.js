@@ -133,7 +133,7 @@ router.post('/leaves', authenticateToken, async (req, res) => {
  * PUT /api/leaves/:id/status
  * Coordinator approves or rejects leave request
  */
-router.put('/leaves/:id/status', authenticateToken, async (req, res) => {
+router.put('/leaves/:id/status', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, coordinator_notes } = req.body; // 'Disetujui' or 'Ditolak'
@@ -141,6 +141,20 @@ router.put('/leaves/:id/status', authenticateToken, async (req, res) => {
 
     if (!['Disetujui', 'Ditolak'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Status harus Disetujui atau Ditolak.' });
+    }
+
+    // Coordinator isolation: verify leave request belongs to an assigned student
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(
+        `SELECT u.coordinator_id 
+         FROM leave_requests lr 
+         JOIN users u ON lr.user_id = u.user_id 
+         WHERE lr.id = $1`,
+        [id]
+      );
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat memproses izin anak didik Anda sendiri.' });
+      }
     }
 
     const updated = await query(

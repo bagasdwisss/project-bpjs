@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 
 const router = Router();
@@ -115,12 +115,20 @@ router.get('/participants/without-progress', authenticateToken, async (req, res)
 /**
  * POST /api/grading/participants/create-progress
  */
-router.post('/participants/create-progress', authenticateToken, async (req, res) => {
+router.post('/participants/create-progress', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { user_id, kunjungan_bpu, hasil_akuisisi_bpu, kunjungan_pu, video_viralisasi, kehadiran_seminar, kehadiran_sosialisasi } = req.body;
 
     if (!user_id) {
       return res.status(400).json({ success: false, message: 'user_id is required' });
+    }
+
+    // Coordinator isolation: verify student belongs to this coordinator
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [user_id]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menilai anak didik Anda sendiri.' });
+      }
     }
 
     const { finalScore, grade } = calculateGrade(req.body);
@@ -264,9 +272,24 @@ router.get('/participants/:progressId', authenticateToken, async (req, res) => {
 /**
  * PUT /api/grading/participants/:progressId/progress
  */
-router.put('/participants/:progressId/progress', authenticateToken, async (req, res) => {
+router.put('/participants/:progressId/progress', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { progressId } = req.params;
+
+    // Coordinator isolation: verify student belongs to this coordinator
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(
+        `SELECT u.coordinator_id 
+         FROM progress p 
+         JOIN users u ON p.user_id = u.user_id 
+         WHERE p.id = $1 OR p.user_id = $1`, 
+        [progressId]
+      );
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menilai anak didik Anda sendiri.' });
+      }
+    }
+
     const {
       kunjungan_bpu,
       hasil_akuisisi_bpu,
@@ -319,9 +342,24 @@ router.put('/participants/:progressId/progress', authenticateToken, async (req, 
 /**
  * PUT /api/grading/participants/:progressId/scores
  */
-router.put('/participants/:progressId/scores', authenticateToken, async (req, res) => {
+router.put('/participants/:progressId/scores', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { progressId } = req.params;
+
+    // Coordinator isolation: verify student belongs to this coordinator
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(
+        `SELECT u.coordinator_id 
+         FROM progress p 
+         JOIN users u ON p.user_id = u.user_id 
+         WHERE p.id = $1 OR p.user_id = $1`, 
+        [progressId]
+      );
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menilai anak didik Anda sendiri.' });
+      }
+    }
+
     const { nilai, grade } = req.body;
 
     const result = await query(

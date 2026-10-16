@@ -95,6 +95,16 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    const docCheck = await query(`SELECT user_id, file_name FROM documents WHERE document_id = $1`, [id]);
+    if (docCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Dokumen tidak ditemukan.' });
+    }
+    const doc = docCheck.rows[0];
+    const isAdmin = req.user.role === 'Administrator' || req.user.role_id === 3;
+    if (!isAdmin && doc.user_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menghapus dokumen yang Anda unggah sendiri.' });
+    }
+
     await query(`DELETE FROM documents WHERE document_id = $1`, [id]);
     return res.json({ success: true, message: 'Dokumen berhasil dihapus.' });
   } catch (error) {
