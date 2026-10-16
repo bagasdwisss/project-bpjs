@@ -37,11 +37,6 @@ api.interceptors.request.use(
 // Add response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('API Response Success:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
     return response;
   },
   (error) => {
@@ -64,11 +59,83 @@ api.interceptors.response.use(
     
     if (error.response?.status === 403) {
       console.log('Access forbidden');
-      // Bisa tambahkan handling khusus untuk 403 di sini
     }
 
     return Promise.reject(error);
   }
 );
+
+// ==========================================
+// OPTIMASI HEMAT REQUEST: In-Flight Deduplication & In-Memory Cache
+// ==========================================
+const requestCache = new Map();
+const inFlightRequests = new Map();
+
+const generateCacheKey = (config) => {
+  const method = (config.method || 'get').toLowerCase();
+  const url = config.url || '';
+  const params = config.params ? JSON.stringify(config.params) : '';
+  return `${method}:${url}:${params}`;
+};
+
+export const clearApiCache = () => {
+  requestCache.clear();
+};
+
+api.clearCache = clearApiCache;
+
+// Wrap api.request to provide automatic request deduplication and caching
+const originalRequest = api.request.bind(api);
+
+api.request = async function (config) {
+  if (typeof config === 'string') {
+    config = { url: config };
+  }
+  const method = (config.method || 'get').toLowerCase();
+
+  // Any mutation (POST, PUT, DELETE, PATCH) invalidates the GET cache to guarantee freshness
+  if (method !== 'get') {
+    requestCache.clear();
+    return originalRequest(config);
+  }
+
+  // Bypass cache if explicitly requested
+  if (config.skipCache) {
+    return originalRequest(config);
+  }
+
+  const cacheKey = generateCacheKey(config);
+  const now = Date.now();
+  const ttl = config.cacheTTL || 15000; // 15 detik default TTL
+
+  // 1. Check in-memory fresh cache
+  const cached = requestCache.get(cacheKey);
+  if (cached && now - cached.timestamp < ttl) {
+    return Promise.resolve({ ...cached.response, fromCache: true });
+  }
+
+  // 2. In-flight request deduplication: jika request yang sama sedang berjalan, gabungkan promise
+  if (inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey);
+  }
+
+  // 3. Eksekusi request jaringan dan simpan promise untuk deduplikasi
+  const requestPromise = originalRequest(config)
+    .then((response) => {
+      if (response && response.status === 200) {
+        requestCache.set(cacheKey, {
+          timestamp: Date.now(),
+          response
+        });
+      }
+      return response;
+    })
+    .finally(() => {
+      inFlightRequests.delete(cacheKey);
+    });
+
+  inFlightRequests.set(cacheKey, requestPromise);
+  return requestPromise;
+};
 
 export default api;

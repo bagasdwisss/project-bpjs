@@ -136,7 +136,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FCE373] via-[#F5C6EC] to-[#BDD4F2] p-0.5 flex items-center justify-center shadow-md">
                 <div className="w-full h-full bg-[#121214] rounded-[10px] flex items-center justify-center overflow-hidden">
-                  <img src={logo} alt="Logo" width="20" height="20" style={{ width: '20px', height: '20px', objectFit: 'contain' }} className="w-5 h-5 object-contain" />
+                  <img src={logo} alt="Logo" width="20" height="20" loading="lazy" decoding="async" style={{ width: '20px', height: '20px', objectFit: 'contain' }} className="w-5 h-5 object-contain" />
                 </div>
               </div>
               <div className="flex items-baseline space-x-1.5">

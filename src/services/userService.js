@@ -175,6 +175,20 @@ const getUserProgress = async (userId) => {
 };
 
 /**
+ * Mendapatkan ringkasan progress semua peserta sekaligus dalam 1 request batch.
+ * Menggantikan loop N+1 requests (menghemat puluhan request jaringan).
+ */
+const getProgressSummary = async () => {
+  try {
+    const response = await api.get('/users/progress/summary');
+    return response;
+  } catch (error) {
+    console.error('Error getting progress summary:', error);
+    return { data: { success: false, data: {} } };
+  }
+};
+
+/**
  * Update data progress seorang user.
  * @param {number|string} userId - ID user yang akan diupdate progressnya
  * @param {object} progressData - Data progress yang akan diupdate
@@ -288,6 +302,7 @@ const userService = {
 
   // Progress Management
   getUserProgress,
+  getProgressSummary,
   updateUserProgress,
   getCoordinatorParticipantsProgress,
 

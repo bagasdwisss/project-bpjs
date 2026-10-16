@@ -59,31 +59,30 @@ const CoordinatorDashboard = () => {
         setSelectedParticipant(participantsList[0]);
       }
 
-      // Load progress data per user
+      // Load progress data in a single batch request (optimasi hemat request)
       const progressMap = {};
-      for (const p of participantsList) {
-        try {
-          const pRes = await userService.getUserProgress(p.user_id);
-          if (pRes?.data?.data) {
-            const d = pRes.data.data;
-            const target = 20;
-            const pct = Math.min(100, Math.round(((d.hasil_akuisisi_bpu || 0) / target) * 100));
-            progressMap[p.user_id] = {
-              progress: pct,
-              hasilAkuisisiBPU: d.hasil_akuisisi_bpu || 0,
-              kunjunganBPU: d.kunjungan_bpu || 0,
-              kunjunganPU: d.kunjungan_pu || 0,
-              videoVirialisasi: d.video_viralisasi || 0,
-              kehadiranSeminar: d.kehadiran_seminar || 0,
-              kehadiranSosialisasi: d.kehadiran_sosialisasi || 0,
-              totalPoin: d.total_poin || 0,
-              nilai: d.nilai || 0,
-              grade: d.grade || '-'
-            };
-          }
-        } catch (err) {
-          // Keep defaults
+      try {
+        const pSummaryRes = await userService.getProgressSummary();
+        const summaryData = pSummaryRes?.data?.data || {};
+        for (const p of participantsList) {
+          const d = summaryData[p.user_id] || {};
+          const target = 20;
+          const pct = Math.min(100, Math.round(((d.hasil_akuisisi_bpu || 0) / target) * 100));
+          progressMap[p.user_id] = {
+            progress: pct,
+            hasilAkuisisiBPU: d.hasil_akuisisi_bpu || 0,
+            kunjunganBPU: d.kunjungan_bpu || 0,
+            kunjunganPU: d.kunjungan_pu || 0,
+            videoVirialisasi: d.video_viralisasi || 0,
+            kehadiranSeminar: d.kehadiran_seminar || 0,
+            kehadiranSosialisasi: d.kehadiran_sosialisasi || 0,
+            totalPoin: d.total_poin || 0,
+            nilai: d.nilai || 0,
+            grade: d.grade || '-'
+          };
         }
+      } catch (err) {
+        console.error('Failed to load progress summary:', err);
       }
       setProgressData(progressMap);
 

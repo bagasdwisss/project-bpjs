@@ -1,44 +1,60 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { DashboardProvider } from './context/DashboardContext';
 import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import Login from './components/Auth/Login';
-
-// Participant Components
-import ParticipantDashboard from './components/Participant/Dashboard';
-import ParticipantAttendance from './components/Participant/Attendance';
-import ParticipantScores from './components/Participant/Scores';
-import ParticipantCalendar from './components/Participant/Calendar';
-import ParticipantProgress from './components/Participant/Progress';
-import ParticipantDocuments from './components/Participant/Documents';
-import ParticipantForum from './components/Participant/Forum';
-import ParticipantNotifications from './components/Participant/Notifications';
-import ParticipantAcquisitionResult from './components/Participant/AcquisitionResult';
-
-// Coordinator Components
-import CoordinatorDashboard from './components/Coordinator/Dashboard';
-import CoordinatorParticipants from './components/Coordinator/Participants';
-import CoordinatorGrading from './components/Coordinator/Grading';
-import CoordinatorAnalysis from './components/Coordinator/Analysis';
-import CoordinatorTemplates from './components/Coordinator/Templates';
-import CoordinatorCertificates from './components/Coordinator/Certificates';
-import CoordinatorForum from './components/Coordinator/Forum';
-import CoordinatorReminders from './components/Coordinator/Reminders';
-
-// Admin Components
-import AdminDashboard from './components/Admin/Dashboard';
-import AdminUserManagement from './components/Admin/UserManagement';
-import AdminBatchManagement from './components/Admin/BatchManagement';
-import AdminReports from './components/Admin/Reports';
-import AdminImportExport from './components/Admin/ImportExport';
-import AdminMonitoring from './components/Admin/Monitoring';
-import AdminBackup from './components/Admin/Backup';
-import AdminBroadcast from './components/Admin/Broadcast';
-import VerifyCertificate from './components/Common/VerifyCertificate';
-
 import './App.css';
+
+// Public Components (Lazy Loaded)
+const Login = lazy(() => import('./components/Auth/Login'));
+const VerifyCertificate = lazy(() => import('./components/Common/VerifyCertificate'));
+
+// Participant Components (Lazy Loaded)
+const ParticipantDashboard = lazy(() => import('./components/Participant/Dashboard'));
+const ParticipantAttendance = lazy(() => import('./components/Participant/Attendance'));
+const ParticipantScores = lazy(() => import('./components/Participant/Scores'));
+const ParticipantCalendar = lazy(() => import('./components/Participant/Calendar'));
+const ParticipantProgress = lazy(() => import('./components/Participant/Progress'));
+const ParticipantDocuments = lazy(() => import('./components/Participant/Documents'));
+const ParticipantForum = lazy(() => import('./components/Participant/Forum'));
+const ParticipantNotifications = lazy(() => import('./components/Participant/Notifications'));
+const ParticipantAcquisitionResult = lazy(() => import('./components/Participant/AcquisitionResult'));
+
+// Coordinator Components (Lazy Loaded)
+const CoordinatorDashboard = lazy(() => import('./components/Coordinator/Dashboard'));
+const CoordinatorParticipants = lazy(() => import('./components/Coordinator/Participants'));
+const CoordinatorGrading = lazy(() => import('./components/Coordinator/Grading'));
+const CoordinatorAnalysis = lazy(() => import('./components/Coordinator/Analysis'));
+const CoordinatorTemplates = lazy(() => import('./components/Coordinator/Templates'));
+const CoordinatorCertificates = lazy(() => import('./components/Coordinator/Certificates'));
+const CoordinatorForum = lazy(() => import('./components/Coordinator/Forum'));
+const CoordinatorReminders = lazy(() => import('./components/Coordinator/Reminders'));
+
+// Admin Components (Lazy Loaded)
+const AdminDashboard = lazy(() => import('./components/Admin/Dashboard'));
+const AdminUserManagement = lazy(() => import('./components/Admin/UserManagement'));
+const AdminBatchManagement = lazy(() => import('./components/Admin/BatchManagement'));
+const AdminReports = lazy(() => import('./components/Admin/Reports'));
+const AdminImportExport = lazy(() => import('./components/Admin/ImportExport'));
+const AdminMonitoring = lazy(() => import('./components/Admin/Monitoring'));
+const AdminBackup = lazy(() => import('./components/Admin/Backup'));
+const AdminBroadcast = lazy(() => import('./components/Admin/Broadcast'));
+
+// Branded Soft Neo-Brutalist Loading Screen
+const PageLoader = () => (
+  <div className="min-h-screen bg-[#FAF9F6] flex flex-col items-center justify-center p-4">
+    <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] flex flex-col items-center space-y-3 max-w-xs w-full text-center animate-in fade-in duration-200">
+      <div className="w-10 h-10 rounded-xl bg-[#B8C96E] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] animate-spin">
+        <div className="w-3 h-3 bg-[#121214] rounded-sm"></div>
+      </div>
+      <div>
+        <h4 className="text-xs font-black text-[#121214] uppercase tracking-wider">Memuat Halaman...</h4>
+        <p className="text-[11px] font-bold text-gray-500 mt-0.5">Sistem Absensi & Nilai BPJS</p>
+      </div>
+    </div>
+  </div>
+);
 
 function App() {
   return (
@@ -46,7 +62,8 @@ function App() {
       <ToastProvider>
         <DashboardProvider>
           <Router>
-          <Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/verify-certificate/:certNumber" element={<VerifyCertificate />} />
@@ -187,6 +204,7 @@ function App() {
             {/* 404 Route */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
+        </Suspense>
         </Router>
       </DashboardProvider>
     </ToastProvider>

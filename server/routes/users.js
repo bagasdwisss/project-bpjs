@@ -163,6 +163,33 @@ router.get('/by-coordinator/:coordinatorId', authenticateToken, async (req, res)
 });
 
 /**
+ * GET /api/users/progress/summary
+ * Batch endpoint to load all participants' progress in a single database query (eliminates N+1 loop)
+ */
+router.get('/progress/summary', authenticateToken, async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT user_id, hasil_akuisisi_bpu, kunjungan_bpu, kunjungan_pu, 
+             video_viralisasi, kehadiran_seminar, kehadiran_sosialisasi, 
+             total_poin, nilai, grade, updated_at
+      FROM progress
+    `);
+    
+    const summaryMap = {};
+    for (const row of result.rows) {
+      summaryMap[row.user_id] = row;
+    }
+
+    return res.json({
+      success: true,
+      data: summaryMap
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * GET /api/users/:id/progress
  */
 router.get('/:id/progress', authenticateToken, async (req, res) => {

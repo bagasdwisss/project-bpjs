@@ -696,7 +696,7 @@ const Attendance = () => {
                     </div>
                   ) : selfieImage ? (
                     <div className="relative w-40 h-40 rounded-xl overflow-hidden border-2 border-[#121214] shadow-[3px_3px_0px_#121214]">
-                      <img src={selfieImage} alt="Selfie Presensi" className="w-full h-full object-cover" />
+                      <img src={selfieImage} alt="Selfie Presensi" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       <div className="absolute bottom-1 right-1 bg-emerald-500 text-white p-1 rounded-full border border-[#121214]">
                         <Check className="w-3 h-3" />
                       </div>

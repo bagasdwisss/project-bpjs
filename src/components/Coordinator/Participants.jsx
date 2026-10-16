@@ -45,30 +45,26 @@ const Participants = () => {
   const loadProgressData = async (participantsList) => {
     try {
       const progressMap = {};
+      const res = await userService.getProgressSummary();
+      const summaryData = res?.data?.data || {};
+
       for (const participant of participantsList) {
-        try {
-          const progressResponse = await userService.getUserProgress(participant.user_id);
-          if (progressResponse.data?.success && progressResponse.data?.data) {
-            const userData = progressResponse.data.data;
-            const targetAkuisisi = 20;
-            const progressPercentage = Math.round(((userData.hasil_akuisisi_bpu || 0) / targetAkuisisi) * 100);
-            
-            progressMap[participant.user_id] = {
-              progress: Math.min(100, progressPercentage),
-              hasilAkuisisiBPU: userData.hasil_akuisisi_bpu || 0,
-              kunjunganBPU: userData.kunjungan_bpu || 0,
-              kunjunganPU: userData.kunjungan_pu || 0,
-              videoViralisasi: userData.video_viralisasi || 0,
-              kehadiranSeminar: userData.kehadiran_seminar || 0,
-              kehadiranSosialisasi: userData.kehadiran_sosialisasi || 0,
-              totalPoin: userData.total_poin || 0,
-              nilai: userData.nilai || 0,
-              grade: userData.grade || '-'
-            };
-          }
-        } catch (error) {
-          progressMap[participant.user_id] = { progress: 0, hasilAkuisisiBPU: 0, grade: '-' };
-        }
+        const userData = summaryData[participant.user_id] || {};
+        const targetAkuisisi = 20;
+        const progressPercentage = Math.round(((userData.hasil_akuisisi_bpu || 0) / targetAkuisisi) * 100);
+        
+        progressMap[participant.user_id] = {
+          progress: Math.min(100, progressPercentage),
+          hasilAkuisisiBPU: userData.hasil_akuisisi_bpu || 0,
+          kunjunganBPU: userData.kunjungan_bpu || 0,
+          kunjunganPU: userData.kunjungan_pu || 0,
+          videoViralisasi: userData.video_viralisasi || 0,
+          kehadiranSeminar: userData.kehadiran_seminar || 0,
+          kehadiranSosialisasi: userData.kehadiran_sosialisasi || 0,
+          totalPoin: userData.total_poin || 0,
+          nilai: userData.nilai || 0,
+          grade: userData.grade || '-'
+        };
       }
       setProgressData(progressMap);
     } catch (error) {

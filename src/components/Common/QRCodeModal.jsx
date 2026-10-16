@@ -76,6 +76,8 @@ const QRCodeModal = ({ isOpen, onClose, user }) => {
             <img 
               src={qrImageUrl} 
               alt={`QR Code ${referralCode}`} 
+              loading="lazy"
+              decoding="async"
               className="w-48 h-48 rounded-lg border-2 border-[#121214] object-contain p-2 bg-[#F5F4F0]"
             />
             <div className="mt-3">
