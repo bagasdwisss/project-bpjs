@@ -8,7 +8,7 @@ const PageLoader = ({ text = "Memuat Halaman..." }) => (
       </div>
       <div>
         <h4 className="text-xs font-black text-[#121214] uppercase tracking-wider">{text}</h4>
-        <p className="text-[11px] font-bold text-gray-500 mt-0.5">Sistem Absensi & Nilai BPJS</p>
+        <p className="text-[11px] font-bold text-gray-500 mt-0.5">Sistem Absensi & Nilai BPJSTK</p>
       </div>
     </div>
   </div>

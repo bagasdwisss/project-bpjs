@@ -93,7 +93,7 @@ const Reports = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Administrasi Laporan</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Pusat Laporan & Rekapitulasi</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Hasilkan laporan kinerja peserta, rekapitulasi presensi magang, dan evaluasi hasil akuisisi BPJS</p>
+            <p className="text-sm text-[#121214]/60 mt-1">Hasilkan laporan kinerja peserta, rekapitulasi presensi magang, dan evaluasi hasil akuisisi BPJSTK</p>
           </div>
 
           <button

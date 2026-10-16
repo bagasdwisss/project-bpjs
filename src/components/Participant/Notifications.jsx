@@ -195,7 +195,7 @@ const Notifications = () => {
               Pusat Notifikasi & Pengingat
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
-              Informasi instruksi pembimbing, tenggat penugasan, dan pengumuman operasional BPJS Ketenagakerjaan
+              Informasi instruksi pembimbing, tenggat penugasan, dan pengumuman operasional BPJSTK
             </p>
           </div>
 

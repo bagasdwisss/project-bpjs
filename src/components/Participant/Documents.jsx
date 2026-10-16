@@ -336,7 +336,7 @@ const Documents = () => {
                             <span>•</span>
                             <span>{new Date(doc.uploadDate || Date.now()).toLocaleDateString('id-ID')}</span>
                             <span>•</span>
-                            <span>{doc.uploadedBy || 'Admin BPJS'}</span>
+                            <span>{doc.uploadedBy || 'Admin BPJSTK'}</span>
                             <span>•</span>
                             <span>{doc.downloadCount || 0}x diunduh</span>
                           </div>

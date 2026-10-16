@@ -272,13 +272,13 @@ const Scores = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
                 Tipe Penilaian
               </label>
               <select 
                 value={selectedType} 
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214] transition-all"
+                className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all cursor-pointer"
               >
                 {scoreTypes.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -288,13 +288,13 @@ const Scores = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
                 Modul Pembelajaran
               </label>
               <select 
                 value={selectedModule} 
                 onChange={(e) => setSelectedModule(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214] transition-all"
+                className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all cursor-pointer"
               >
                 {modules.map((module) => (
                   <option key={module} value={module}>
@@ -311,7 +311,7 @@ const Scores = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-sm sm:text-base font-bold text-[#121214]">Capaian Rata-rata per Modul</h2>
             <span className="text-xs font-bold bg-[#F5C6EC] text-[#121214] px-3 py-1 rounded-full">
-              Kurikulum BPJS
+              Kurikulum BPJSTK
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -426,7 +426,7 @@ const Scores = () => {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-base font-bold text-[#121214]">Ringkasan Performa & Rekomendasi</h3>
             <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-              BPJS Internship Track
+              BPJSTK Internship Track
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium pt-2">
@@ -440,7 +440,7 @@ const Scores = () => {
                 return nonAllModules.length > 0 ? 
                   nonAllModules.reduce((best, current) => 
                     calculateModuleAverage(current) > calculateModuleAverage(best) ? current : best
-                  ) : 'Modul Pembelajaran BPJS';
+                  ) : 'Modul Pembelajaran BPJSTK';
               })()}</p>
               <p><strong className="text-[#121214]">Evaluasi Memenuhi Target:</strong> {scores.filter(s => s.score >= 75).length} dari {scores.length} penilaian</p>
             </div>

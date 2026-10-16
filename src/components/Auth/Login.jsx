@@ -106,11 +106,11 @@ const Login = () => {
         <div className="text-center space-y-2">
           <div className="inline-flex items-center space-x-2.5 bg-white border border-[#EAE9E4] px-4 py-2 rounded-full shadow-sm">
             <div className="w-6 h-6 rounded-lg bg-[#F5C6EC] flex items-center justify-center overflow-hidden">
-              <img src={logo} alt="BPJS Logo" width="16" height="16" loading="lazy" decoding="async" style={{ width: '16px', height: '16px', objectFit: 'contain' }} className="w-4 h-4 object-contain" />
+              <img src={logo} alt="BPJSTK Logo" width="16" height="16" loading="lazy" decoding="async" style={{ width: '16px', height: '16px', objectFit: 'contain' }} className="w-4 h-4 object-contain" />
             </div>
             <span className="font-bold text-base text-[#121214]">intelly</span>
             <span className="text-[10px] font-bold uppercase tracking-wider bg-[#121214] text-white px-2 py-0.5 rounded-full">
-              BPJS Portal
+              BPJSTK Portal
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
@@ -170,18 +170,25 @@ const Login = () => {
             </div>
           )}
 
-          {/* Role pill badge indicator */}
-          {roleDetected && (
-            <div className="mb-5 flex items-center justify-between bg-[#F5C6EC]/40 border border-[#F5C6EC] px-3.5 py-1.5 rounded-full text-xs font-bold text-[#121214] animate-in fade-in duration-200">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#E59CD8]" />
+          {/* Role pill badge indicator with smooth sliding/fade transition */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-out ${
+              roleDetected 
+                ? 'max-h-16 opacity-100 translate-y-0 mb-5' 
+                : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none mb-0'
+            }`}
+          >
+            <div className="flex items-center justify-between bg-[#F5C6EC]/40 border-2 border-[#121214] px-4 py-2 rounded-2xl text-xs font-black text-[#121214] shadow-[3px_3px_0px_#121214] transition-all duration-200">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#121214] animate-ping" />
+                <Sparkles className="w-4 h-4 text-[#121214]" />
                 Role Terdeteksi:
               </span>
-              <span className="bg-[#121214] text-white px-2 py-0.5 rounded-full text-[10px]">
+              <span className="bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider shadow-sm">
                 {roleDetected}
               </span>
             </div>
-          )}
+          </div>
 
           {/* Form Error alert */}
           {(formError || error) && (
@@ -270,13 +277,13 @@ const Login = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               Sistem Terotentikasi & Aman
             </span>
-            <span>BPJS Ketenagakerjaan</span>
+            <span>BPJSTK</span>
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-center text-xs text-[#8A8985]">
-          <p>© 2025 Intelly BPJS. Seluruh hak cipta dilindungi.</p>
+          <p>© 2026 Intelly BPJSTK. Seluruh hak cipta dilindungi.</p>
         </div>
       </div>
     </div>

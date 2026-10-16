@@ -69,7 +69,7 @@ apiRouter.get('/health', async (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    service: 'BPJS Absensi & Nilai API',
+    service: 'BPJSTK Absensi & Nilai API',
     database: {
       provider: 'Neon Serverless PostgreSQL',
       status: dbStatus,
@@ -139,6 +139,30 @@ apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/coordinator/certificates', adminRoutes);
 apiRouter.use('/coordinator/participants', userRoutes);
 apiRouter.use('/coordinator/scores', scoreRoutes);
+apiRouter.use('/coordinator', pesertaRoutes);
+
+// System Version & Live Update Tracker
+let currentSystemVersion = '2.6.0';
+let lastVersionUpdateAt = new Date().toISOString();
+
+apiRouter.get('/version', (req, res) => {
+  res.json({
+    success: true,
+    version: currentSystemVersion,
+    updatedAt: lastVersionUpdateAt,
+    system: 'BPJSTK Magang Terintegrasi'
+  });
+});
+
+apiRouter.post('/admin/trigger-update', (req, res) => {
+  currentSystemVersion = req.body?.version || `2.6.${Date.now().toString().slice(-4)}`;
+  lastVersionUpdateAt = new Date().toISOString();
+  res.json({
+    success: true,
+    message: 'Sinyal pembaruan sistem berhasil disiarkan.',
+    version: currentSystemVersion
+  });
+});
 
 // Direct shortcuts often called by frontend
 apiRouter.get('/coordinators', (req, res, next) => {

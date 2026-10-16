@@ -158,7 +158,7 @@ const BroadcastPopup = () => {
                     <span className="text-[10px] font-black uppercase tracking-wider bg-[#121214] text-white px-2.5 py-0.5 rounded-full inline-block">
                       {activeModalBroadcast.priority === 'Sangat Penting' ? 'Darurat / Sangat Penting' : 'Pemberitahuan Penting'}
                     </span>
-                    <h2 className="text-xs font-bold text-[#121214]/80 mt-0.5">BPJS Ketenagakerjaan</h2>
+                    <h2 className="text-xs font-bold text-[#121214]/80 mt-0.5">BPJSTK</h2>
                   </div>
                 </div>
 

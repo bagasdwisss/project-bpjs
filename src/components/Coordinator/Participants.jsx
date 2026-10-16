@@ -15,6 +15,7 @@ const Participants = () => {
   const [progressData, setProgressData] = useState({});
 
   const [search, setSearch] = useState('');
+  const [placementFilter, setPlacementFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
 
@@ -90,7 +91,9 @@ const Participants = () => {
       const statusMatch = statusFilter === 'all' || 
         (statusFilter === 'aktif' && (participant.status === 'Aktif' || !participant.status)) ||
         (statusFilter === 'nonaktif' && participant.status === 'Nonaktif');
-      return (nameMatch || idMatch) && statusMatch;
+      const placementMatch = placementFilter === 'all' || 
+        (participant.penempatan?.toLowerCase() === placementFilter.toLowerCase());
+      return (nameMatch || idMatch) && statusMatch && placementMatch;
     })
     .sort((a, b) => {
       if (sortBy === 'name') return (a.full_name || '').localeCompare(b.full_name || '');
@@ -129,41 +132,58 @@ const Participants = () => {
           </div>
         </div>
 
-        {/* Search & Filters */}
-        <div className="bg-white p-3.5 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col md:flex-row gap-3">
+        {/* Search & Filters (Neo-Brutalist) */}
+        <div className="bg-white p-4 rounded-2xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] flex flex-col md:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A8985]" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#121214]/60" />
             <input
               type="text"
               placeholder="Cari nama peserta, ID pengguna..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] placeholder-[#8A8985] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] placeholder-[#121214]/40 shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white transition-all"
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            {/* Penempatan Selector */}
+            <select
+              value={placementFilter}
+              onChange={(e) => setPlacementFilter(e.target.value)}
+              className="px-3.5 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
+              title="Filter Penempatan Kerja"
+            >
+              <option value="all">Semua Penempatan</option>
+              <option value="kantor">Kantor (WFO)</option>
+              <option value="lapangan">Lapangan (Survey)</option>
+            </select>
+
+            {/* Status Selector */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+              className="px-3.5 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
             >
               <option value="all">Semua Status</option>
               <option value="aktif">Aktif</option>
               <option value="nonaktif">Nonaktif</option>
             </select>
+
+            {/* Sort Selector */}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+              className="px-3.5 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
             >
               <option value="name">Urut Nama (A-Z)</option>
-              <option value="progress">Urut Capaian Tertinggi</option>
+              <option value="progress">Capaian Tertinggi</option>
             </select>
+
+            {/* Refresh */}
             <button
               onClick={loadParticipants}
-              className="p-2 rounded-full border border-[#EAE9E4] hover:bg-[#FAF9F6] text-[#121214]"
-              title="Segarkan"
+              className="p-2.5 rounded-2xl border-2 border-[#121214] bg-white text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#FAF9F6] active:translate-y-0.5 transition-all"
+              title="Segarkan Data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>

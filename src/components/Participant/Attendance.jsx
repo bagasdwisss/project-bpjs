@@ -109,11 +109,11 @@ const formatDistance = (meters) => {
   return `${km < 10 ? km.toFixed(2) : km.toFixed(1)} km`;
 };
 
-// Titik Default Kantor Resmi BPJS Ketenagakerjaan
+// Titik Default Kantor Resmi BPJSTK
 const DEFAULT_OFFICE_LOCATION = {
   id: 1,
-  name: 'Kantor Cabang BPJS Ketenagakerjaan Medan Kota',
-  address: 'BPJS, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153',
+  name: 'Kantor Cabang BPJSTK Medan Kota',
+  address: 'BPJSTK, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153',
   lat: 3.575556,
   lon: 98.665278,
   radiusMeters: 150
@@ -484,7 +484,7 @@ const Attendance = () => {
               Presensi & Manajemen Kehadiran
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 font-medium">
-              Geofencing Multi-Titik Kantor & Lapangan Binaan BPJS Ketenagakerjaan
+              Geofencing Multi-Titik Kantor & Lapangan Binaan BPJSTK
             </p>
           </div>
 
@@ -609,7 +609,7 @@ const Attendance = () => {
                 {currentCoords ? (
                   <div className="space-y-1.5 text-[11px]">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500 font-bold">Jarak ke Kantor BPJS:</span>
+                      <span className="text-gray-500 font-bold">Jarak ke Kantor BPJSTK:</span>
                       <strong className={`font-black text-xs ${isWithinRadius ? 'text-emerald-700' : 'text-amber-700'}`}>
                         {formatDistance(distanceToOffice)}
                       </strong>
@@ -630,7 +630,7 @@ const Attendance = () => {
                     )}
                   </div>
                 ) : (
-                  <p className="text-[11px] text-gray-500 font-medium">Klik "Deteksi GPS" untuk mengukur jarak keberadaan Anda ke kantor BPJS Medan.</p>
+                  <p className="text-[11px] text-gray-500 font-medium">Klik "Deteksi GPS" untuk mengukur jarak keberadaan Anda ke kantor BPJSTK Medan.</p>
                 )}
               </div>
 

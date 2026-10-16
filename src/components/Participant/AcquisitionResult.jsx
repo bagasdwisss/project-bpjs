@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { TableSkeleton } from '../Common/Skeleton';
 import NeoDatePicker from '../Common/NeoDatePicker';
+import NeoSelect from '../Common/NeoSelect';
 
 // Komponen Toast Berwarna Sistem Intelly Soft Neo-Brutalism
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -228,7 +229,7 @@ const AcquisitionResult = () => {
   const handleConfirmPayment = async (pesertaId) => {
     const ok = await confirm({
       title: 'Konfirmasi Pembayaran',
-      message: 'Apakah Anda yakin pembayaran iuran BPJS peserta ini sudah selesai dan terverifikasi?',
+      message: 'Apakah Anda yakin pembayaran iuran BPJSTK peserta ini sudah selesai dan terverifikasi?',
       confirmText: 'Ya, Konfirmasi',
       cancelText: 'Batal',
       type: 'info'
@@ -810,53 +811,53 @@ const AcquisitionResult = () => {
       {/* Form Modal */}
       {showFormModal && (
         <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-base sm:text-lg font-bold text-[#121214] mb-3">
-              {isEditMode ? 'Edit Data Peserta BPU' : 'Tambah Data Akuisisi BPU'}
+          <div className="bg-white rounded-[26px] border-2 border-[#121214] shadow-[6px_6px_0px_#121214] max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-base sm:text-lg font-black text-[#121214] mb-3">
+              {isEditMode ? 'Edit Data Peserta BPJSTK BPU' : 'Tambah Data Akuisisi BPJSTK BPU'}
             </h3>
 
             {/* Catatan wajib diisi */}
-            <div className="mb-4 p-3.5 bg-[#FCE373]/30 border border-[#FCE373] rounded-2xl text-xs font-medium text-[#856B12]">
-              <span className="font-bold">Perhatian:</span> Kolom bertanda <span className="text-red-500 font-bold">*</span> wajib diisi dengan data valid.
+            <div className="mb-4 p-3.5 bg-[#FCE373]/30 border-2 border-[#121214] rounded-2xl shadow-[2px_2px_0px_#121214] text-xs font-bold text-[#121214]">
+              <span className="font-black">Perhatian:</span> Kolom bertanda <span className="text-rose-500 font-black">*</span> wajib diisi dengan data valid.
             </div>
 
             <form onSubmit={handleFormSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Peserta <span className="text-red-500">*</span>
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
+                    Nama Peserta <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="nama_peserta"
                     value={formData.nama_peserta}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      formErrors.nama_peserta ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                      formErrors.nama_peserta ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan nama peserta"
                   />
                   {formErrors.nama_peserta && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.nama_peserta}</p>
+                    <p className="mt-1 text-[11px] font-bold text-rose-600">{formErrors.nama_peserta}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    NIK <span className="text-red-500">*</span>
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
+                    NIK <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="nik"
                     value={formData.nik}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      formErrors.nik ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                      formErrors.nik ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan NIK (minimal 16 digit)"
                   />
                   {formErrors.nik && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.nik}</p>
+                    <p className="mt-1 text-[11px] font-bold text-rose-600">{formErrors.nik}</p>
                   )}
                 </div>
 
@@ -873,7 +874,7 @@ const AcquisitionResult = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
                     No. Telepon
                   </label>
                   <input
@@ -881,18 +882,18 @@ const AcquisitionResult = () => {
                     name="no_telepon"
                     value={formData.no_telepon}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      formErrors.no_telepon ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                      formErrors.no_telepon ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan no. telepon"
                   />
                   {formErrors.no_telepon && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.no_telepon}</p>
+                    <p className="mt-1 text-[11px] font-bold text-rose-600">{formErrors.no_telepon}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
                     Pekerjaan
                   </label>
                   <input
@@ -900,13 +901,13 @@ const AcquisitionResult = () => {
                     name="pekerjaan"
                     value={formData.pekerjaan}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Masukkan pekerjaan"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+                    placeholder="Contoh: Petani, Ojek Online, Pedagang"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
                     Email
                   </label>
                   <input
@@ -914,185 +915,176 @@ const AcquisitionResult = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      formErrors.email ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                      formErrors.email ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
-                    placeholder="Masukkan email"
+                    placeholder="Masukkan email peserta"
                   />
                   {formErrors.email && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+                    <p className="mt-1 text-[11px] font-bold text-rose-600">{formErrors.email}</p>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
                     Program Terdaftar
                   </label>
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="jkk"
-                        name="jkk"
-                        checked={formData.program_terdaftar.split(',').includes('JKK')}
-                        onChange={handleProgramChange}
-                        className="h-4 w-4 accent-[#121214] rounded cursor-pointer"
-                      />
-                      <label htmlFor="jkk" className="ml-2 block text-xs font-medium text-[#121214] cursor-pointer">
-                        JKK (Jaminan Kecelakaan Kerja)
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="jkm"
-                        name="jkm"
-                        checked={formData.program_terdaftar.split(',').includes('JKM')}
-                        onChange={handleProgramChange}
-                        className="h-4 w-4 accent-[#121214] rounded cursor-pointer"
-                      />
-                      <label htmlFor="jkm" className="ml-2 block text-xs font-medium text-[#121214] cursor-pointer">
-                        JKM (Jaminan Kematian)
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="jht"
-                        name="jht"
-                        checked={formData.program_terdaftar.split(',').includes('JHT')}
-                        onChange={handleProgramChange}
-                        className="h-4 w-4 accent-[#121214] rounded cursor-pointer"
-                      />
-                      <label htmlFor="jht" className="ml-2 block text-xs font-medium text-[#121214] cursor-pointer">
-                        JHT (Jaminan Hari Tua)
-                      </label>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'jkk', label: 'JKK (Jaminan Kecelakaan Kerja)', desc: '1% upah (min Rp 10.000)' },
+                      { id: 'jkm', label: 'JKM (Jaminan Kematian)', desc: 'Rp 6.800 flat/bulan' },
+                      { id: 'jht', label: 'JHT (Jaminan Hari Tua)', desc: '2% upah (min Rp 20.000)' }
+                    ].map((prog) => {
+                      const isChecked = formData.program_terdaftar.split(',').includes(prog.id.toUpperCase());
+                      return (
+                        <label
+                          key={prog.id}
+                          className={`p-3 rounded-2xl border-2 border-[#121214] flex items-start gap-2.5 cursor-pointer transition-all ${
+                            isChecked
+                              ? 'bg-[#BDD4F2] shadow-[3px_3px_0px_#121214]'
+                              : 'bg-[#FAF9F6] shadow-[2px_2px_0px_#121214] hover:bg-white'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            id={prog.id}
+                            name={prog.id}
+                            checked={isChecked}
+                            onChange={handleProgramChange}
+                            className="mt-0.5 h-4 w-4 accent-[#121214] rounded cursor-pointer"
+                          />
+                          <div>
+                            <span className="block text-xs font-black text-[#121214]">{prog.label}</span>
+                            <span className="block text-[10px] text-[#121214]/60 font-medium mt-0.5">{prog.desc}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status Pendaftaran
-                  </label>
-                  <select
+                  <NeoSelect
+                    label="Status Pendaftaran"
                     name="status_pendaftaran"
                     value={formData.status_pendaftaran}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="BARU DAFTAR">BARU DAFTAR</option>
-                    <option value="MENUNGGU PEMBAYARAN">MENUNGGU PEMBAYARAN</option>
-                    <option value="PEMBAYARAN BERHASIL">PEMBAYARAN BERHASIL</option>
-                  </select>
+                    placeholder=""
+                    options={[
+                      { value: 'BARU DAFTAR', label: 'BARU DAFTAR' },
+                      { value: 'MENUNGGU PEMBAYARAN', label: 'MENUNGGU PEMBAYARAN' },
+                      { value: 'PEMBAYARAN BERHASIL', label: 'PEMBAYARAN BERHASIL' }
+                    ]}
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Periode Pendaftaran
-                  </label>
-                  <select
+                  <NeoSelect
+                    label="Periode Pendaftaran"
                     name="periode_pelatihan"
                     value={formData.periode_pelatihan}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="1bulan">1 Bulan</option>
-                    <option value="2bulan">2 Bulan</option>
-                    <option value="3bulan">3 Bulan</option>
-                    <option value="4bulan">4 Bulan</option>
-                    <option value="5bulan">5 Bulan</option>
-                    <option value="6bulan">6 Bulan</option>
-                    <option value="7bulan">7 Bulan</option>
-                    <option value="8bulan">8 Bulan</option>
-                    <option value="9bulan">9 Bulan</option>
-                    <option value="10bulan">10 Bulan</option>
-                    <option value="11bulan">11 Bulan</option>
-                    <option value="12bulan">12 Bulan</option>
-                  </select>
+                    placeholder=""
+                    options={[
+                      { value: '1bulan', label: '1 Bulan' },
+                      { value: '2bulan', label: '2 Bulan' },
+                      { value: '3bulan', label: '3 Bulan' },
+                      { value: '4bulan', label: '4 Bulan' },
+                      { value: '5bulan', label: '5 Bulan' },
+                      { value: '6bulan', label: '6 Bulan' },
+                      { value: '7bulan', label: '7 Bulan' },
+                      { value: '8bulan', label: '8 Bulan' },
+                      { value: '9bulan', label: '9 Bulan' },
+                      { value: '10bulan', label: '10 Bulan' },
+                      { value: '11bulan', label: '11 Bulan' },
+                      { value: '12bulan', label: '12 Bulan' }
+                    ]}
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Biaya
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
+                    Biaya Iuran
                   </label>
                   <input
                     type="text"
                     name="biaya"
                     value={formatRupiah(formData.biaya)}
                     onChange={handleBiayaChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      formErrors.biaya ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                      formErrors.biaya ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan biaya"
                   />
                   {formErrors.biaya && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.biaya}</p>
+                    <p className="mt-1 text-[11px] font-bold text-rose-600">{formErrors.biaya}</p>
                   )}
-                  <p className="text-xs text-gray-500 mt-1">
-                    Biaya ditampilkan dengan format Rupiah: {formatRupiah(formData.biaya)}
+                  <p className="text-[10px] text-[#121214]/60 font-semibold mt-1">
+                    Format: {formatRupiah(formData.biaya)}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
                     Upload Bukti Pembayaran
                   </label>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.pdf"
                     onChange={handlePaymentProofChange}
-                    className="w-full text-xs text-[#121214]/60
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-full file:border file:border-[#EAE9E4]
-                      file:text-xs file:font-bold
+                    className="w-full text-xs text-[#121214]/70
+                      file:mr-3 file:py-2 file:px-4
+                      file:rounded-2xl file:border-2 file:border-[#121214]
+                      file:text-xs file:font-black
                       file:bg-[#FAF9F6] file:text-[#121214]
-                      hover:file:bg-[#121214] hover:file:text-white file:transition"
+                      file:shadow-[2px_2px_0px_#121214]
+                      hover:file:bg-[#FCE373] file:cursor-pointer file:transition"
                   />
-                  <p className="text-[11px] text-[#121214]/40 mt-1">
-                    Format: JPG, PNG, PDF. Maksimal 5MB
+                  <p className="text-[10px] text-[#121214]/60 font-medium mt-1">
+                    JPG, PNG, PDF (Maks. 5MB)
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
                     Upload Bukti Sosialisasi
                   </label>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.pdf"
                     onChange={handleSocializationProofChange}
-                    className="w-full text-xs text-[#121214]/60
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-full file:border file:border-[#EAE9E4]
-                      file:text-xs file:font-bold
+                    className="w-full text-xs text-[#121214]/70
+                      file:mr-3 file:py-2 file:px-4
+                      file:rounded-2xl file:border-2 file:border-[#121214]
+                      file:text-xs file:font-black
                       file:bg-[#FAF9F6] file:text-[#121214]
-                      hover:file:bg-[#121214] hover:file:text-white file:transition"
+                      file:shadow-[2px_2px_0px_#121214]
+                      hover:file:bg-[#FCE373] file:cursor-pointer file:transition"
                   />
-                  <p className="text-[11px] text-[#121214]/40 mt-1">
-                    Format: JPG, PNG, PDF. Maksimal 5MB
+                  <p className="text-[10px] text-[#121214]/60 font-medium mt-1">
+                    JPG, PNG, PDF (Maks. 5MB)
                   </p>
                 </div>
               </div>
 
-              <div className="flex justify-end items-center gap-2.5 pt-3 border-t border-[#EAE9E4]">
+              <div className="flex justify-end items-center gap-3 pt-4 border-t-2 border-[#121214]/15">
                 <button
                   type="button"
                   onClick={() => {
                     setShowFormModal(false);
                     resetForm();
                   }}
-                  className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
+                  className="px-5 py-2.5 rounded-2xl border-2 border-[#121214] bg-white text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#FAF9F6] transition active:translate-y-0.5"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-6 py-2.5 rounded-full text-xs font-bold transition shadow-sm ${
+                  className={`px-6 py-2.5 rounded-2xl border-2 border-[#121214] text-xs font-black transition-all shadow-[3px_3px_0px_#121214] hover:shadow-[4px_4px_0px_#121214] hover:-translate-y-0.5 active:translate-y-0 ${
                     submitting
-                      ? 'bg-[#121214]/20 text-[#121214]/40 cursor-not-allowed'
-                      : 'bg-[#121214] hover:bg-black text-white'
+                      ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none'
+                      : 'bg-[#B8C96E] hover:bg-[#a8ba5d] text-[#121214]'
                   }`}
                 >
                   {submitting ? 'Menyimpan...' : isEditMode ? 'Perbarui Data' : 'Simpan Data'}

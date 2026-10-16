@@ -14,7 +14,7 @@ const TanyaBPJSBot = () => {
   const [messages, setMessages] = useState([
     {
       sender: 'ai',
-      text: 'Halo! Saya **Asisten Regulasi BPJS Ketenagakerjaan**. Anda dapat bertanya seputar aturan 5 program (JKK, JKM, JHT, JP, JKP), skema iuran BPU, klaim santunan, maupun aturan presensi magang.',
+      text: 'Halo! Saya **Asisten Regulasi BPJSTK**. Anda dapat bertanya seputar aturan 5 program (JKK, JKM, JHT, JP, JKP), skema iuran BPU, klaim santunan, maupun aturan presensi magang.',
       topic: 'Selamat Datang'
     }
   ]);
@@ -77,12 +77,12 @@ const TanyaBPJSBot = () => {
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-5 right-5 z-40 flex items-center space-x-2.5 px-4 py-3 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] font-black text-xs transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none animate-bounce duration-1000"
-          title="Tanya Regulasi BPJS (AI Assistant)"
+          title="Tanya Regulasi BPJSTK (AI Assistant)"
         >
           <div className="w-6 h-6 rounded-lg bg-white border border-[#121214] flex items-center justify-center">
             <Bot className="w-4 h-4 text-[#121214]" />
           </div>
-          <span className="hidden sm:inline">Tanya BPJS AI</span>
+          <span className="hidden sm:inline">Tanya BPJSTK AI</span>
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-[#121214] animate-pulse"></span>
         </button>
       )}
@@ -99,10 +99,10 @@ const TanyaBPJSBot = () => {
               </div>
               <div>
                 <div className="flex items-center space-x-1.5">
-                  <h4 className="font-black text-sm text-[#121214]">Tanya BPJS AI</h4>
+                  <h4 className="font-black text-sm text-[#121214]">Tanya BPJSTK AI</h4>
                   <span className="bg-[#B8C96E] text-[10px] font-black px-1.5 py-0.2 rounded border border-[#121214]">RAG Active</span>
                 </div>
-                <p className="text-[11px] text-[#121214]/80 font-medium">Asisten Regulasi Jaminan Sosial Ketenagakerjaan</p>
+                <p className="text-[11px] text-[#121214]/80 font-medium">Asisten Regulasi Jaminan Sosial BPJSTK</p>
               </div>
             </div>
             <button
@@ -156,7 +156,7 @@ const TanyaBPJSBot = () => {
             {isLoading && (
               <div className="flex items-center space-x-2 text-xs text-gray-500 p-2 bg-white rounded-xl border border-[#121214] w-fit shadow-[2px_2px_0px_#121214]">
                 <Bot className="w-4 h-4 animate-spin text-[#121214]" />
-                <span className="font-bold">Menganalisis regulasi BPJS...</span>
+                <span className="font-bold">Menganalisis regulasi BPJSTK...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -174,7 +174,7 @@ const TanyaBPJSBot = () => {
               type="text"
               value={inputQuestion}
               onChange={(e) => setInputQuestion(e.target.value)}
-              placeholder="Ketik pertanyaan regulasi BPJS..."
+              placeholder="Ketik pertanyaan regulasi BPJSTK..."
               className="flex-1 bg-[#F5F4F0] border-2 border-[#121214] rounded-xl px-3 py-2 text-xs font-medium text-[#121214] placeholder-gray-500 focus:outline-hidden focus:bg-white"
             />
             <button

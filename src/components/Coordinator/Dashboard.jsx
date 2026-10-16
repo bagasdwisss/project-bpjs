@@ -479,7 +479,7 @@ const CoordinatorDashboard = () => {
             </div>
 
             <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
-              <span>Standar Kelulusan BPJS: Nilai &gt;= 75</span>
+              <span>Standar Kelulusan BPJSTK: Nilai &gt;= 75</span>
               <span className="text-[#121214]/80">92% Memenuhi</span>
             </div>
           </div>
@@ -595,7 +595,7 @@ const CoordinatorDashboard = () => {
                         <div className="min-w-0">
                           <p className="text-xs font-bold truncate">{p.full_name}</p>
                           <p className="text-[11px] opacity-70 capitalize mt-0.5">
-                            {p.penempatan ? `Penempatan: ${p.penempatan}` : 'Peserta BPJS'}
+                            {p.penempatan ? `Penempatan: ${p.penempatan}` : 'Peserta BPJSTK'}
                           </p>
                         </div>
                       </div>

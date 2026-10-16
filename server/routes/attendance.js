@@ -62,8 +62,8 @@ router.get('/office', authenticateToken, async (req, res) => {
         success: true,
         data: {
           id: 1,
-          name: 'Kantor Cabang BPJS Ketenagakerjaan Medan Kota',
-          address: 'BPJS, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153',
+          name: 'Kantor Cabang BPJSTK Medan Kota',
+          address: 'BPJSTK, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153',
           latitude: 3.575556,
           longitude: 98.665278,
           radius_meters: 150
@@ -150,7 +150,7 @@ router.post('/check-in', authenticateToken, async (req, res) => {
     const activeOffice = officeRes.rows[0];
 
     const validGeofenceId = activeOffice ? activeOffice.id : (geofence_id || null);
-    const officeAddress = address || (activeOffice ? activeOffice.address : 'BPJS, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153');
+    const officeAddress = address || (activeOffice ? activeOffice.address : 'BPJSTK, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153');
 
     // Dynamic distance calculation on server side if coordinates provided
     let calculatedDistance = null;

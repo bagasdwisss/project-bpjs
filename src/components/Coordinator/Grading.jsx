@@ -382,14 +382,14 @@ const Grading = () => {
         )}
 
         {/* Filters */}
-        <div className="bg-white p-3.5 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col md:flex-row gap-3">
+        <div className="bg-white p-4 rounded-2xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] flex flex-col md:flex-row gap-3">
           <div className="flex-1">
             <input
               type="text"
               placeholder="Cari peserta, assignment..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] placeholder-[#8A8985] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] placeholder-[#8A8985] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white transition"
             />
           </div>
 
@@ -397,7 +397,7 @@ const Grading = () => {
             <select 
               value={coordinatorFilter} 
               onChange={(e) => setCoordinatorFilter(e.target.value)} 
-              className="w-full px-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
             >
               <option value="">Semua Koordinator</option>
               {(coordinators || []).map((coordinator) => (
@@ -685,13 +685,13 @@ const Grading = () => {
                             nilai: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-2.5 bg-white border border-[#EAE9E4] rounded-xl text-sm font-bold text-[#121214] focus:outline-none focus:border-[#121214] transition"
+                        className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition"
                         placeholder="Contoh: 88"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[#121214] mb-1.5">Penetapan Grade</label>
+                      <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">Penetapan Grade</label>
                       <select
                         value={editData.grade || ''}
                         onChange={(e) =>
@@ -700,7 +700,7 @@ const Grading = () => {
                             grade: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-2.5 bg-white border border-[#EAE9E4] rounded-xl text-sm font-bold text-[#121214] focus:outline-none focus:border-[#121214] transition cursor-pointer"
+                        className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
                       >
                         <option value="">Pilih Grade</option>
                         <option value="A">Grade A (Sangat Memuaskan)</option>

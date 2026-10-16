@@ -119,7 +119,7 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="font-black text-base sm:text-lg text-[#121214]">Live Chat Internal BPJS</h3>
+                <h3 className="font-black text-base sm:text-lg text-[#121214]">Live Chat Internal BPJSTK</h3>
                 <span className="hidden sm:inline bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded">Encrypted Portal</span>
               </div>
               <p className="text-xs font-medium text-[#121214]/80">Saluran Diskusi Cepat Peserta & Koordinator Pembimbing</p>

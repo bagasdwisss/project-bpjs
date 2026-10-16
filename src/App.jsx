@@ -31,6 +31,7 @@ const CoordinatorTemplates = lazy(() => import('./components/Coordinator/Templat
 const CoordinatorCertificates = lazy(() => import('./components/Coordinator/Certificates'));
 const CoordinatorForum = lazy(() => import('./components/Coordinator/Forum'));
 const CoordinatorReminders = lazy(() => import('./components/Coordinator/Reminders'));
+const CoordinatorBpuAcquisitions = lazy(() => import('./components/Coordinator/BpuAcquisitions'));
 
 // Admin Components (Lazy Loaded)
 const AdminDashboard = lazy(() => import('./components/Admin/Dashboard'));
@@ -148,6 +149,11 @@ function App() {
             <Route path="/coordinator/calendar" element={
               <ProtectedRoute allowedRoles={['Koordinator']}>
                 <ParticipantCalendar />
+              </ProtectedRoute>
+            } />
+            <Route path="/coordinator/bpu-acquisitions" element={
+              <ProtectedRoute allowedRoles={['Koordinator', 'Administrator']}>
+                <CoordinatorBpuAcquisitions />
               </ProtectedRoute>
             } />
 

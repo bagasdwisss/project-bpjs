@@ -345,14 +345,14 @@ router.post('/messages', authenticateToken, async (req, res) => {
 });
 
 // =========================================================================
-// 4. AI CHATBOT ASISTEN REGULASI "TANYA BPJS" (RAG Knowledge Engine)
+// 4. AI CHATBOT ASISTEN REGULASI "TANYA BPJSTK" (RAG Knowledge Engine)
 // =========================================================================
 
-const BPJS_KNOWLEDGE_BASE = [
+const BPJSTK_KNOWLEDGE_BASE = [
   {
-    topic: '5 Program Utama BPJS Ketenagakerjaan',
+    topic: '5 Program Utama BPJSTK',
     keywords: ['program', 'apa saja', '5 program', 'manfaat', 'cakupan'],
-    answer: `BPJS Ketenagakerjaan menyelenggarakan 5 Program Jaminan Sosial Ketenagakerjaan berdasarkan amanat UU No. 40/2004 & UU No. 24/2011:
+    answer: `BPJSTK menyelenggarakan 5 Program Jaminan Sosial Ketenagakerjaan berdasarkan amanat UU No. 40/2004 & UU No. 24/2011:
 1. **JKK (Jaminan Kecelakaan Kerja)**: Perlindungan atas risiko kecelakaan kerja mulai dari berangkat, di tempat kerja, hingga pulang, serta penyakit akibat kerja. Manfaat: pengobatan medis tanpa batas biaya dan santunan upah (STMB).
 2. **JKM (Jaminan Kematian)**: Santunan tunai sebesar Rp 42.000.000 bagi ahli waris pekerja yang meninggal dunia bukan karena kecelakaan kerja.
 3. **JHT (Jaminan Hari Tua)**: Tabungan akumulasi iuran + hasil pengembangan yang dicairkan saat pensiun (56 tahun), cacat total tetap, atau berhenti bekerja (PHK/mundur).
@@ -390,7 +390,7 @@ Biaya pengobatan dan perawatan medis di Rumah Sakit Pusat Layanan Kecelakaan Ker
   {
     topic: 'Geofencing Presensi & Aturan Magang',
     keywords: ['geofence', 'presensi', 'radius', 'titik binaan', 'fake gps', 'lokasi', 'izin', 'sakit'],
-    answer: `Aturan Presensi & Integritas Magang BPJS Ketenagakerjaan:
+    answer: `Aturan Presensi & Integritas Magang BPJSTK:
 1. **Multi-Titik Geofence**: Presensi valid dilakukan di Kantor Cabang resmi atau titik binaan lapangan (Pasar Binaan, Sentra UMKM, Kawasan Industri) dengan toleransi radius 100-250 meter.
 2. **Presensi Selfie Wajah**: Sistem mewajibkan foto kamera selfie langsung dengan verifikasi liveness (anti-foto ulang).
 3. **Anti-Fake GPS Protection**: Penggunaan aplikasi mock location / GPS palsu terdeteksi otomatis oleh sistem forensik dan akan ditandai anomali untuk evaluasi Koordinator.
@@ -415,7 +415,7 @@ router.post('/ai/ask', authenticateToken, async (req, res) => {
     let bestMatch = null;
     let highestScore = 0;
 
-    for (const item of BPJS_KNOWLEDGE_BASE) {
+    for (const item of BPJSTK_KNOWLEDGE_BASE) {
       let score = 0;
       for (const kw of item.keywords) {
         if (qLower.includes(kw.toLowerCase())) {
@@ -435,8 +435,8 @@ router.post('/ai/ask', authenticateToken, async (req, res) => {
       matchedTopic = bestMatch.topic;
       responseAnswer = bestMatch.answer;
     } else {
-      matchedTopic = 'Ketentuan Umum BPJS Ketenagakerjaan';
-      responseAnswer = `Halo! Terkait pertanyaan Anda: "${question}", berikut panduan ringkas operasional BPJS Ketenagakerjaan:\n\n` +
+      matchedTopic = 'Ketentuan Umum BPJSTK';
+      responseAnswer = `Halo! Terkait pertanyaan Anda: "${question}", berikut panduan ringkas operasional BPJSTK:\n\n` +
         `• **Pekerja BPU**: Dapat mengikuti program JKK & JKM dengan iuran Rp 16.800/bulan (santunan kematian Rp 42 juta).\n` +
         `• **Pekerja Penerima Upah (PU)**: Diikutsertakan oleh pemberi kerja untuk program JKK, JKM, JHT, JP, dan JKP.\n` +
         `• **Klaim & Layanan**: Dapat diakses melalui aplikasi JMO (Jamsostek Mobile), Call Center 175, atau Kantor Cabang terdekat.\n` +
@@ -534,11 +534,11 @@ router.post('/certificates/generate', authenticateToken, async (req, res) => {
 
     const certCountRes = await query(`SELECT COUNT(*) FROM certificates`);
     const nextSeq = parseInt(certCountRes.rows[0].count, 10) + 1;
-    const certNumber = `BPJS-TK/MAGANG/2026/${String(nextSeq).padStart(3, '0')}`;
+    const certNumber = `BPJSTK/MAGANG/2026/${String(nextSeq).padStart(3, '0')}`;
     const issueDate = new Date().toISOString().split('T')[0];
 
     // Compute cryptographic digital signature
-    const signaturePayload = `${certNumber}|${user.unique_id}|${user.full_name}|${predicate || 'Sangat Memuaskan'}|${issueDate}|BPJS_KETENAGAKERJAAN_OFFICIAL_KEY_2026`;
+    const signaturePayload = `${certNumber}|${user.unique_id}|${user.full_name}|${predicate || 'Sangat Memuaskan'}|${issueDate}|BPJSTK_OFFICIAL_KEY_2026`;
     const digitalHash = crypto.createHash('sha256').update(signaturePayload).digest('hex');
 
     const result = await query(
@@ -595,7 +595,7 @@ router.get('/certificates/verify/:certNumber', async (req, res) => {
       return res.status(404).json({
         success: false,
         valid: false,
-        message: 'Nomor sertifikat tidak ditemukan atau tidak valid dalam registri resmi BPJS Ketenagakerjaan.'
+        message: 'Nomor sertifikat tidak ditemukan atau tidak valid dalam registri resmi BPJSTK.'
       });
     }
 
@@ -604,10 +604,10 @@ router.get('/certificates/verify/:certNumber', async (req, res) => {
     return res.json({
       success: true,
       valid: true,
-      message: 'Sertifikat ini ASLI dan terdaftar resmi di Pangkalan Data BPJS Ketenagakerjaan.',
+      message: 'Sertifikat ini ASLI dan terdaftar resmi di Pangkalan Data BPJSTK.',
       data: {
         ...cert,
-        institution: 'BPJS Ketenagakerjaan (Badan Penyelenggara Jaminan Sosial Ketenagakerjaan)',
+        institution: 'BPJSTK (Badan Penyelenggara Jaminan Sosial Ketenagakerjaan)',
         verification_status: 'Terverifikasi Kriptografi SHA-256',
         verified_at: new Date().toISOString()
       }

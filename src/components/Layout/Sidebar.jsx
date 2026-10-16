@@ -44,6 +44,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         general: [
           { path: '/coordinator/dashboard', icon: Home, label: 'Dashboard' },
           { path: '/coordinator/participants', icon: Users, label: 'Data Peserta' },
+          { path: '/coordinator/bpu-acquisitions', icon: Database, label: 'Akuisisi BPU' },
           { path: '/coordinator/grading', icon: Award, label: 'Penilaian' },
           { path: '/coordinator/analysis', icon: BarChart3, label: 'Analisis Metrik' },
         ],
@@ -60,7 +61,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         { path: '/participant/attendance', icon: ClipboardList, label: 'Absensi Harian' },
         { path: '/participant/calendar', icon: Calendar, label: 'Jadwal & Kalender' },
         { path: '/participant/progress', icon: TrendingUp, label: 'Progress Saya' },
-        { path: '/participant/acquisition-result', icon: Database, label: 'Hasil Akuisisi' },
+        { path: '/participant/acquisition-result', icon: Database, label: 'Akuisisi BPU' },
       ];
 
       // Hide attendance for "lapangan"
@@ -165,7 +166,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               </div>
               <div className="flex items-baseline space-x-1.5">
                 <span className="font-bold text-xl tracking-tight text-white font-sans">intelly</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#F5C6EC] bg-[#1C1C20] px-1.5 py-0.5 rounded-full">BPJS</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#F5C6EC] bg-[#1C1C20] px-1.5 py-0.5 rounded-full">BPJSTK</span>
               </div>
             </div>
 

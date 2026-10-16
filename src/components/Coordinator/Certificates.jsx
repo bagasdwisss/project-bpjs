@@ -139,7 +139,7 @@ const Certificates = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Sertifikasi & Kelulusan</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Manajemen Sertifikat</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Penerbitan, verifikasi, dan manajemen sertifikat kelulusan peserta magang BPJS</p>
+            <p className="text-sm text-[#121214]/60 mt-1">Penerbitan, verifikasi, dan manajemen sertifikat kelulusan peserta magang BPJSTK</p>
           </div>
           
           <button
@@ -220,11 +220,11 @@ const Certificates = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[#121214]/40" />
+            <Filter className="w-4 h-4 text-[#121214]" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
+              className="px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
             >
               <option value="all">Semua Status</option>
               <option value="issued">Telah Terbit</option>
@@ -273,7 +273,7 @@ const Certificates = () => {
                 </thead>
                 <tbody className="divide-y divide-[#EAE9E4]">
                   {filteredCertificates.map((cert) => {
-                    const certNum = cert.certificate_number || `BPJS-TK/MAGANG/2026/${String(cert.id || 1).padStart(3, '0')}`;
+                    const certNum = cert.certificate_number || `BPJSTK/MAGANG/2026/${String(cert.id || 1).padStart(3, '0')}`;
                     const certName = cert.participant_name || cert.participant || cert.report_name;
                     return (
                       <tr key={cert.certificate_id || cert.id} className="hover:bg-[#FAF9F6]/60 transition-colors">
@@ -356,12 +356,12 @@ const Certificates = () => {
 
               <form onSubmit={handleGenerateCertificate} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Pilih Peserta Magang</label>
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">Pilih Peserta Magang</label>
                   <select
                     required
                     value={formData.participant_id}
                     onChange={(e) => setFormData({ ...formData, participant_id: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
                   >
                     <option value="">-- Pilih Peserta --</option>
                     {participants.map(p => (
@@ -373,11 +373,11 @@ const Certificates = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Jenis Sertifikat</label>
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">Jenis Sertifikat</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
                   >
                     <option value="Completion">Sertifikat Kelulusan (Completion)</option>
                     <option value="Achievement">Sertifikat Prestasi (Achievement)</option>

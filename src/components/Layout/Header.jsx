@@ -53,7 +53,7 @@ const Header = ({ toggleSidebar }) => {
     if (isParticipant) return 'Portal Peserta';
     if (user?.role_id === 2 || user?.role === 'Koordinator') return 'Portal Koordinator';
     if (user?.role_id === 3 || user?.role === 'Administrator') return 'Portal Administrator';
-    return 'Portal BPJS';
+    return 'Portal BPJSTK';
   };
 
   const handleNavigateToNotifications = () => {
@@ -100,7 +100,7 @@ const Header = ({ toggleSidebar }) => {
               <Menu className="w-5 h-5" />
             </button>
             <div className="lg:hidden font-bold text-lg tracking-tight text-[#121214]">
-              intelly <span className="text-xs text-[#F5C6EC] bg-[#121214] px-1.5 py-0.5 rounded-full">BPJS</span>
+              intelly <span className="text-xs text-[#F5C6EC] bg-[#121214] px-1.5 py-0.5 rounded-full">BPJSTK</span>
             </div>
           </div>
 

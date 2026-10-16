@@ -108,21 +108,21 @@ const ImportExport = () => {
         full_name: 'Nama Peserta Contoh',
         role_id: 1,
         status: 'Aktif',
-        penempatan: 'Kantor Cabang BPJS'
+        penempatan: 'Kantor Cabang BPJSTK'
       },
       {
         unique_id: 'KO999',
         full_name: 'Nama Koordinator Contoh',
         role_id: 2,
         status: 'Aktif',
-        penempatan: 'Kantor Cabang BPJS'
+        penempatan: 'Kantor Cabang BPJSTK'
       }
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, 'Template_Import_Pengguna_BPJS.xlsx');
+    XLSX.writeFile(wb, 'Template_Import_Pengguna_BPJSTK.xlsx');
   };
 
   return (
@@ -236,11 +236,11 @@ const ImportExport = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Kategori Data Pengguna</label>
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">Kategori Data Pengguna</label>
                   <select
                     value={exportType}
                     onChange={(e) => setExportType(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
                   >
                     <option value="all">Semua Pengguna Terdaftar</option>
                     <option value="participants">Hanya Peserta Magang (Role 1)</option>

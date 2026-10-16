@@ -164,7 +164,7 @@ const Progress = () => {
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               NIM/ID: {progressData.userInfo?.nim || user?.unique_id}
               <span className="text-[#8A8985]">•</span>
-              Koordinator: {progressData.userInfo?.koordinator || 'Pembimbing BPJS'}
+              Koordinator: {progressData.userInfo?.koordinator || 'Pembimbing BPJSTK'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Progress & Capaian Magang
@@ -341,7 +341,7 @@ const Progress = () => {
           <div className="flex items-center justify-between">
             <h3 className="text-sm sm:text-base font-bold text-[#121214]">Ketentuan & Penghitungan Skor Magang</h3>
             <span className="text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214] px-3 py-1 rounded-full">
-              Pedoman Resmi BPJS
+              Pedoman Resmi BPJSTK
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-[#6E6D6A] pt-1">

@@ -708,7 +708,7 @@ const Calendar = () => {
                   </div>
                   <div>
                     <p className="font-bold text-[#121214]">Penyelenggara</p>
-                    <p className="text-[#6E6D6A]">{selectedEvent.created_by_name || 'Koordinator BPJS'}</p>
+                    <p className="text-[#6E6D6A]">{selectedEvent.created_by_name || 'Koordinator BPJSTK'}</p>
                   </div>
                 </div>
               </div>

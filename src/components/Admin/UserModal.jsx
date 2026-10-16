@@ -63,7 +63,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               {user ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
             </h3>
             <p className="text-xs text-[#6E6D6A] mt-0.5">
-              Kelola kredensial dan hak akses akun BPJS
+              Kelola kredensial dan hak akses akun BPJSTK
             </p>
           </div>
           <button

@@ -97,6 +97,104 @@ router.get('/acquisition-result', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/coordinator/acquisitions or /acquisitions
+ * Fetches BPU acquisition records of intern participants assigned to this coordinator.
+ */
+const getCoordinatorAcquisitionsHandler = async (req, res) => {
+  try {
+    const isCoordinator = req.user.role_id === 2 || req.user.role === 'Koordinator';
+    const isAdmin = req.user.role_id === 3 || req.user.role === 'Administrator';
+
+    let result;
+    if (isCoordinator) {
+      result = await query(
+        `SELECT p.*, u.full_name as intern_name, u.unique_id as intern_nim, u.penempatan
+         FROM peserta p
+         JOIN users u ON p.user_id = u.user_id
+         WHERE u.coordinator_id = $1
+         ORDER BY p.tanggal_pendaftaran DESC, p.peserta_id DESC`,
+        [req.user.user_id]
+      );
+    } else if (isAdmin) {
+      result = await query(
+        `SELECT p.*, u.full_name as intern_name, u.unique_id as intern_nim, u.penempatan,
+                c.full_name as coordinator_name
+         FROM peserta p
+         JOIN users u ON p.user_id = u.user_id
+         LEFT JOIN users c ON u.coordinator_id = c.user_id
+         ORDER BY p.tanggal_pendaftaran DESC, p.peserta_id DESC`
+      );
+    } else {
+      // Participant fallback
+      result = await query(
+        `SELECT p.*, u.full_name as intern_name, u.unique_id as intern_nim, u.penempatan
+         FROM peserta p
+         JOIN users u ON p.user_id = u.user_id
+         WHERE p.user_id = $1
+         ORDER BY p.tanggal_pendaftaran DESC, p.peserta_id DESC`,
+        [req.user.user_id]
+      );
+    }
+
+    const rows = result.rows;
+    const totalRecords = rows.length;
+    const paidRecords = rows.filter(r => r.status_pendaftaran === 'PEMBAYARAN BERHASIL').length;
+    const pendingRecords = rows.filter(r => r.status_pendaftaran === 'MENUNGGU PEMBAYARAN' || r.status_pendaftaran === 'BARU DAFTAR').length;
+    const totalRevenue = rows.reduce((acc, r) => acc + (parseFloat(r.biaya) || 0), 0);
+
+    return res.json({
+      success: true,
+      data: rows,
+      statistics: {
+        total: totalRecords,
+        paid: paidRecords,
+        pending: pendingRecords,
+        revenue: totalRevenue
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+router.get('/coordinator/acquisitions', authenticateToken, getCoordinatorAcquisitionsHandler);
+router.get('/acquisitions', authenticateToken, getCoordinatorAcquisitionsHandler);
+
+/**
+ * PUT /api/coordinator/acquisitions/:id/verify or /acquisitions/:id/verify
+ */
+const verifyAcquisitionHandler = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status_pendaftaran } = req.body;
+    const newStatus = status_pendaftaran || 'PEMBAYARAN BERHASIL';
+
+    const result = await query(
+      `UPDATE peserta
+       SET status_pendaftaran = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE peserta_id = $2
+       RETURNING *`,
+      [newStatus, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data akuisisi BPU tidak ditemukan.' });
+    }
+
+    return res.json({
+      success: true,
+      message: `Status akuisisi berhasil diubah menjadi ${newStatus}.`,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+router.put('/coordinator/acquisitions/:id/verify', authenticateToken, verifyAcquisitionHandler);
+router.put('/acquisitions/:id/verify', authenticateToken, verifyAcquisitionHandler);
+
+/**
  * POST /api/participant/peserta
  */
 router.post('/peserta', authenticateToken, async (req, res) => {

@@ -26,7 +26,7 @@ const defaultTemplates = [
   },
   {
     id: 2,
-    name: 'Template Sertifikat Kelulusan Resmi BPJS',
+    name: 'Template Sertifikat Kelulusan Resmi BPJSTK',
     category: 'certificates',
     lastModified: '2026-01-05',
     status: 'active',
@@ -159,7 +159,7 @@ const Templates = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Pusat Aset & Berkas</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Pusat Template Dokumen</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Kelola dan unduh template resmi format laporan, formulir evaluasi, dan surat dinas BPJS</p>
+            <p className="text-sm text-[#121214]/60 mt-1">Kelola dan unduh template resmi format laporan, formulir evaluasi, dan surat dinas BPJSTK</p>
           </div>
           
           <button
@@ -304,16 +304,16 @@ const Templates = () => {
                     value={newTemplate.name}
                     onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
                     placeholder="Contoh: Format Lembar Pengesahan Lapangan"
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Kategori Dokumen</label>
+                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">Kategori Dokumen</label>
                   <select
                     value={newTemplate.category}
                     onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
                   >
                     <option value="forms">Formulir Evaluasi</option>
                     <option value="certificates">Template Sertifikat</option>

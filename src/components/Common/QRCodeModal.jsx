@@ -9,7 +9,7 @@ const QRCodeModal = ({ isOpen, onClose, user }) => {
 
   const participantName = user?.full_name || 'Peserta Magang';
   const participantNim = user?.unique_id || 'PES-001';
-  const referralCode = `BPJS-BPU-${participantNim}`;
+  const referralCode = `BPJSTK-BPU-${participantNim}`;
   const referralUrl = `https://bpjsketenagakerjaan.go.id/bpu/daftar?ref=${referralCode}`;
 
   // Basic QR Code generator using standard QR SVG matrix or public QR generator API for high-resolution PNG download

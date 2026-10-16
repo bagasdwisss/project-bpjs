@@ -14,7 +14,7 @@ const VerifyCertificate = () => {
       setLoading(true);
       setError(null);
       try {
-        const queryId = certNumber || new URLSearchParams(window.location.search).get('id') || 'BPJS-TK/MAGANG/2026/001';
+        const queryId = certNumber || new URLSearchParams(window.location.search).get('id') || 'BPJSTK/MAGANG/2026/001';
         const res = await axios.get(`/api/certificates/verify/${encodeURIComponent(queryId)}`);
         if (res.data?.success && res.data?.valid) {
           setCertData(res.data.data);
@@ -40,7 +40,7 @@ const VerifyCertificate = () => {
             <Building2 className="w-5 h-5 text-[#121214]" />
           </div>
           <div>
-            <h1 className="font-black text-lg text-[#121214] leading-tight">BPJS Ketenagakerjaan</h1>
+            <h1 className="font-black text-lg text-[#121214] leading-tight">BPJSTK</h1>
             <p className="text-xs text-gray-600 font-semibold">Portal Verifikasi Keaslian Sertifikat Magang Resmi</p>
           </div>
         </div>
@@ -59,7 +59,7 @@ const VerifyCertificate = () => {
           <div className="bg-white border-2 border-[#121214] rounded-2xl p-10 text-center shadow-[6px_6px_0px_#121214] space-y-3">
             <Lock className="w-8 h-8 text-[#121214] animate-spin mx-auto" />
             <h3 className="font-black text-base text-[#121214]">Memverifikasi Tanda Tangan Kriptografis...</h3>
-            <p className="text-xs text-gray-500">Memeriksa registri pangkalan data BPJS Ketenagakerjaan</p>
+            <p className="text-xs text-gray-500">Memeriksa registri pangkalan data BPJSTK</p>
           </div>
         ) : error ? (
           <div className="bg-white border-2 border-[#121214] rounded-2xl p-8 text-center shadow-[6px_6px_0px_#121214] space-y-4">
@@ -141,7 +141,7 @@ const VerifyCertificate = () => {
 
             {/* Footer */}
             <div className="p-4 bg-[#F5F4F0] border-t-2 border-[#121214] text-center text-xs text-gray-600">
-              Diterbitkan secara sah oleh <strong>BPJS Ketenagakerjaan Republik Indonesia</strong>.
+              Diterbitkan secara sah oleh <strong>BPJSTK Republik Indonesia</strong>.
             </div>
 
           </div>
@@ -150,7 +150,7 @@ const VerifyCertificate = () => {
 
       {/* Footer */}
       <div className="text-center text-xs text-gray-500 py-4">
-        &copy; {new Date().getFullYear()} BPJS Ketenagakerjaan. Hak Cipta Dilindungi Undang-Undang.
+        &copy; {new Date().getFullYear()} BPJSTK. Hak Cipta Dilindungi Undang-Undang.
       </div>
     </div>
   );
