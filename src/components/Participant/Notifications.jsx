@@ -204,7 +204,7 @@ const Notifications = () => {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="px-3.5 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-[#121214] text-white rounded-2xl border-2 border-[#121214] text-xs font-black shadow-[2px_2px_0px_#121214] hover:bg-neutral-800 active:translate-y-0.5 transition-all inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <CheckCheck className="w-3.5 h-3.5 text-[#B8C96E]" />
                 Tandai Semua Dibaca ({unreadCount})
@@ -214,7 +214,7 @@ const Notifications = () => {
             {hasReadNotifications && (
               <button
                 onClick={handleClearAllRead}
-                className="px-3.5 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-white border-2 border-[#121214] text-[#121214] rounded-2xl text-xs font-black shadow-[2px_2px_0px_#121214] hover:bg-rose-50 hover:text-rose-600 active:translate-y-0.5 transition-all inline-flex items-center gap-1.5 cursor-pointer"
                 title="Hapus notifikasi yang telah dibaca"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -225,7 +225,7 @@ const Notifications = () => {
             {notifications.length > 0 && (
               <button
                 onClick={handleClearAll}
-                className="px-3.5 py-2 bg-white border border-[#EAE9E4] text-rose-600 rounded-full text-xs font-bold hover:bg-rose-50 hover:border-rose-200 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-white border-2 border-[#121214] text-rose-600 rounded-2xl text-xs font-black shadow-[2px_2px_0px_#121214] hover:bg-rose-50 active:translate-y-0.5 transition-all inline-flex items-center gap-1.5 cursor-pointer"
                 title="Hapus seluruh riwayat notifikasi"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -238,10 +238,10 @@ const Notifications = () => {
                 loadNotifications();
                 loadUnreadCount();
               }}
-              className="p-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full hover:bg-[#FAF9F6] transition-colors shadow-sm"
+              className="p-2 bg-white border-2 border-[#121214] text-[#121214] rounded-2xl shadow-[2px_2px_0px_#121214] hover:bg-[#FAF9F6] active:translate-y-0.5 transition-all cursor-pointer"
               title="Segarkan Notifikasi"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>

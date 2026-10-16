@@ -96,8 +96,8 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ showToast, removeToast, toast: toastHelpers, confirm }}>
       {children}
-      {/* Toast Container Top-Right */}
-      <div className="fixed top-5 right-5 z-[99999] flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none px-3 sm:px-0">
+      {/* Toast Container - Mobile friendly responsive placement */}
+      <div className="fixed top-4 left-3 right-3 sm:left-auto sm:right-5 sm:top-5 z-[99999] flex flex-col gap-2.5 sm:max-w-md pointer-events-none">
         {toasts.map((item) => {
           let bgClass = 'bg-[#BDD4F2] text-[#121214]'; // info
           let IconComp = Info;

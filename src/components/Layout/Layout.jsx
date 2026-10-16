@@ -2,7 +2,6 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import BroadcastPopup from '../Common/BroadcastPopup';
-import SystemUpdateModal from '../Common/SystemUpdateModal';
 
 const TanyaBPJSBot = lazy(() => import('../Common/TanyaBPJSBot'));
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
@@ -57,9 +56,6 @@ const Layout = ({ children }) => {
 
       {/* Global Broadcast Toast & Center Modal Alerts */}
       <BroadcastPopup />
-
-      {/* Global System Update & Countdown Modal */}
-      <SystemUpdateModal />
     </div>
   );
 };

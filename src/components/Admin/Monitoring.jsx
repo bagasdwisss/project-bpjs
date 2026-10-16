@@ -74,20 +74,6 @@ const Monitoring = () => {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              type="button"
-              onClick={async () => {
-                const newV = `2.6.${Date.now().toString().slice(-3)}`;
-                try {
-                  await api.post('/admin/trigger-update', { version: newV });
-                } catch {}
-                window.dispatchEvent(new CustomEvent('system-update-available', { detail: { version: newV } }));
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#FCE373] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#ebd056] transition-all cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#121214]" />
-              Siarkan Update (3..2..1)
-            </button>
-            <button
               onClick={fetchMonitoringData}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#FAF9F6] transition-all cursor-pointer"
             >

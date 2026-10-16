@@ -122,14 +122,14 @@ const Login = () => {
         </div>
 
         {/* Soft Neo-Brutalist Login Card */}
-        <div className="bg-white rounded-[28px] border border-[#EAE9E4] shadow-xl p-7 sm:p-9 relative overflow-hidden">
+        <div className="bg-white rounded-[26px] border-2 border-[#121214] shadow-[6px_6px_0px_#121214] p-6 sm:p-8 relative overflow-hidden">
           {/* Subtle Decorative pastel background glow */}
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#FCE373]/30 rounded-full blur-2xl pointer-events-none"></div>
-          <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-[#F5C6EC]/30 rounded-full blur-2xl pointer-events-none"></div>
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#FCE373]/25 rounded-full blur-2xl pointer-events-none"></div>
+          <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-[#F5C6EC]/25 rounded-full blur-2xl pointer-events-none"></div>
 
           {/* Security Alert Notice (Concurrent Login or Idle Timeout) */}
           {reason === 'concurrent_session' && (
-            <div className="mb-5 bg-[#F5C6EC]/30 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
+            <div className="mb-5 bg-[#F5C6EC]/40 border-2 border-[#121214] shadow-[3px_3px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
               <div className="w-8 h-8 rounded-xl bg-[#121214] text-[#F5C6EC] flex items-center justify-center shrink-0">
                 <ShieldAlert className="w-4 h-4" />
               </div>
@@ -143,7 +143,7 @@ const Login = () => {
           )}
 
           {reason === 'idle_timeout' && (
-            <div className="mb-5 bg-[#FCE373]/30 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
+            <div className="mb-5 bg-[#FCE373]/40 border-2 border-[#121214] shadow-[3px_3px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
               <div className="w-8 h-8 rounded-xl bg-[#121214] text-[#FCE373] flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
@@ -157,7 +157,7 @@ const Login = () => {
           )}
 
           {reason === 'session_expired' && (
-            <div className="mb-5 bg-[#FAF9F6] border-2 border-[#121214] shadow-[4px_4px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
+            <div className="mb-5 bg-[#FAF9F6] border-2 border-[#121214] shadow-[3px_3px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
               <div className="w-8 h-8 rounded-xl bg-[#121214] text-white flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-4 h-4 text-[#FCE373]" />
               </div>
@@ -170,41 +170,41 @@ const Login = () => {
             </div>
           )}
 
-          {/* Role pill badge indicator with smooth sliding/fade transition */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-out ${
-              roleDetected 
-                ? 'max-h-16 opacity-100 translate-y-0 mb-5' 
-                : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none mb-0'
-            }`}
-          >
-            <div className="flex items-center justify-between bg-[#F5C6EC]/40 border-2 border-[#121214] px-4 py-2 rounded-2xl text-xs font-black text-[#121214] shadow-[3px_3px_0px_#121214] transition-all duration-200">
-              <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#121214] animate-ping" />
-                <Sparkles className="w-4 h-4 text-[#121214]" />
-                Role Terdeteksi:
-              </span>
-              <span className="bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider shadow-sm">
-                {roleDetected}
-              </span>
-            </div>
-          </div>
-
           {/* Form Error alert */}
           {(formError || error) && (
-            <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-xs font-semibold">
+            <div className="mb-5 bg-rose-50 border-2 border-rose-500 text-rose-700 px-4 py-3 rounded-2xl text-xs font-bold shadow-[2px_2px_0px_#e11d48]">
               {formError || error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-            {/* Unique ID Input */}
+            {/* Unique ID Input with integrated Role Detection */}
             <div>
-              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1.5">
-                ID Pengguna
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider">
+                  ID Pengguna
+                </label>
+                {/* Header Inline Mini Role Tag */}
+                <div
+                  className={`transition-all duration-300 ease-out flex items-center gap-1.5 ${
+                    roleDetected ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#121214] animate-ping" />
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#121214] shadow-[1px_1px_0px_#121214] ${
+                    roleDetected === 'Administrator'
+                      ? 'bg-[#F5C6EC] text-[#121214]'
+                      : roleDetected === 'Koordinator'
+                        ? 'bg-[#FCE373] text-[#121214]'
+                        : 'bg-[#BDD4F2] text-[#121214]'
+                  }`}>
+                    {roleDetected}
+                  </span>
+                </div>
+              </div>
+
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#6E6D6A]">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#121214]">
                   <User className="h-4 w-4" />
                 </div>
                 <input
@@ -213,21 +213,48 @@ const Login = () => {
                   required
                   value={uniqueId}
                   onChange={handleUniqueIdChange}
-                  className="block w-full pl-10 pr-3 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-2xl text-sm font-semibold text-[#121214] placeholder-[#A09F9B] focus:outline-none focus:ring-2 focus:ring-[#121214] focus:bg-white transition-all"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs sm:text-sm font-bold text-[#121214] placeholder-[#A09F9B] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white focus:shadow-[3px_3px_0px_#121214] transition-all"
                   placeholder="e.g. ADM001 / KO001 / PES001"
                   autoComplete="off"
                   disabled={loading}
                 />
               </div>
+
+              {/* Integrated Smooth Slide-Down Role Card */}
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-out ${
+                  roleDetected 
+                    ? 'max-h-14 opacity-100 mt-2 translate-y-0' 
+                    : 'max-h-0 opacity-0 mt-0 -translate-y-1.5 pointer-events-none'
+                }`}
+              >
+                <div className={`flex items-center justify-between px-3.5 py-2 rounded-xl border-2 border-[#121214] shadow-[2px_2px_0px_#121214] text-xs transition-colors duration-200 ${
+                  roleDetected === 'Administrator' 
+                    ? 'bg-[#F5C6EC]' 
+                    : roleDetected === 'Koordinator' 
+                      ? 'bg-[#FCE373]' 
+                      : 'bg-[#BDD4F2]'
+                }`}>
+                  <div className="flex items-center gap-2 font-black text-[#121214]">
+                    <Sparkles className="w-3.5 h-3.5 text-[#121214]" />
+                    <span className="text-[11px] font-extrabold uppercase tracking-wide">
+                      Portal: <span className="underline decoration-[#121214] underline-offset-2">{roleDetected}</span>
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-[#121214] text-white px-2 py-0.5 rounded-md shadow-xs">
+                    Siap Masuk
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Password Input */}
             <div>
-              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
                 Kata Sandi
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#6E6D6A]">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#121214]">
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
@@ -236,14 +263,14 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-2xl text-sm font-semibold text-[#121214] placeholder-[#A09F9B] focus:outline-none focus:ring-2 focus:ring-[#121214] focus:bg-white transition-all"
+                  className="block w-full pl-10 pr-10 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs sm:text-sm font-bold text-[#121214] placeholder-[#A09F9B] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white focus:shadow-[3px_3px_0px_#121214] transition-all"
                   placeholder="Masukkan kata sandi akun"
                   disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#6E6D6A] hover:text-[#121214]"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#121214] hover:opacity-75 cursor-pointer"
                   disabled={loading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -255,7 +282,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 bg-[#121214] hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-50 text-white font-bold py-3.5 px-5 rounded-full transition-all duration-200 shadow-md flex items-center justify-center space-x-2 text-sm"
+              className="w-full mt-3 bg-[#121214] hover:bg-neutral-800 active:translate-y-0.5 disabled:opacity-50 text-white font-black py-3 px-5 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] hover:shadow-[5px_5px_0px_#121214] transition-all flex items-center justify-center space-x-2 text-xs sm:text-sm cursor-pointer"
             >
               {loading ? (
                 <>

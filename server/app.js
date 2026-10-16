@@ -142,28 +142,6 @@ apiRouter.use('/coordinator/scores', scoreRoutes);
 apiRouter.use('/coordinator', pesertaRoutes);
 
 // System Version & Live Update Tracker
-let currentSystemVersion = '2.6.0';
-let lastVersionUpdateAt = new Date().toISOString();
-
-apiRouter.get('/version', (req, res) => {
-  res.json({
-    success: true,
-    version: currentSystemVersion,
-    updatedAt: lastVersionUpdateAt,
-    system: 'BPJSTK Magang Terintegrasi'
-  });
-});
-
-apiRouter.post('/admin/trigger-update', (req, res) => {
-  currentSystemVersion = req.body?.version || `2.6.${Date.now().toString().slice(-4)}`;
-  lastVersionUpdateAt = new Date().toISOString();
-  res.json({
-    success: true,
-    message: 'Sinyal pembaruan sistem berhasil disiarkan.',
-    version: currentSystemVersion
-  });
-});
-
 // Direct shortcuts often called by frontend
 apiRouter.get('/coordinators', (req, res, next) => {
   req.url = '/coordinators';

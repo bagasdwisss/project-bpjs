@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bell, User, Settings, LogOut, Key, Search, ChevronDown, Check, ChevronRight, Clock, Sparkles } from 'lucide-react';
+import { Menu, Bell, User, Settings, LogOut, Key, Search, ChevronDown, Check, ChevronRight, Clock, Sparkles, X } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -190,72 +190,93 @@ const Header = ({ toggleSidebar }) => {
                       )}
                     </button>
 
-                    {/* Notifications Dropdown Panel */}
+                    {/* Notifications Dropdown Panel (Mobile & Desktop Responsive) */}
                     {showNotifDropdown && (
-                      <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white text-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] border-2 border-[#121214] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="flex items-center justify-between pb-2.5 px-2 border-b border-[#EAE9E4]">
-                          <div className="flex items-center gap-2">
-                            <Bell className="w-4 h-4 text-[#121214]" />
-                            <h4 className="text-xs font-black uppercase tracking-wider text-[#121214]">
-                              Notifikasi Masuk
-                            </h4>
-                          </div>
-                          {unreadCount > 0 && (
-                            <span className="bg-[#F5C6EC] text-[#121214] border border-[#121214] text-[10px] font-black px-2 py-0.5 rounded-full">
-                              {unreadCount} Baru
-                            </span>
-                          )}
-                        </div>
+                      <>
+                        {/* Outside Backdrop */}
+                        <div 
+                          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
+                          onClick={() => setShowNotifDropdown(false)}
+                        />
 
-                        <div className="divide-y divide-[#F0EFEA] max-h-72 overflow-y-auto my-1">
-                          {recentNotifs.length === 0 ? (
-                            <div className="py-6 text-center text-xs font-bold text-gray-500">
-                              Tidak ada notifikasi saat ini
-                            </div>
-                          ) : (
-                            recentNotifs.map((item) => (
-                              <div 
-                                key={item.notification_id}
-                                onClick={() => handleItemClick(item)}
-                                className={`p-2.5 rounded-xl transition hover:bg-[#FAF9F6] cursor-pointer space-y-1 ${
-                                  !item.is_read ? 'bg-[#F5C6EC]/15' : ''
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-black text-xs text-[#121214] line-clamp-1">
-                                    {item.title}
-                                  </span>
-                                  {!item.is_read && (
-                                    <span className="w-2 h-2 rounded-full bg-[#121214] shrink-0"></span>
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-gray-600 line-clamp-2 leading-relaxed">
-                                  {item.message}
-                                </p>
-                                <span className="text-[10px] text-gray-400 block pt-0.5">
-                                  {new Date(item.created_at).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
+                        <div className="fixed left-3 right-3 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 sm:w-96 bg-white text-[#121214] rounded-[24px] shadow-[6px_6px_0px_#121214] border-2 border-[#121214] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150 max-h-[85vh] sm:max-h-[32rem] flex flex-col">
+                          <div className="flex items-center justify-between pb-2.5 px-1 border-b-2 border-[#121214]">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-[#121214] text-white flex items-center justify-center shadow-xs">
+                                <Bell className="w-3.5 h-3.5 text-white" />
                               </div>
-                            ))
-                          )}
-                        </div>
+                              <h4 className="text-xs font-black uppercase tracking-wider text-[#121214]">
+                                Notifikasi Masuk
+                              </h4>
+                              {unreadCount > 0 && (
+                                <span className="bg-[#F5C6EC] text-[#121214] border border-[#121214] text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                                  {unreadCount} Baru
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowNotifDropdown(false)}
+                              className="w-7 h-7 rounded-lg bg-[#FAF9F6] border border-[#121214] flex items-center justify-center text-[#121214] hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+                              aria-label="Tutup notifikasi"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
 
-                        <div className="pt-2 border-t border-[#EAE9E4]">
-                          <button
-                            type="button"
-                            onClick={handleNavigateToNotifications}
-                            className="w-full py-2 bg-[#FAF9F6] hover:bg-gray-100 border border-[#121214] rounded-xl text-center font-black text-xs text-[#121214] transition flex items-center justify-center gap-1.5"
-                          >
-                            <span>Lihat Semua Notifikasi</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="divide-y divide-[#F0EFEA] max-h-[55vh] sm:max-h-72 overflow-y-auto my-2 pr-1 space-y-1">
+                            {recentNotifs.length === 0 ? (
+                              <div className="py-8 text-center text-xs font-bold text-gray-500">
+                                Tidak ada notifikasi saat ini
+                              </div>
+                            ) : (
+                              recentNotifs.map((item) => (
+                                <div 
+                                  key={item.notification_id}
+                                  onClick={() => handleItemClick(item)}
+                                  className={`p-3 rounded-2xl transition hover:bg-[#FAF9F6] cursor-pointer space-y-1 border-2 ${
+                                    !item.is_read ? 'bg-[#F5C6EC]/25 border-[#121214] shadow-[2px_2px_0px_#121214]' : 'bg-transparent border-transparent'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-black text-xs text-[#121214] line-clamp-1">
+                                      {item.title}
+                                    </span>
+                                    {!item.is_read && (
+                                      <span className="w-2 h-2 rounded-full bg-[#121214] shrink-0"></span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-[#121214]/80 line-clamp-2 leading-relaxed font-medium">
+                                    {item.message}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 pt-0.5">
+                                    <Clock className="w-3 h-3 text-[#121214]/60" />
+                                    <span>
+                                      {new Date(item.created_at).toLocaleDateString('id-ID', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+
+                          <div className="pt-2 border-t-2 border-[#121214]">
+                            <button
+                              type="button"
+                              onClick={handleNavigateToNotifications}
+                              className="w-full py-2.5 bg-[#FAF9F6] hover:bg-[#FCE373] border-2 border-[#121214] rounded-xl text-center font-black text-xs text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-y-0.5 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>Buka Halaman Notifikasi</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
 
