@@ -77,7 +77,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
               ID Pengguna
             </label>
             <input
@@ -87,12 +87,12 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               onChange={handleChange}
               required
               placeholder="e.g. PES001 / KO001 / ADM001"
-              className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214] focus:bg-white transition-all"
+              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
               Nama Lengkap
             </label>
             <input
@@ -102,55 +102,86 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               onChange={handleChange}
               required
               placeholder="Nama lengkap pengguna"
-              className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214] focus:bg-white transition-all"
+              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
-                Role Akses
-              </label>
-              <select
-                name="role_id"
-                value={formData.role_id}
-                onChange={handleChange}
-                className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]"
-              >
-                <option value="1">Peserta</option>
-                <option value="2">Koordinator</option>
-                <option value="3">Administrator</option>
-              </select>
+          {/* Role Akses Segmented Selector */}
+          <div>
+            <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
+              Role Akses Akun
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: '1', label: 'Peserta', badge: 'PES' },
+                { id: '2', label: 'Koordinator', badge: 'KO' },
+                { id: '3', label: 'Admin', badge: 'ADM' }
+              ].map(r => {
+                const isActive = formData.role_id === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, role_id: r.id }))}
+                    className={`py-2 px-3 rounded-2xl border-2 border-[#121214] text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition-all ${
+                      isActive
+                        ? 'bg-[#121214] text-white shadow-[3px_3px_0px_#B8C96E]'
+                        : 'bg-[#FAF9F6] text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#EAE9E4]'
+                    }`}
+                  >
+                    <span>{r.label}</span>
+                    <span className={`text-[9px] uppercase font-mono px-1.5 py-0.2 rounded ${
+                      isActive ? 'bg-[#FAF9F6] text-[#121214]' : 'bg-[#EAE9E4] text-[#6E6D6A]'
+                    }`}>
+                      {r.badge}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
-                Penempatan
-              </label>
-              <select
-                name="penempatan"
-                value={formData.penempatan}
-                onChange={handleChange}
-                className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]"
-              >
-                <option value="">Pilih Penempatan</option>
-                <option value="kantor">Kantor</option>
-                <option value="lapangan">Lapangan</option>
-              </select>
+          {/* Penempatan Segmented Selector */}
+          <div>
+            <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
+              Penempatan Kerja
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: 'kantor', label: '🏢 Kantor (WFO)', desc: 'Penugasan di Kantor Cabang' },
+                { value: 'lapangan', label: '📍 Lapangan (Survey)', desc: 'Penugasan Luar / Lapangan' }
+              ].map(p => {
+                const isSelected = formData.penempatan === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, penempatan: p.value }))}
+                    className={`p-3 rounded-2xl border-2 border-[#121214] text-left transition-all ${
+                      isSelected
+                        ? 'bg-[#FCE373] text-[#121214] shadow-[3px_3px_0px_#121214] font-black'
+                        : 'bg-[#FAF9F6] text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-white'
+                    }`}
+                  >
+                    <div className="text-xs font-black">{p.label}</div>
+                    <div className="text-[10px] text-[#121214]/70 mt-0.5 font-medium">{p.desc}</div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {formData.role_id === '1' && (
             <div>
-              <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
                 Koordinator Pembimbing
               </label>
               <select
                 value={formData.coordinator_id || ''}
                 onChange={(e) => setFormData({...formData, coordinator_id: e.target.value})}
-                className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+                className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer"
               >
-                <option value="">Tidak ada koordinator</option>
+                <option value="">-- Pilih Koordinator Pembimbing --</option>
                 {coordinators.map(c => (
                   <option key={c.user_id} value={c.user_id}>
                     {c.full_name} ({c.unique_id})
@@ -161,7 +192,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
           )}
 
           <div>
-            <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
               Kata Sandi {user ? '(Opsional)' : ''}
             </label>
             <input
@@ -169,8 +200,8 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder={user ? "Kosongkan jika tidak diubah" : "Default: password123"}
-              className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214] focus:bg-white transition-all"
+              placeholder={user ? "Kosongkan jika tidak ingin mengubah sandi" : "Default: password123"}
+              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
             />
           </div>
 

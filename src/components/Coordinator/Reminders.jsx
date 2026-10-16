@@ -19,6 +19,8 @@ import {
   RefreshCw,
   X
 } from 'lucide-react';
+import NeoDatePicker from '../Common/NeoDatePicker';
+import NeoSelect from '../Common/NeoSelect';
 
 const Reminders = () => {
   const { user } = useAuth();
@@ -286,15 +288,12 @@ const Reminders = () => {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Batas Waktu (Opsional)</label>
-                  <input
-                    type="date"
-                    value={newNotification.due_date}
-                    onChange={(e) => setNewNotification({ ...newNotification, due_date: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition"
-                  />
-                </div>
+                <NeoDatePicker
+                  label="Batas Waktu (Opsional)"
+                  value={newNotification.due_date}
+                  onChange={(e) => setNewNotification({ ...newNotification, due_date: e.target.value })}
+                  quickChips={true}
+                />
               </div>
 
               <div>
@@ -303,51 +302,45 @@ const Reminders = () => {
                   placeholder="Tuliskan rincian instruksi atau pengumuman yang jelas..."
                   value={newNotification.message}
                   onChange={(e) => setNewNotification({ ...newNotification, message: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-sm font-medium text-[#121214] placeholder-[#121214]/40 focus:outline-none focus:bg-white focus:border-[#121214] transition"
+                  className="w-full px-4 py-3 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-semibold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition"
                   rows="3"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Tipe</label>
-                  <select 
-                    value={newNotification.type} 
-                    onChange={(e) => setNewNotification({ ...newNotification, type: e.target.value })} 
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
-                  >
-                    <option value="reminder">Pengingat (Reminder)</option>
-                    <option value="announcement">Pengumuman (Announcement)</option>
-                    <option value="alert">Penting / Alert</option>
-                  </select>
-                </div>
+                <NeoSelect
+                  label="Tipe Notifikasi"
+                  value={newNotification.type}
+                  onChange={(e) => setNewNotification({ ...newNotification, type: e.target.value })}
+                  options={[
+                    { value: 'reminder', label: '⏰ Pengingat (Reminder)' },
+                    { value: 'announcement', label: '📢 Pengumuman (Announcement)' },
+                    { value: 'alert', label: '🚨 Penting / Alert' }
+                  ]}
+                />
                 
-                <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Prioritas</label>
-                  <select 
-                    value={newNotification.priority} 
-                    onChange={(e) => setNewNotification({ ...newNotification, priority: e.target.value })} 
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
-                  >
-                    <option value="low">Rendah (Low)</option>
-                    <option value="medium">Sedang (Medium)</option>
-                    <option value="high">Tinggi (High)</option>
-                  </select>
-                </div>
+                <NeoSelect
+                  label="Prioritas"
+                  value={newNotification.priority}
+                  onChange={(e) => setNewNotification({ ...newNotification, priority: e.target.value })}
+                  options={[
+                    { value: 'low', label: '🟢 Rendah (Low)' },
+                    { value: 'medium', label: '🟡 Sedang (Medium)' },
+                    { value: 'high', label: '🔴 Tinggi (High)' }
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Penerima</label>
-                  <select
-                    value={newNotification.recipients[0]}
-                    onChange={(e) => setNewNotification({ ...newNotification, recipients: [e.target.value] })}
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
-                  >
-                    <option value="all">Semua Pengguna</option>
-                    <option value="participants">Khusus Peserta</option>
-                    <option value="coordinators">Khusus Koordinator</option>
-                  </select>
-                </div>
+                <NeoSelect
+                  label="Penerima"
+                  value={newNotification.recipients[0]}
+                  onChange={(e) => setNewNotification({ ...newNotification, recipients: [e.target.value] })}
+                  options={[
+                    { value: 'all', label: '👥 Semua Pengguna' },
+                    { value: 'participants', label: '🎓 Khusus Peserta' },
+                    { value: 'coordinators', label: '👔 Khusus Koordinator' }
+                  ]}
+                />
               </div>
 
               <div className="bg-[#FAF9F6] border border-[#EAE9E4] p-4 rounded-xl flex items-center justify-between flex-wrap gap-3">

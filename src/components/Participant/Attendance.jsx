@@ -11,6 +11,7 @@ import {
 import api from '../../services/api';
 import CalculatorModal from '../Common/CalculatorModal';
 import QRCodeModal from '../Common/QRCodeModal';
+import NeoDatePicker from '../Common/NeoDatePicker';
 
 // Toast Notification Component
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -825,31 +826,21 @@ const Attendance = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-black uppercase text-[#121214] mb-1">
-                      Dari Tanggal:
-                    </label>
-                    <input
-                      type="date"
-                      value={leaveStartDate}
-                      onChange={(e) => setLeaveStartDate(e.target.value)}
-                      className="w-full p-2 bg-[#F5F4F0] border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black uppercase text-[#121214] mb-1">
-                      Sampai Tanggal:
-                    </label>
-                    <input
-                      type="date"
-                      value={leaveEndDate}
-                      onChange={(e) => setLeaveEndDate(e.target.value)}
-                      className="w-full p-2 bg-[#F5F4F0] border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214]"
-                      required
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <NeoDatePicker
+                    label="Dari Tanggal"
+                    required
+                    value={leaveStartDate}
+                    onChange={(e) => setLeaveStartDate(e.target.value)}
+                    quickChips={true}
+                  />
+                  <NeoDatePicker
+                    label="Sampai Tanggal"
+                    required
+                    value={leaveEndDate}
+                    onChange={(e) => setLeaveEndDate(e.target.value)}
+                    quickChips={true}
+                  />
                 </div>
 
                 <div>

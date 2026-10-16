@@ -1,7 +1,7 @@
-// api/routes/notifications.js
 import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = Router();
 
@@ -201,6 +201,12 @@ router.post('/coordinator/broadcast', authenticateToken, async (req, res) => {
       );
     }
 
+    await logActivity({
+      req,
+      action: 'COORDINATOR_BROADCAST',
+      description: `Koordinator mengirim pengumuman "${title}" ke ${participants.rows.length} peserta`
+    });
+
     return res.json({
       success: true,
       message: `Pesan berhasil dikirim ke ${participants.rows.length} peserta.`
@@ -303,6 +309,12 @@ router.post('/admin/broadcast/send', authenticateToken, async (req, res) => {
       ]
     );
 
+    await logActivity({
+      req,
+      action: 'BROADCAST_SENT',
+      description: `Admin mengirim broadcast: "${msgTitle}" (Prioritas: ${priority || 'Biasa'}, Target: ${targetGroup})`
+    });
+
     return res.json({
       success: true,
       message: `Broadcast berhasil dikirim ke ${recipients.rows.length} penerima.`,
@@ -320,6 +332,11 @@ router.delete('/admin/broadcast/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     await query(`DELETE FROM broadcast_messages WHERE broadcast_id = $1`, [id]);
+    await logActivity({
+      req,
+      action: 'BROADCAST_DELETED',
+      description: `Admin menghapus broadcast pesan ID: ${id}`
+    });
     return res.json({
       success: true,
       message: 'Pesan siaran berhasil dihapus.'
@@ -348,7 +365,8 @@ router.get('/admin/broadcast/history', authenticateToken, async (req, res) => {
 
 /**
  * GET /api/notifications/broadcasts/active
- * Used by participants, coordinators, and all users to display popup toast / center modal
+ * Used by participants, coordinators to display popup toast / center modal.
+ * Admin should NEVER receive this popup broadcast.
  */
 router.get('/broadcasts/active', authenticateToken, async (req, res) => {
   try {
@@ -356,17 +374,21 @@ router.get('/broadcasts/active', authenticateToken, async (req, res) => {
     const roleName = (req.user.role_name || req.user.role || '').toLowerCase();
     const userId = req.user.user_id;
 
+    // Admin should not see broadcast popup modal
+    if (roleId === 3 || roleName.includes('admin')) {
+      return res.json({ success: true, data: [] });
+    }
+
     // Target role matching:
     // Peserta gets 'all' and 'participants'
     // Koordinator gets 'all' and 'coordinators'
-    // Administrator gets all broadcasts so they can immediately verify what was sent
     let targetFilter = `(b.target_role = 'all'`;
     if (roleId === 1 || roleName.includes('peserta')) {
       targetFilter += ` OR b.target_role = 'participants')`;
     } else if (roleId === 2 || roleName.includes('koordinator')) {
       targetFilter += ` OR b.target_role = 'coordinators')`;
     } else {
-      targetFilter += ` OR b.target_role = 'participants' OR b.target_role = 'coordinators')`;
+      targetFilter += `)`;
     }
 
     const sql = `

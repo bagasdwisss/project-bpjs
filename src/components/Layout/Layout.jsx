@@ -1,12 +1,24 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import BroadcastPopup from '../Common/BroadcastPopup';
 
 const TanyaBPJSBot = lazy(() => import('../Common/TanyaBPJSBot'));
+const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatRecipientId, setChatRecipientId] = useState(null);
+
+  useEffect(() => {
+    const handleOpenChat = (e) => {
+      setChatRecipientId(e.detail?.recipientId || null);
+      setChatOpen(true);
+    };
+    window.addEventListener('open-chat', handleOpenChat);
+    return () => window.removeEventListener('open-chat', handleOpenChat);
+  }, []);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -33,6 +45,13 @@ const Layout = ({ children }) => {
       {/* Global AI Regulation Chatbot Assistant (Lazy Loaded) */}
       <Suspense fallback={null}>
         <TanyaBPJSBot />
+        {chatOpen && (
+          <LiveChatModal
+            isOpen={chatOpen}
+            onClose={() => setChatOpen(false)}
+            defaultRecipientId={chatRecipientId}
+          />
+        )}
       </Suspense>
 
       {/* Global Broadcast Toast & Center Modal Alerts */}

@@ -51,9 +51,15 @@ api.interceptors.response.use(
       const isLoginRequest = error.config?.url?.includes('/login');
       if (!isLoginRequest) {
         console.log('Unauthorized on protected route, redirecting to login...');
+        const errorCode = error.response?.data?.code;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        localStorage.removeItem('last_active_time');
+        if (errorCode === 'CONCURRENT_LOGIN_DETECTED') {
+          window.location.href = '/login?reason=concurrent_session';
+        } else {
+          window.location.href = '/login?reason=session_expired';
+        }
       }
     }
     

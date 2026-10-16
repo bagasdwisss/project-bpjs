@@ -4,7 +4,7 @@ import {
   Home, Calendar, FileText, ClipboardList, TrendingUp, 
   FolderOpen, Bell, Users, Award, 
   BarChart3, Download, 
-  Database, Radio, LogOut, X, ChevronRight, Sparkles
+  Database, Radio, LogOut, X, ChevronRight, Sparkles, MessageSquare
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
@@ -49,6 +49,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         ],
         tools: [
           { path: '/coordinator/reminders', icon: Bell, label: 'Pengingat' },
+          { isChat: true, icon: MessageSquare, label: 'Chat Bimbingan' },
         ]
       };
     } else {
@@ -71,6 +72,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         tools: [
           { path: '/participant/documents', icon: FolderOpen, label: 'Basis Dokumen' },
           { path: '/participant/notifications', icon: Bell, label: 'Notifikasi' },
+          { isChat: true, icon: MessageSquare, label: 'Chat Bimbingan' },
         ]
       };
     }
@@ -82,6 +84,27 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     <ul className="space-y-1">
       {items.map((item) => {
         const Icon = item.icon;
+        if (item.isChat) {
+          return (
+            <li key="chat-bimbingan">
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('open-chat'));
+                  if (window.innerWidth < 1024) toggleSidebar();
+                }}
+                className="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all duration-200 text-[#9CA3AF] hover:bg-[#18181B] hover:text-white cursor-pointer"
+              >
+                <div className="flex items-center space-x-3">
+                  <Icon className="w-4 h-4 text-[#F5C6EC] group-hover:scale-110 transition-transform duration-200" />
+                  <span>{item.label}</span>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-[#B8C96E]"></span>
+              </button>
+            </li>
+          );
+        }
+
         const isActive = location.pathname === item.path;
 
         return (

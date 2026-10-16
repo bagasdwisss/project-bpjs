@@ -15,6 +15,8 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
+import NeoDatePicker from '../Common/NeoDatePicker';
+import NeoSelect from '../Common/NeoSelect';
 
 const Reports = () => {
   const { toast } = useToast();
@@ -166,44 +168,37 @@ const Reports = () => {
           </div>
 
           <form onSubmit={handleGenerateReport} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-bold text-[#121214] mb-1.5">Jenis Laporan</label>
-              <select
-                value={selectedReport}
-                onChange={(e) => setSelectedReport(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
-              >
-                <option value="monthly">Laporan Bulanan (Monthly Summary)</option>
-                <option value="performance">Laporan Kinerja & Poin Akuisisi</option>
-                <option value="attendance">Laporan Rekapitulasi Presensi</option>
-                <option value="scores">Analisis Penilaian Koordinator</option>
-              </select>
-            </div>
+            <NeoSelect
+              label="Jenis Laporan"
+              value={selectedReport}
+              onChange={(e) => setSelectedReport(e.target.value)}
+              placeholder=""
+              options={[
+                { value: 'monthly', label: '📊 Laporan Bulanan (Monthly Summary)' },
+                { value: 'performance', label: '⭐ Laporan Kinerja & Poin Akuisisi' },
+                { value: 'attendance', label: '🕒 Laporan Rekapitulasi Presensi' },
+                { value: 'scores', label: '📝 Analisis Penilaian Koordinator' }
+              ]}
+            />
 
-            <div>
-              <label className="block text-xs font-bold text-[#121214] mb-1.5">Tanggal Mulai</label>
-              <input
-                type="date"
-                value={dateRange.start}
-                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition"
-              />
-            </div>
+            <NeoDatePicker
+              label="Tanggal Mulai"
+              value={dateRange.start}
+              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              quickChips={true}
+            />
 
-            <div>
-              <label className="block text-xs font-bold text-[#121214] mb-1.5">Tanggal Akhir</label>
-              <input
-                type="date"
-                value={dateRange.end}
-                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition"
-              />
-            </div>
+            <NeoDatePicker
+              label="Tanggal Akhir"
+              value={dateRange.end}
+              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              quickChips={true}
+            />
 
             <button
               type="submit"
               disabled={generating}
-              className="w-full px-5 py-2.5 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-bold transition shadow-sm inline-flex items-center justify-center gap-2"
+              className="w-full px-5 py-3 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-2xl text-xs font-bold border-2 border-[#121214] shadow-[3px_3px_0px_#121214] transition inline-flex items-center justify-center gap-2"
             >
               {generating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
               {generating ? 'Memproses...' : 'Generate Laporan'}

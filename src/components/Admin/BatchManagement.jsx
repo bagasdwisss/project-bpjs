@@ -1,10 +1,11 @@
-// src/components/Admin/BatchManagement.jsx
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import batchService from '../../services/batchService';
 import userService from '../../services/userService';
 import { useToast } from '../../context/ToastContext';
-import { Calendar, Users, Plus, Edit2, Trash2, UserPlus, CheckCircle, Clock, X } from 'lucide-react';
+import { Calendar, Users, Plus, Edit2, Trash2, UserPlus, CheckCircle, Clock, X, RotateCcw, AlertTriangle } from 'lucide-react';
+import NeoDatePicker from '../Common/NeoDatePicker';
+import NeoSelect from '../Common/NeoSelect';
 
 function AdminBatchManagement() {
   const { toast, confirm } = useToast();
@@ -111,6 +112,25 @@ function AdminBatchManagement() {
       loadData();
     } catch (err) {
       toast.error('Gagal menghapus batch: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleStartFreshBatch = async (batch) => {
+    const ok = await confirm({
+      title: 'Mulai Batch Baru (Reset Akun)',
+      message: `PERHATIAN: Memulai "${batch.batch_name}" akan menetapkannya sebagai Batch AKTIF dan mereset SELURUH akun peserta magang lama. Seluruh riwayat presensi, penilaian, progres bimbingan peserta sebelumnya akan dibersihkan untuk periode baru. Akun Administrator dan Koordinator tetap aman. Apakah Anda yakin ingin memulai periode baru sekarang?`,
+      confirmText: 'Ya, Mulai Batch & Reset Akun',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    try {
+      const res = await batchService.startFresh(batch.batch_id);
+      toast.success(res.data?.message || `Batch ${batch.batch_name} berhasil diaktifkan dan akun peserta telah direset.`);
+      loadData();
+    } catch (err) {
+      toast.error('Gagal memulai batch: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -259,7 +279,14 @@ function AdminBatchManagement() {
                           {batch.participant_count || 0} Peserta
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right space-x-1">
+                      <td className="px-5 py-4 text-right space-x-1.5">
+                        <button
+                          onClick={() => handleStartFreshBatch(batch)}
+                          title="Mulai Batch Ini & Reset Akun Peserta Magang"
+                          className="p-1.5 rounded-full bg-[#FAF9F6] hover:bg-[#F5C6EC] text-[#121214] border border-[#121214] shadow-xs transition-colors inline-flex items-center justify-center"
+                        >
+                          <RotateCcw className="w-4 h-4 text-[#D84594]" />
+                        </button>
                         <button
                           onClick={() => handleOpenAssign(batch)}
                           title="Tugaskan Peserta"
@@ -293,19 +320,25 @@ function AdminBatchManagement() {
         {/* Create/Edit Batch Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-[28px] border border-[#EAE9E4] max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="bg-white rounded-[28px] border-2 border-[#121214] max-w-lg w-full p-6 shadow-[8px_8px_0px_#121214] space-y-4 animate-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-[#EAE9E4] pb-3">
-                <h3 className="text-base font-extrabold text-[#121214]">
-                  {selectedBatch ? 'Edit Batch Pelatihan' : 'Tambah Batch Baru'}
-                </h3>
-                <button onClick={() => setShowModal(false)} className="p-1 rounded-full hover:bg-[#FAF9F6]">
+                <div>
+                  <h3 className="text-base font-extrabold text-[#121214]">
+                    {selectedBatch ? 'Edit Batch Pelatihan' : 'Tambah Batch Baru'}
+                  </h3>
+                  <p className="text-xs text-[#6E6D6A]">Konfigurasi gelombang dan tanggal periode magang</p>
+                </div>
+                <button 
+                  onClick={() => setShowModal(false)} 
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] border border-[#121214] flex items-center justify-center hover:bg-[#EAE9E4]"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <form onSubmit={handleSaveBatch} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
                     Nama Gelombang
                   </label>
                   <input
@@ -313,50 +346,39 @@ function AdminBatchManagement() {
                     required
                     value={formData.batch_name}
                     onChange={(e) => setFormData({ ...formData, batch_name: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#121214] focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:bg-white focus:outline-none"
                     placeholder="Contoh: Gelombang 1 2026"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
-                      Tanggal Mulai
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.start_date}
-                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#121214] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
-                      Tanggal Selesai
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.end_date}
-                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#121214] focus:outline-none"
-                    />
-                  </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <NeoDatePicker
+                    label="Tanggal Mulai"
+                    required
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    quickChips={true}
+                  />
+                  <NeoDatePicker
+                    label="Tanggal Selesai"
+                    required
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    quickChips={true}
+                  />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
-                    Status Batch
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#121214] focus:outline-none"
-                  >
-                    <option value="Aktif">Aktif</option>
-                    <option value="Selesai">Selesai</option>
-                    <option value="Direncanakan">Direncanakan</option>
-                  </select>
-                </div>
+
+                <NeoSelect
+                  label="Status Batch"
+                  required
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  options={[
+                    { value: 'Aktif', label: '🟢 Aktif' },
+                    { value: 'Selesai', label: '⚪ Selesai' },
+                    { value: 'Direncanakan', label: '🟡 Direncanakan' }
+                  ]}
+                />
                 <div className="flex justify-end gap-2.5 pt-3 border-t border-[#EAE9E4]">
                   <button
                     type="button"

@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = Router();
 
@@ -202,6 +203,16 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         Boolean(is_mock_location)
       ]
     );
+
+    // Audit Trail: Log attendance activity for admin monitoring
+    await logActivity({
+      userId,
+      type: 'PRESENSI_CHECKIN',
+      details: `Presensi ${normalizedStatus} berhasil dicatat (Jarak: ${finalDistance || 0}m, Status: ${normalizedStatus})`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      isAnomaly: Boolean(is_mock_location)
+    });
 
     return res.status(201).json({
       success: true,

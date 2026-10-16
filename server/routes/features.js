@@ -3,6 +3,7 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = Router();
 
@@ -59,14 +60,24 @@ router.get('/leaves/my', authenticateToken, async (req, res) => {
  */
 router.get('/leaves', authenticateToken, async (req, res) => {
   try {
-    const result = await query(
-      `SELECT l.*, u.full_name as participant_name, u.unique_id as participant_nim,
-              COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, r.full_name as reviewed_by_name
-       FROM leave_requests l
-       JOIN users u ON l.user_id = u.user_id
-       LEFT JOIN users r ON l.reviewed_by = r.user_id
-       ORDER BY l.created_at DESC`
-    );
+    let sql = `
+      SELECT l.*, u.full_name as participant_name, u.unique_id as participant_nim,
+             COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, r.full_name as reviewed_by_name
+      FROM leave_requests l
+      JOIN users u ON l.user_id = u.user_id
+      LEFT JOIN users r ON l.reviewed_by = r.user_id
+    `;
+    const params = [];
+
+    // Coordinator Isolation: Coordinator strictly sees only their own participants' leave requests
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      params.push(req.user.user_id);
+      sql += ` WHERE u.coordinator_id = $${params.length}`;
+    }
+
+    sql += ` ORDER BY l.created_at DESC`;
+
+    const result = await query(sql, params);
     return res.json({ success: true, data: result.rows });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -166,7 +177,14 @@ router.put('/leaves/:id/status', authenticateToken, async (req, res) => {
          ON CONFLICT DO NOTHING`,
         [leave.user_id, leave.start_date, attendanceStatus, `Disetujui koordinator: ${leave.reason}`]
       );
-    }
+    // Audit Log for Admin Monitoring
+    await logActivity({
+      userId: reviewerId,
+      type: status === 'Disetujui' ? 'LEAVE_APPROVAL' : 'LEAVE_REJECTED',
+      details: `Koordinator ${status.toLowerCase()} permohonan ${leave.leave_type} dari peserta ID #${leave.user_id} (${leave.start_date} s.d. ${leave.end_date})`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     return res.json({
       success: true,
@@ -296,6 +314,22 @@ router.post('/messages', authenticateToken, async (req, res) => {
        VALUES ($1, $2, $3, FALSE, CURRENT_TIMESTAMP)
        RETURNING *`,
       [senderId, receiver_id, message_text.trim()]
+    );
+
+    // Trigger in-app notification in Navbar Bell for receiver
+    const senderName = req.user.full_name || 'Pembimbing/Peserta';
+    const previewText = message_text.trim().length > 60 
+      ? message_text.trim().substring(0, 60) + '...' 
+      : message_text.trim();
+
+    await query(
+      `INSERT INTO notifications (user_id, title, message, type, is_read, created_at)
+       VALUES ($1, $2, $3, 'chat', FALSE, CURRENT_TIMESTAMP)`,
+      [
+        receiver_id,
+        `Pesan Bimbingan dari ${senderName}`,
+        previewText
+      ]
     );
 
     return res.status(201).json({
@@ -592,7 +626,7 @@ router.get('/certificates/verify/:certNumber', async (req, res) => {
  */
 router.get('/coordinator/early-warning', authenticateToken, async (req, res) => {
   try {
-    const participants = await query(`
+    let sql = `
       SELECT u.user_id, u.full_name, u.unique_id, 
              COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email,
              COUNT(DISTINCT a.attendance_id) as total_attendance,
@@ -604,9 +638,21 @@ router.get('/coordinator/early-warning', authenticateToken, async (req, res) => 
       LEFT JOIN attendance_records a ON u.user_id = a.user_id
       LEFT JOIN progress p ON u.user_id = p.user_id
       WHERE u.role_id = 1 AND u.status = 'Aktif'
+    `;
+    const params = [];
+
+    // Coordinator Isolation: Coordinator strictly sees only their own participants
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      params.push(req.user.user_id);
+      sql += ` AND u.coordinator_id = $${params.length}`;
+    }
+
+    sql += `
       GROUP BY u.user_id, u.full_name, u.unique_id, u.email
       ORDER BY u.full_name ASC
-    `);
+    `;
+
+    const participants = await query(sql, params);
 
     const analysis = participants.rows.map((p, idx) => {
       const late = parseInt(p.late_count, 10) || 0;

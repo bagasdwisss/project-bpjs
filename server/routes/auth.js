@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { query } from '../db.js';
 import { authenticateToken, JWT_SECRET } from '../middleware/auth.js';
 
@@ -81,16 +82,25 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    const sessionToken = crypto.randomUUID();
+    await query(
+      `UPDATE users 
+       SET current_session_token = $1, last_login_at = CURRENT_TIMESTAMP, last_login_ip = $2
+       WHERE user_id = $3`,
+      [sessionToken, req.ip || '127.0.0.1', user.user_id]
+    );
+
     const payload = {
       user_id: user.user_id,
       unique_id: user.unique_id,
       role_id: user.role_id,
-      role: user.role_name
+      role: user.role_name,
+      session_token: sessionToken
     };
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
-    await logActivity(user.user_id, 'Login', 'User logged in successfully', req.ip);
+    await logActivity(user.user_id, 'LOGIN', `Login sukses dari perangkat (${req.headers['user-agent']?.substring(0, 80) || 'Unknown Browser'})`, req.ip);
 
     return res.json({
       success: true,
@@ -133,7 +143,8 @@ router.get('/me', authenticateToken, (req, res) => {
  */
 router.post('/logout', authenticateToken, async (req, res) => {
   try {
-    await logActivity(req.user.user_id, 'Logout', 'User logged out', req.ip);
+    await query(`UPDATE users SET current_session_token = NULL WHERE user_id = $1`, [req.user.user_id]);
+    await logActivity(req.user.user_id, 'LOGOUT', 'Sesi pengguna diakhiri / logout manual', req.ip);
     return res.json({
       success: true,
       message: 'Logout berhasil.'

@@ -3,6 +3,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = Router();
 
@@ -23,7 +24,14 @@ router.get('/', authenticateToken, async (req, res) => {
     `;
 
     const params = [];
-    if (role_id) {
+
+    // Coordinator Isolation: A coordinator may ONLY view participants under their own guidance
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      if (!role_id || parseInt(role_id, 10) === 1) {
+        params.push(req.user.user_id);
+        sql += ` AND u.coordinator_id = $${params.length} AND u.role_id = 1`;
+      }
+    } else if (role_id) {
       params.push(role_id);
       sql += ` AND u.role_id = $${params.length}`;
     }
@@ -78,6 +86,14 @@ router.post('/', authenticateToken, requireRole('Administrator'), async (req, re
       );
     }
 
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'USER_CREATED',
+      details: `Menambahkan pengguna baru: ${full_name} (${unique_id}, Role: ${role_id})`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
     return res.status(201).json({
       success: true,
       message: 'Pengguna berhasil ditambahkan.',
@@ -129,6 +145,14 @@ router.post('/import', authenticateToken, requireRole('Administrator'), async (r
         insertedCount++;
       }
     }
+
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'USERS_IMPORTED',
+      details: `Mengimpor ${insertedCount} baris data akun pengguna secara massal`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     return res.json({
       success: true,
@@ -241,6 +265,14 @@ router.put('/:id/progress', authenticateToken, async (req, res) => {
       [id, kunjungan_bpu || 0, hasil_akuisisi_bpu || 0, kunjungan_pu || 0, video_viralisasi || 0, kehadiran_seminar || 0, kehadiran_sosialisasi || 0, total_poin || 0, nilai || 0, grade || 'E']
     );
 
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'PROGRESS_UPDATED',
+      details: `Memperbarui progres & nilai tugas peserta ID #${id} (Nilai: ${nilai || 0}, Grade: ${grade || '-'})`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
     return res.json({ success: true, message: 'Progress updated', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -317,6 +349,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'USER_UPDATED',
+      details: `Memperbarui data akun pengguna: ${result.rows[0].full_name} (${result.rows[0].unique_id})`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
     return res.json({
       success: true,
       message: 'Data pengguna berhasil diperbarui.',
@@ -338,7 +378,19 @@ router.delete('/:id', authenticateToken, requireRole('Administrator'), async (re
       return res.status(400).json({ success: false, message: 'Anda tidak dapat menghapus akun Anda sendiri.' });
     }
 
+    const userToDelete = await query(`SELECT full_name, unique_id FROM users WHERE user_id = $1`, [id]);
+    const deletedName = userToDelete.rows[0]?.full_name || id;
+    const deletedUniqueId = userToDelete.rows[0]?.unique_id || '';
+
     await query(`DELETE FROM users WHERE user_id = $1`, [id]);
+
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'USER_DELETED',
+      details: `Menghapus akun pengguna: ${deletedName} (${deletedUniqueId})`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     return res.json({
       success: true,

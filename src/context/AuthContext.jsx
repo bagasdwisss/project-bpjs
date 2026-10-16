@@ -50,6 +50,10 @@ export const AuthProvider = ({ children }) => {
           console.log('Current user from storage:', currentUser);
           setUser(currentUser);
           
+          if (!localStorage.getItem('last_active_time')) {
+            localStorage.setItem('last_active_time', Date.now().toString());
+          }
+
           // Load coordinator data hanya jika user adalah peserta
           if (currentUser?.role_id === 1 || currentUser?.role === 'Peserta') {
             await loadCoordinator();
@@ -64,6 +68,63 @@ export const AuthProvider = ({ children }) => {
 
     initAuth();
   }, []);
+
+  // 5-Minute Inactivity Auto-Logout Tracker
+  useEffect(() => {
+    if (!user) return;
+
+    const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 menit = 300,000 ms
+    let lastRecordedActivity = Date.now();
+    localStorage.setItem('last_active_time', Date.now().toString());
+
+    const handleUserActivity = () => {
+      const now = Date.now();
+      // Throttle updating localStorage to once every 2 seconds
+      if (now - lastRecordedActivity > 2000) {
+        lastRecordedActivity = now;
+        localStorage.setItem('last_active_time', now.toString());
+      }
+    };
+
+    const checkInactivity = () => {
+      const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
+      if (storedLastActive && Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS) {
+        console.warn('User idle for > 5 minutes. Logging out for security...');
+        authService.logout();
+        setUser(null);
+        setCoordinator(null);
+        localStorage.removeItem('last_active_time');
+        window.location.href = '/login?reason=idle_timeout';
+      }
+    };
+
+    // Events to track user activity
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, handleUserActivity, { passive: true });
+    });
+
+    // Check on focus / tab visibility change (e.g. when user switches tabs or wakes computer)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkInactivity();
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', checkInactivity);
+
+    // Periodic check every 10 seconds
+    const intervalId = setInterval(checkInactivity, 10000);
+
+    return () => {
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, handleUserActivity);
+      });
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', checkInactivity);
+      clearInterval(intervalId);
+    };
+  }, [user]);
 
   const login = async (uniqueId, password) => {
     try {

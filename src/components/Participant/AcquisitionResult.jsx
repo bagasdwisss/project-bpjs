@@ -5,6 +5,7 @@ import Layout from '../Layout/Layout';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { TableSkeleton } from '../Common/Skeleton';
+import NeoDatePicker from '../Common/NeoDatePicker';
 
 // Komponen Toast Berwarna Sistem Intelly Soft Neo-Brutalism
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -860,21 +861,15 @@ const AcquisitionResult = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tanggal Pendaftaran <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
+                  <NeoDatePicker
+                    label="Tanggal Pendaftaran"
+                    required
                     name="tanggal_pendaftaran"
                     value={formData.tanggal_pendaftaran}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      formErrors.tanggal_pendaftaran ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    quickChips={true}
+                    helperText={formErrors.tanggal_pendaftaran}
                   />
-                  {formErrors.tanggal_pendaftaran && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.tanggal_pendaftaran}</p>
-                  )}
                 </div>
 
                 <div>

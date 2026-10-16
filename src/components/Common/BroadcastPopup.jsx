@@ -14,6 +14,10 @@ import {
 
 const BroadcastPopup = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role_id === 3 || user?.role === 'Administrator' || (user?.role_name || '').toLowerCase().includes('admin');
+
+  if (isAdmin) return null;
+
   const [broadcasts, setBroadcasts] = useState([]);
   const [activeModalBroadcast, setActiveModalBroadcast] = useState(null);
   const [activeToastBroadcasts, setActiveToastBroadcasts] = useState([]);

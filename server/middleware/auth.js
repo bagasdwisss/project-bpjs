@@ -25,7 +25,7 @@ export const authenticateToken = async (req, res, next) => {
 
     // Fetch user from database to ensure user is active and exists
     const userRes = await query(
-      `SELECT u.user_id, u.unique_id, u.full_name, u.role_id, u.coordinator_id, u.status, u.penempatan, r.role_name
+      `SELECT u.user_id, u.unique_id, u.full_name, u.role_id, u.coordinator_id, u.status, u.penempatan, u.current_session_token, r.role_name
        FROM users u
        JOIN roles r ON u.role_id = r.role_id
        WHERE u.user_id = $1`,
@@ -40,6 +40,15 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const user = userRes.rows[0];
+
+    // Single Session Protection: detect if user logged in on another device
+    if (decoded.session_token && user.current_session_token && decoded.session_token !== user.current_session_token) {
+      return res.status(401).json({
+        success: false,
+        code: 'CONCURRENT_LOGIN_DETECTED',
+        message: 'Akun Anda terdeteksi baru saja login di perangkat atau browser lain. Sesi ini telah ditutup secara otomatis.'
+      });
+    }
 
     if (user.status && user.status.toLowerCase() !== 'aktif') {
       return res.status(403).json({

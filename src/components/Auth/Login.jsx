@@ -1,10 +1,24 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { User, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, Sparkles } from 'lucide-react';
+import { 
+  User, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ShieldCheck, 
+  ArrowRight, 
+  Sparkles, 
+  AlertTriangle, 
+  Clock, 
+  ShieldAlert 
+} from 'lucide-react';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
+  const reason = searchParams.get('reason');
+
   const [uniqueId, setUniqueId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -112,6 +126,49 @@ const Login = () => {
           {/* Subtle Decorative pastel background glow */}
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#FCE373]/30 rounded-full blur-2xl pointer-events-none"></div>
           <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-[#F5C6EC]/30 rounded-full blur-2xl pointer-events-none"></div>
+
+          {/* Security Alert Notice (Concurrent Login or Idle Timeout) */}
+          {reason === 'concurrent_session' && (
+            <div className="mb-5 bg-[#F5C6EC]/30 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
+              <div className="w-8 h-8 rounded-xl bg-[#121214] text-[#F5C6EC] flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#121214]">Login Ganda Terdeteksi</p>
+                <p className="text-[11px] text-[#121214]/80 font-medium leading-relaxed mt-0.5">
+                  Akun Anda terdeteksi masuk dari perangkat atau peramban lain. Sesi pada perangkat ini telah ditutup demi keamanan.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {reason === 'idle_timeout' && (
+            <div className="mb-5 bg-[#FCE373]/30 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
+              <div className="w-8 h-8 rounded-xl bg-[#121214] text-[#FCE373] flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#121214]">Sesi Berakhir (Inaktivitas)</p>
+                <p className="text-[11px] text-[#121214]/80 font-medium leading-relaxed mt-0.5">
+                  Tidak ada aktivitas terdeteksi selama lebih dari 5 menit. Demi melindungi data Anda, silakan masuk kembali.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {reason === 'session_expired' && (
+            <div className="mb-5 bg-[#FAF9F6] border-2 border-[#121214] shadow-[4px_4px_0px_#121214] rounded-2xl p-3.5 flex items-start gap-3 animate-in fade-in duration-200">
+              <div className="w-8 h-8 rounded-xl bg-[#121214] text-white flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4 text-[#FCE373]" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#121214]">Sesi Berakhir</p>
+                <p className="text-[11px] text-[#121214]/80 font-medium leading-relaxed mt-0.5">
+                  Masa berlaku sesi login Anda telah selesai. Silakan masukkan kredensial Anda kembali.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Role pill badge indicator */}
           {roleDetected && (

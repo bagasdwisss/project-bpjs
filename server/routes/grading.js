@@ -1,7 +1,7 @@
-// api/routes/grading.js
 import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = Router();
 
@@ -86,14 +86,21 @@ router.get('/coordinators', authenticateToken, async (req, res) => {
  */
 router.get('/participants/without-progress', authenticateToken, async (req, res) => {
   try {
-    const result = await query(
-      `SELECT u.user_id, u.unique_id, u.full_name, u.coordinator_id, c.full_name AS coordinator_name
-       FROM users u
-       LEFT JOIN progress p ON u.user_id = p.user_id
-       LEFT JOIN users c ON u.coordinator_id = c.user_id
-       WHERE u.role_id = 1 AND p.id IS NULL
-       ORDER BY u.full_name ASC`
-    );
+    let sql = `
+      SELECT u.user_id, u.unique_id, u.full_name, u.coordinator_id, c.full_name AS coordinator_name
+      FROM users u
+      LEFT JOIN progress p ON u.user_id = p.user_id
+      LEFT JOIN users c ON u.coordinator_id = c.user_id
+      WHERE u.role_id = 1 AND p.id IS NULL
+    `;
+    const params = [];
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      params.push(req.user.user_id);
+      sql += ` AND u.coordinator_id = $${params.length}`;
+    }
+    sql += ` ORDER BY u.full_name ASC`;
+
+    const result = await query(sql, params);
 
     return res.json({
       success: true,
@@ -135,6 +142,14 @@ router.post('/participants/create-progress', authenticateToken, async (req, res)
         grade
       ]
     );
+
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'GRADING_SAVED',
+      details: `Menyimpan penilaian peserta ID #${user_id} (Nilai: ${finalScore}, Grade: ${grade})`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     return res.json({
       success: true,
@@ -180,7 +195,10 @@ router.get('/participants', authenticateToken, async (req, res) => {
     `;
 
     const params = [];
-    if (coordinator_id) {
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      params.push(req.user.user_id);
+      sql += ` AND u.coordinator_id = $${params.length}`;
+    } else if (coordinator_id) {
       params.push(coordinator_id);
       sql += ` AND u.coordinator_id = $${params.length}`;
     }

@@ -17,8 +17,10 @@ const Header = ({ toggleSidebar }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifs, setRecentNotifs] = useState([]);
 
+  const isAdmin = user?.role_id === 3 || user?.role === 'Administrator' || (user?.role_name || '').toLowerCase().includes('admin');
+
   const loadNotificationsData = async () => {
-    if (!user) return;
+    if (!user || isAdmin) return;
     try {
       const countRes = await api.get('/notifications/unread-count', { skipCache: true });
       if (countRes.data?.success) {
@@ -36,6 +38,7 @@ const Header = ({ toggleSidebar }) => {
   };
 
   useEffect(() => {
+    if (isAdmin) return;
     loadNotificationsData();
     const interval = setInterval(loadNotificationsData, 30000);
     const handleBroadcastSent = () => loadNotificationsData();
@@ -44,7 +47,7 @@ const Header = ({ toggleSidebar }) => {
       clearInterval(interval);
       window.removeEventListener('broadcast-sent', handleBroadcastSent);
     };
-  }, [user]);
+  }, [user, isAdmin]);
 
   const getHeaderTitle = () => {
     if (isParticipant) return 'Portal Peserta';
@@ -61,6 +64,15 @@ const Header = ({ toggleSidebar }) => {
       navigate('/coordinator/reminders');
     } else if (user?.role_id === 3 || user?.role === 'Administrator') {
       navigate('/admin/broadcast');
+    }
+  };
+
+  const handleItemClick = (item) => {
+    setShowNotifDropdown(false);
+    if (item.type === 'chat') {
+      window.dispatchEvent(new CustomEvent('open-chat', { detail: { recipientId: item.sender_id } }));
+    } else {
+      handleNavigateToNotifications();
     }
   };
 
@@ -154,98 +166,102 @@ const Header = ({ toggleSidebar }) => {
 
             {/* Connected Pitch-Black Pill Action Group (Intelly Signature) */}
             <div className="flex items-center bg-[#121214] text-white rounded-full p-1 shadow-sm">
-              {/* Notification Bell Dropdown Trigger */}
-              <div className="relative">
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setShowNotifDropdown(!showNotifDropdown);
-                    setShowProfileDropdown(false);
-                  }}
-                  className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-white transition-colors relative"
-                  title="Notifikasi Masuk"
-                  aria-label="Notifikasi"
-                >
-                  <Bell className="w-4 h-4" />
-                  {unreadCount > 0 ? (
-                    <span className="absolute -top-1 -right-1 bg-[#F5C6EC] text-[#121214] font-black text-[9px] px-1.5 py-0.2 rounded-full border border-[#121214] leading-tight min-w-[16px] text-center shadow-xs animate-pulse">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  ) : (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-[#B8C96E] rounded-full ring-2 ring-[#121214]"></span>
-                  )}
-                </button>
-
-                {/* Notifications Dropdown Panel */}
-                {showNotifDropdown && (
-                  <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white text-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] border-2 border-[#121214] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="flex items-center justify-between pb-2.5 px-2 border-b border-[#EAE9E4]">
-                      <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-[#121214]" />
-                        <h4 className="text-xs font-black uppercase tracking-wider text-[#121214]">
-                          Notifikasi Masuk
-                        </h4>
-                      </div>
-                      {unreadCount > 0 && (
-                        <span className="bg-[#F5C6EC] text-[#121214] border border-[#121214] text-[10px] font-black px-2 py-0.5 rounded-full">
-                          {unreadCount} Baru
+              {/* Notification Bell Dropdown Trigger (Hidden for Admin) */}
+              {!isAdmin && (
+                <>
+                  <div className="relative">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setShowNotifDropdown(!showNotifDropdown);
+                        setShowProfileDropdown(false);
+                      }}
+                      className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-white transition-colors relative"
+                      title="Notifikasi Masuk"
+                      aria-label="Notifikasi"
+                    >
+                      <Bell className="w-4 h-4" />
+                      {unreadCount > 0 ? (
+                        <span className="absolute -top-1 -right-1 bg-[#F5C6EC] text-[#121214] font-black text-[9px] px-1.5 py-0.2 rounded-full border border-[#121214] leading-tight min-w-[16px] text-center shadow-xs animate-pulse">
+                          {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="divide-y divide-[#F0EFEA] max-h-72 overflow-y-auto my-1">
-                      {recentNotifs.length === 0 ? (
-                        <div className="py-6 text-center text-xs font-bold text-gray-500">
-                          Tidak ada notifikasi saat ini
-                        </div>
                       ) : (
-                        recentNotifs.map((item) => (
-                          <div 
-                            key={item.notification_id}
-                            onClick={handleNavigateToNotifications}
-                            className={`p-2.5 rounded-xl transition hover:bg-[#FAF9F6] cursor-pointer space-y-1 ${
-                              !item.is_read ? 'bg-[#F5C6EC]/15' : ''
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-black text-xs text-[#121214] line-clamp-1">
-                                {item.title}
-                              </span>
-                              {!item.is_read && (
-                                <span className="w-2 h-2 rounded-full bg-[#121214] shrink-0"></span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-gray-600 line-clamp-2 leading-relaxed">
-                              {item.message}
-                            </p>
-                            <span className="text-[10px] text-gray-400 block pt-0.5">
-                              {new Date(item.created_at).toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                          </div>
-                        ))
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-[#B8C96E] rounded-full ring-2 ring-[#121214]"></span>
                       )}
-                    </div>
+                    </button>
 
-                    <div className="pt-2 border-t border-[#EAE9E4]">
-                      <button
-                        type="button"
-                        onClick={handleNavigateToNotifications}
-                        className="w-full py-2 bg-[#FAF9F6] hover:bg-gray-100 border border-[#121214] rounded-xl text-center font-black text-xs text-[#121214] transition flex items-center justify-center gap-1.5"
-                      >
-                        <span>Lihat Semua Notifikasi</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {/* Notifications Dropdown Panel */}
+                    {showNotifDropdown && (
+                      <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white text-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] border-2 border-[#121214] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="flex items-center justify-between pb-2.5 px-2 border-b border-[#EAE9E4]">
+                          <div className="flex items-center gap-2">
+                            <Bell className="w-4 h-4 text-[#121214]" />
+                            <h4 className="text-xs font-black uppercase tracking-wider text-[#121214]">
+                              Notifikasi Masuk
+                            </h4>
+                          </div>
+                          {unreadCount > 0 && (
+                            <span className="bg-[#F5C6EC] text-[#121214] border border-[#121214] text-[10px] font-black px-2 py-0.5 rounded-full">
+                              {unreadCount} Baru
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="divide-y divide-[#F0EFEA] max-h-72 overflow-y-auto my-1">
+                          {recentNotifs.length === 0 ? (
+                            <div className="py-6 text-center text-xs font-bold text-gray-500">
+                              Tidak ada notifikasi saat ini
+                            </div>
+                          ) : (
+                            recentNotifs.map((item) => (
+                              <div 
+                                key={item.notification_id}
+                                onClick={() => handleItemClick(item)}
+                                className={`p-2.5 rounded-xl transition hover:bg-[#FAF9F6] cursor-pointer space-y-1 ${
+                                  !item.is_read ? 'bg-[#F5C6EC]/15' : ''
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-black text-xs text-[#121214] line-clamp-1">
+                                    {item.title}
+                                  </span>
+                                  {!item.is_read && (
+                                    <span className="w-2 h-2 rounded-full bg-[#121214] shrink-0"></span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-gray-600 line-clamp-2 leading-relaxed">
+                                  {item.message}
+                                </p>
+                                <span className="text-[10px] text-gray-400 block pt-0.5">
+                                  {new Date(item.created_at).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        <div className="pt-2 border-t border-[#EAE9E4]">
+                          <button
+                            type="button"
+                            onClick={handleNavigateToNotifications}
+                            className="w-full py-2 bg-[#FAF9F6] hover:bg-gray-100 border border-[#121214] rounded-xl text-center font-black text-xs text-[#121214] transition flex items-center justify-center gap-1.5"
+                          >
+                            <span>Lihat Semua Notifikasi</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              <div className="w-[1px] h-4 bg-neutral-700 mx-1"></div>
+                  <div className="w-[1px] h-4 bg-neutral-700 mx-1"></div>
+                </>
+              )}
 
               {/* User Dropdown Trigger */}
               <div className="relative">

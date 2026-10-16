@@ -18,6 +18,8 @@ import {
   Info,
   Eye
 } from 'lucide-react';
+import NeoDatePicker from '../Common/NeoDatePicker';
+import NeoSelect from '../Common/NeoSelect';
 
 const formatLocalDatetime = (date) => {
   const pad = (n) => String(n).padStart(2, '0');
@@ -255,35 +257,31 @@ const Broadcast = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Target Penerima</label>
-                  <select
-                    value={target}
-                    onChange={(e) => setTarget(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
-                  >
-                    <option value="all">Semua Pengguna (Peserta & Koordinator)</option>
-                    <option value="participants">Hanya Peserta Magang</option>
-                    <option value="coordinators">Hanya Koordinator</option>
-                  </select>
-                </div>
+                <NeoSelect
+                  label="Target Penerima"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  options={[
+                    { value: 'all', label: '👥 Semua Pengguna (Peserta & Koordinator)' },
+                    { value: 'participants', label: '🎓 Hanya Peserta Magang' },
+                    { value: 'coordinators', label: '👔 Hanya Koordinator' }
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs font-bold text-[#121214] mb-1.5">Tingkat Prioritas & Tampilan</label>
-                  <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
-                  >
-                    <option value="Biasa">Biasa ➔ Pop-up Toast Pojok Kanan Atas</option>
-                    <option value="Penting">Penting ➔ Dialog Modal Tengah Halaman</option>
-                    <option value="Sangat Penting">Sangat Penting ➔ Urgent Modal Tengah Layar</option>
-                  </select>
-                </div>
+                <NeoSelect
+                  label="Tingkat Prioritas & Tampilan"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  options={[
+                    { value: 'Biasa', label: '💬 Biasa ➔ Toast Pojok Kanan Atas' },
+                    { value: 'Penting', label: '⚠️ Penting ➔ Dialog Modal Tengah Layar' },
+                    { value: 'Sangat Penting', label: '🚨 Sangat Penting ➔ Urgent Modal Utama' }
+                  ]}
+                />
               </div>
 
               {/* Schedule Duration (Start At & End At) */}
-              <div className="p-4 bg-[#FAF9F6] rounded-2xl border border-[#EAE9E4] space-y-3.5">
+              <div className="p-4 bg-[#FAF9F6] rounded-2xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[#121214]" />
@@ -317,13 +315,12 @@ const Broadcast = () => {
 
                 {startType === 'custom' && (
                   <div>
-                    <label className="block text-[11px] font-bold text-[#121214]/70 mb-1">Mulai Ditampilkan Pada</label>
-                    <input
+                    <NeoDatePicker
+                      label="Mulai Ditampilkan Pada"
                       type="datetime-local"
                       required={startType === 'custom'}
                       value={startAt}
                       onChange={(e) => setStartAt(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:border-[#121214]"
                     />
                   </div>
                 )}
@@ -357,12 +354,12 @@ const Broadcast = () => {
 
                   {endType === 'custom' && (
                     <div>
-                      <input
+                      <NeoDatePicker
+                        label="Berakhir Pada"
                         type="datetime-local"
                         required={endType === 'custom'}
                         value={endAt}
                         onChange={(e) => setEndAt(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-[#EAE9E4] rounded-xl text-xs font-semibold text-[#121214] focus:outline-none focus:border-[#121214]"
                       />
                     </div>
                   )}
