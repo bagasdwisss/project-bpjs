@@ -244,7 +244,7 @@ const Analysis = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 text-center">
+        <div className="w-full py-12 text-center">
           <div className="w-10 h-10 border-2 border-[#121214] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-xs font-bold text-[#121214]/60">Menghitung analitik peserta...</p>
         </div>
@@ -254,7 +254,7 @@ const Analysis = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="space-y-6 w-full">
         
         {/* Header Bento Box */}
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">

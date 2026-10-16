@@ -28,8 +28,8 @@ const Header = ({ toggleSidebar }) => {
 
   return (
     <>
-      <header className="bg-[#F5F4F0] border-b border-[#EAE9E4] sticky top-0 z-30 px-4 sm:px-8 py-3.5">
-        <div className="flex items-center justify-between gap-4">
+      <header className="bg-[#F5F4F0] border-b border-[#EAE9E4] sticky top-0 z-30 px-3 sm:px-6 lg:px-8 py-3.5">
+        <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between gap-4">
           {/* Mobile Hamburger & Logo preview */}
           <div className="flex items-center gap-3">
             <button

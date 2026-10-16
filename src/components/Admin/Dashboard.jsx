@@ -81,9 +81,9 @@ const AdminDashboard = () => {
         </div>
 
         {/* 4-Card Pastel Bento Grid (Intelly Signature) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 sm:gap-5">
-          {/* Card 1: Users & Demographics (Pastel Butter Yellow - xl:col-span-5) */}
-          <div className="xl:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
+          {/* Card 1: Users & Demographics (Pastel Butter Yellow - lg:col-span-5) */}
+          <div className="lg:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             {/* Watermark shape */}
             <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
               ●
@@ -134,8 +134,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 2: Attendance & Visits Summary (Soft Bubblegum Pink - xl:col-span-7) */}
-          <div className="xl:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 2: Attendance & Visits Summary (Soft Bubblegum Pink - lg:col-span-7) */}
+          <div className="lg:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             {/* Heart Watermark SVG */}
             <svg 
               className="absolute right-4 -bottom-4 w-32 h-32 opacity-15 pointer-events-none text-[#121214]" 
@@ -184,8 +184,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 3: Performance & Condition (Muted Olive Green - xl:col-span-6) */}
-          <div className="xl:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 3: Performance & Condition (Muted Olive Green - lg:col-span-6) */}
+          <div className="lg:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             {/* Triangle Watermark */}
             <div className="absolute right-3 -bottom-5 opacity-15 pointer-events-none font-black text-8xl">
               ▲
@@ -227,8 +227,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 4: Sessions & Batches (Pastel Sky Blue - xl:col-span-6) */}
-          <div className="xl:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 4: Sessions & Batches (Pastel Sky Blue - lg:col-span-6) */}
+          <div className="lg:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             {/* Starburst Watermark */}
             <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none font-black text-8xl">
               ★

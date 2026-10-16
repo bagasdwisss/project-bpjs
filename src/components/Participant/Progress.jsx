@@ -231,9 +231,9 @@ const Progress = () => {
         </div>
 
         {/* 4 Pastel Bento Grid Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 sm:gap-5">
-          {/* Card 1: Akuisisi BPU (Yellow - xl:col-span-6) */}
-          <div className="xl:col-span-6 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
+          {/* Card 1: Akuisisi BPU (Yellow - lg:col-span-6) */}
+          <div className="lg:col-span-6 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">
               ●
             </div>
@@ -267,8 +267,8 @@ const Progress = () => {
             </div>
           </div>
 
-          {/* Card 2: Total Poin & Nilai (Green - xl:col-span-6) */}
-          <div className="xl:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 2: Total Poin & Nilai (Green - lg:col-span-6) */}
+          <div className="lg:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">
               ▲
             </div>
@@ -302,8 +302,8 @@ const Progress = () => {
             </div>
           </div>
 
-          {/* Card 3: Kunjungan BPU & PU (Pink - xl:col-span-6) */}
-          <div className="xl:col-span-6 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 3: Kunjungan BPU & PU (Pink - lg:col-span-6) */}
+          <div className="lg:col-span-6 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">
               ♥
             </div>
@@ -337,8 +337,8 @@ const Progress = () => {
             </div>
           </div>
 
-          {/* Card 4: Viralisasi & Seminar (Sky Blue - xl:col-span-6) */}
-          <div className="xl:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 4: Viralisasi & Seminar (Sky Blue - lg:col-span-6) */}
+          <div className="lg:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none text-8xl font-black">
               ★
             </div>

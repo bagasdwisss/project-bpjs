@@ -124,9 +124,9 @@ const ParticipantDashboard = () => {
         </div>
 
         {/* 4-Card Pastel Bento Grid (Intelly Signature) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 sm:gap-5">
-          {/* Card 1: Akuisisi BPU (Pastel Butter Yellow - xl:col-span-5) */}
-          <div className="xl:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
+          {/* Card 1: Akuisisi BPU (Pastel Butter Yellow - lg:col-span-5) */}
+          <div className="lg:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
               ●
             </div>
@@ -166,8 +166,8 @@ const ParticipantDashboard = () => {
             </div>
           </div>
 
-          {/* Card 2: Kehadiran Absensi (Soft Bubblegum Pink - xl:col-span-7) */}
-          <div className="xl:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 2: Kehadiran Absensi (Soft Bubblegum Pink - lg:col-span-7) */}
+          <div className="lg:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             <svg 
               className="absolute right-4 -bottom-4 w-32 h-32 opacity-15 pointer-events-none text-[#121214]" 
               fill="currentColor" 
@@ -211,8 +211,8 @@ const ParticipantDashboard = () => {
             </div>
           </div>
 
-          {/* Card 3: Nilai Rata-rata & Rank (Muted Olive Green - xl:col-span-6) */}
-          <div className="xl:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 3: Nilai Rata-rata & Rank (Muted Olive Green - lg:col-span-6) */}
+          <div className="lg:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             <div className="absolute right-3 -bottom-5 opacity-15 pointer-events-none font-black text-8xl">
               ▲
             </div>
@@ -256,8 +256,8 @@ const ParticipantDashboard = () => {
             </div>
           </div>
 
-          {/* Card 4: Penugasan & Modul (Pastel Sky Blue - xl:col-span-6) */}
-          <div className="xl:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 4: Penugasan & Modul (Pastel Sky Blue - lg:col-span-6) */}
+          <div className="lg:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
             <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none font-black text-8xl">
               ★
             </div>

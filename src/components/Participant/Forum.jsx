@@ -209,7 +209,7 @@ const ParticipantForum = () => {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {loading ? (
                 <div className="col-span-full text-center py-12 text-[#6E6D6A] text-xs">Memuat topik diskusi...</div>
               ) : filteredTopics.length === 0 ? (
