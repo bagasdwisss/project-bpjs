@@ -28,6 +28,13 @@ const CoordinatorDashboard = () => {
   const [pendingLeaves, setPendingLeaves] = useState([]);
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [chatRecipientId, setChatRecipientId] = useState(null);
+  const [reviewModal, setReviewModal] = useState({
+    isOpen: false,
+    leave: null,
+    status: 'Disetujui',
+    note: '',
+    submitting: false,
+  });
 
   const loadParticipants = async () => {
     try {
@@ -111,22 +118,36 @@ const CoordinatorDashboard = () => {
     }
   };
 
-  const handleReviewLeave = async (leaveId, status) => {
-    try {
-      const note = window.prompt(`Masukkan catatan verifikasi (${status}):`, status === 'Disetujui' ? 'Permohonan disetujui, jaga kesehatan.' : 'Dokumen pendukung kurang lengkap.');
-      if (note === null) return;
+  const openReviewModal = (leave, status) => {
+    setReviewModal({
+      isOpen: true,
+      leave,
+      status,
+      note: status === 'Disetujui'
+        ? 'Permohonan disetujui, jaga kesehatan dan istirahat yang cukup.'
+        : 'Dokumen pendukung kurang lengkap / mohon perbaiki.',
+      submitting: false,
+    });
+  };
 
-      const res = await api.put(`/leaves/${leaveId}/status`, {
-        status,
-        coordinator_notes: note
+  const handleConfirmReview = async (e) => {
+    if (e) e.preventDefault();
+    if (!reviewModal.leave) return;
+    try {
+      setReviewModal(prev => ({ ...prev, submitting: true }));
+      const res = await api.put(`/leaves/${reviewModal.leave.id}/status`, {
+        status: reviewModal.status,
+        coordinator_notes: reviewModal.note
       });
 
       if (res.data?.success) {
-        toast.success(`Pengajuan berhasil di-${status.toLowerCase()}`);
+        toast.success(`Pengajuan ${reviewModal.leave.participant_name} berhasil di-${reviewModal.status.toLowerCase()}`);
+        setReviewModal({ isOpen: false, leave: null, status: 'Disetujui', note: '', submitting: false });
         loadPendingLeaves();
       }
     } catch (err) {
       toast.error('Gagal memverifikasi pengajuan: ' + (err.response?.data?.message || err.message));
+      setReviewModal(prev => ({ ...prev, submitting: false }));
     }
   };
 
@@ -296,16 +317,16 @@ const CoordinatorDashboard = () => {
                   <div className="flex items-center space-x-2 shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleReviewLeave(leave.id, 'Disetujui')}
-                      className="px-3 py-1.5 bg-[#B8C96E] hover:bg-[#a6b85c] rounded-xl border-2 border-[#121214] font-black text-xs text-[#121214] shadow-[2px_2px_0px_#121214] flex items-center space-x-1"
+                      onClick={() => openReviewModal(leave, 'Disetujui')}
+                      className="px-3 py-1.5 bg-[#B8C96E] hover:bg-[#a6b85c] rounded-xl border-2 border-[#121214] font-black text-xs text-[#121214] shadow-[2px_2px_0px_#121214] flex items-center space-x-1 cursor-pointer active:scale-95 transition-transform"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Setujui</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleReviewLeave(leave.id, 'Ditolak')}
-                      className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl border-2 border-[#121214] font-black text-xs shadow-[2px_2px_0px_#121214] flex items-center space-x-1"
+                      onClick={() => openReviewModal(leave, 'Ditolak')}
+                      className="px-3 py-1.5 bg-[#F5C6EC] hover:bg-[#e4b3da] text-[#121214] rounded-xl border-2 border-[#121214] font-black text-xs shadow-[2px_2px_0px_#121214] flex items-center space-x-1 cursor-pointer active:scale-95 transition-transform"
                     >
                       <X className="w-3.5 h-3.5" />
                       <span>Tolak</span>
@@ -676,6 +697,117 @@ const CoordinatorDashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Leave Workflow Review Modal (Branded Neo-Brutalist) */}
+        {reviewModal.isOpen && reviewModal.leave && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="bg-white border-2 border-[#121214] rounded-2xl p-5 sm:p-6 shadow-[6px_6px_0px_#121214] max-w-lg w-full space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-2.5">
+                  <div
+                    className={`w-9 h-9 rounded-xl border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] ${
+                      reviewModal.status === 'Disetujui' ? 'bg-[#B8C96E]' : 'bg-[#F5C6EC]'
+                    }`}
+                  >
+                    {reviewModal.status === 'Disetujui' ? (
+                      <Check className="w-5 h-5 text-[#121214]" />
+                    ) : (
+                      <X className="w-5 h-5 text-[#121214]" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-[#121214]">
+                      {reviewModal.status === 'Disetujui' ? 'Setujui Pengajuan' : 'Tolak Pengajuan'}
+                    </h3>
+                    <p className="text-[11px] text-gray-500 font-medium">
+                      Verifikasi permohonan {reviewModal.leave.leave_type?.toLowerCase() || 'izin'} peserta
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReviewModal((prev) => ({ ...prev, isOpen: false }))}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-black transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-[#FAF9F6] border-2 border-[#121214]/15 rounded-xl space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-[#121214]">{reviewModal.leave.participant_name}</span>
+                  <span className="font-bold bg-[#BDD4F2] border border-[#121214] px-2 py-0.5 rounded text-[10px]">
+                    {reviewModal.leave.leave_type}
+                  </span>
+                </div>
+                <p className="text-gray-500 text-[11px]">
+                  Periode:{' '}
+                  <strong className="text-[#121214]">
+                    {new Date(reviewModal.leave.start_date).toLocaleDateString('id-ID')} -{' '}
+                    {new Date(reviewModal.leave.end_date).toLocaleDateString('id-ID')}
+                  </strong>
+                </p>
+                <p className="text-gray-600 italic text-[11px]">"{reviewModal.leave.reason}"</p>
+                {reviewModal.leave.attachment_url && (
+                  <a
+                    href={reviewModal.leave.attachment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1 text-emerald-700 hover:underline font-bold text-[11px] pt-1"
+                  >
+                    <span>📎 Lihat Surat Dokter / Dokumen Bukti</span>
+                  </a>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-[#121214] mb-1.5">
+                  Catatan Verifikasi Koordinator
+                </label>
+                <textarea
+                  rows={3}
+                  value={reviewModal.note}
+                  onChange={(e) => setReviewModal((prev) => ({ ...prev, note: e.target.value }))}
+                  placeholder="Tuliskan catatan verifikasi atau alasan..."
+                  className="w-full p-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]/20 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReviewModal((prev) => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2 bg-[#FAF9F6] hover:bg-gray-100 border-2 border-[#121214] rounded-xl font-bold text-xs text-[#121214]"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={reviewModal.submitting}
+                  onClick={handleConfirmReview}
+                  className={`px-4 py-2 border-2 border-[#121214] rounded-xl font-black text-xs shadow-[2px_2px_0px_#121214] flex items-center space-x-1.5 active:scale-95 transition-transform ${
+                    reviewModal.status === 'Disetujui'
+                      ? 'bg-[#B8C96E] hover:bg-[#a6b85c] text-[#121214]'
+                      : 'bg-[#F5C6EC] hover:bg-[#e4b3da] text-[#121214]'
+                  }`}
+                >
+                  {reviewModal.submitting ? (
+                    <span>Memproses...</span>
+                  ) : (
+                    <>
+                      {reviewModal.status === 'Disetujui' ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <X className="w-3.5 h-3.5" />
+                      )}
+                      <span>Konfirmasi {reviewModal.status}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Live Chat Modal Mount */}
         <LiveChatModal

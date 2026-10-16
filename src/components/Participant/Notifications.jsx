@@ -18,7 +18,7 @@ import {
 
 const Notifications = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -81,7 +81,14 @@ const Notifications = () => {
 
   const handleDeleteNotification = async (id, e) => {
     e.stopPropagation();
-    if (!window.confirm('Hapus notifikasi ini dari akun Anda?')) return;
+    const ok = await confirm({
+      title: 'Hapus Notifikasi',
+      message: 'Hapus notifikasi ini dari akun Anda?',
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!ok) return;
     try {
       const response = await notificationService.delete(id);
       if (response.data?.success) {
@@ -96,7 +103,14 @@ const Notifications = () => {
   };
 
   const handleClearAllRead = async () => {
-    if (!window.confirm('Hapus seluruh notifikasi yang sudah Anda baca?')) return;
+    const ok = await confirm({
+      title: 'Bersihkan Notifikasi',
+      message: 'Hapus seluruh notifikasi yang sudah Anda baca?',
+      confirmText: 'Ya, Bersihkan',
+      cancelText: 'Batal',
+      type: 'warning'
+    });
+    if (!ok) return;
     try {
       const response = await notificationService.clearAllRead();
       if (response.data?.success) {
@@ -110,7 +124,14 @@ const Notifications = () => {
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus SEMUA notifikasi di akun Anda?')) return;
+    const ok = await confirm({
+      title: 'Hapus Semua Notifikasi',
+      message: 'Apakah Anda yakin ingin menghapus SEMUA notifikasi di akun Anda? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Ya, Hapus Semua',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!ok) return;
     try {
       const response = await notificationService.clearAll();
       if (response.data?.success) {

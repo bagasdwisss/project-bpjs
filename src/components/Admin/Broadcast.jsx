@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import { 
   Send, 
   Megaphone, 
@@ -28,6 +29,7 @@ const formatLocalDatetime = (date) => {
 };
 
 const Broadcast = () => {
+  const { toast, confirm } = useToast();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [target, setTarget] = useState('all');
@@ -95,9 +97,14 @@ const Broadcast = () => {
 
   const handleDeleteBroadcast = async (broadcastId, e) => {
     e.stopPropagation();
-    if (!window.confirm('Apakah Anda yakin ingin menghapus siaran pengumuman ini? Pop-up tidak akan ditampilkan lagi ke pengguna.')) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Hapus Siaran Pengumuman',
+      message: 'Apakah Anda yakin ingin menghapus siaran pengumuman ini? Pop-up tidak akan ditampilkan lagi ke pengguna.',
+      confirmText: 'Ya, Hapus Siaran',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!ok) return;
 
     try {
       const res = await api.delete(`/notifications/admin/broadcast/${broadcastId}`);

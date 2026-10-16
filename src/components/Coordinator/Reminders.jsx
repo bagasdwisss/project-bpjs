@@ -22,7 +22,7 @@ import {
 
 const Reminders = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -84,7 +84,14 @@ const Reminders = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus notifikasi ini?')) return;
+    const ok = await confirm({
+      title: 'Hapus Notifikasi',
+      message: 'Apakah Anda yakin ingin menghapus notifikasi pengingat ini?',
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!ok) return;
     
     try {
       const response = await notificationService.coordinatorDelete(id);

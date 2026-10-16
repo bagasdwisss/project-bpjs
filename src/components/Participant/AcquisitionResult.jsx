@@ -3,6 +3,7 @@ import { Table, Search, Download, Eye, AlertCircle, Upload, CheckCircle, Plus, E
 import { AuthContext } from '../../context/AuthContext';
 import Layout from '../Layout/Layout';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 // Komponen Toast Berwarna Sistem Intelly Soft Neo-Brutalism
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -75,6 +76,7 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
 };
 
 const AcquisitionResult = () => {
+  const { confirm } = useToast();
   const [acquisitionData, setAcquisitionData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -222,8 +224,16 @@ const AcquisitionResult = () => {
   };
 
   const handleConfirmPayment = async (pesertaId) => {
-    if (window.confirm('Apakah Anda yakin pembayaran sudah selesai?')) {
-      try {
+    const ok = await confirm({
+      title: 'Konfirmasi Pembayaran',
+      message: 'Apakah Anda yakin pembayaran iuran BPJS peserta ini sudah selesai dan terverifikasi?',
+      confirmText: 'Ya, Konfirmasi',
+      cancelText: 'Batal',
+      type: 'info'
+    });
+    if (!ok) return;
+
+    try {
         const response = await api.put(`/participant/acquisition-result/${pesertaId}/confirm-payment`);
 
         if (response.data?.success) {
@@ -242,7 +252,6 @@ const AcquisitionResult = () => {
         console.error('Error confirming payment:', error);
         showToast('Terjadi kesalahan saat mengkonfirmasi pembayaran', 'error');
       }
-    }
   };
 
   const handleInputChange = (e) => {

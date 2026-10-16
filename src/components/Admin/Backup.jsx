@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import reportService from '../../services/reportService';
+import { useToast } from '../../context/ToastContext';
 import { 
   Database, 
   Download, 
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 
 const Backup = () => {
+  const { toast, confirm } = useToast();
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -63,9 +65,14 @@ const Backup = () => {
   };
 
   const handleRestoreBackup = async (id, name) => {
-    if (!window.confirm(`Apakah Anda yakin ingin memverifikasi restore untuk "${name}"?`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Verifikasi Restore Backup',
+      message: `Apakah Anda yakin ingin memverifikasi restore untuk "${name}"? Tindakan ini akan mengembalikan data sesuai cadangan.`,
+      confirmText: 'Ya, Lakukan Restore',
+      cancelText: 'Batal',
+      type: 'warning'
+    });
+    if (!ok) return;
 
     setLoading(true);
     try {

@@ -5,6 +5,7 @@ const ToastContext = createContext(null);
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -32,6 +33,20 @@ export const ToastProvider = ({ children }) => {
     warning: (msg, dur) => showToast(msg, 'warning', dur),
     info: (msg, dur) => showToast(msg, 'info', dur),
   };
+
+  const confirm = useCallback((options) => {
+    const opts = typeof options === 'string' ? { message: options } : (options || {});
+    return new Promise((resolve) => {
+      setConfirmDialog({
+        title: opts.title || 'Konfirmasi Tindakan',
+        message: opts.message || 'Apakah Anda yakin ingin melanjutkan tindakan ini?',
+        confirmText: opts.confirmText || 'Ya, Lanjutkan',
+        cancelText: opts.cancelText || 'Batal',
+        type: opts.type || 'warning',
+        resolve,
+      });
+    });
+  }, []);
 
   // Intercept window.alert so all system alerts use this branded toast automatically
   useEffect(() => {
@@ -79,7 +94,7 @@ export const ToastProvider = ({ children }) => {
   }, [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast, removeToast, toast: toastHelpers }}>
+    <ToastContext.Provider value={{ showToast, removeToast, toast: toastHelpers, confirm }}>
       {children}
       {/* Toast Container Top-Right */}
       <div className="fixed top-5 right-5 z-[99999] flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none px-3 sm:px-0">
@@ -134,6 +149,71 @@ export const ToastProvider = ({ children }) => {
           );
         })}
       </div>
+
+      {/* Neo-Brutalist Branded Confirmation Modal */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white border-2 border-[#121214] rounded-2xl p-5 sm:p-6 shadow-[6px_6px_0px_#121214] max-w-sm sm:max-w-md w-full space-y-4 animate-in zoom-in-95 duration-150 pointer-events-auto">
+            <div className="flex items-start gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl border-2 border-[#121214] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#121214] ${
+                  confirmDialog.type === 'danger' || confirmDialog.type === 'error'
+                    ? 'bg-[#F5C6EC]'
+                    : confirmDialog.type === 'success'
+                    ? 'bg-[#B8C96E]'
+                    : confirmDialog.type === 'info'
+                    ? 'bg-[#BDD4F2]'
+                    : 'bg-[#FCE373]'
+                }`}
+              >
+                <AlertTriangle className="w-5 h-5 text-[#121214]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/60 block mb-0.5">
+                  Konfirmasi
+                </span>
+                <h3 className="font-black text-sm sm:text-base text-[#121214] leading-snug">
+                  {confirmDialog.title}
+                </h3>
+                <p className="text-xs font-bold text-gray-600 mt-1.5 leading-relaxed">
+                  {confirmDialog.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const res = confirmDialog.resolve;
+                  setConfirmDialog(null);
+                  res(false);
+                }}
+                className="px-4 py-2 bg-[#FAF9F6] hover:bg-gray-100 border-2 border-[#121214] rounded-xl font-bold text-xs text-[#121214] active:scale-95 transition-transform"
+              >
+                {confirmDialog.cancelText}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const res = confirmDialog.resolve;
+                  setConfirmDialog(null);
+                  res(true);
+                }}
+                className={`px-4 py-2 border-2 border-[#121214] rounded-xl font-black text-xs shadow-[2px_2px_0px_#121214] active:scale-95 transition-transform text-[#121214] ${
+                  confirmDialog.type === 'danger' || confirmDialog.type === 'error'
+                    ? 'bg-[#F5C6EC] hover:bg-[#e4b3da]'
+                    : confirmDialog.type === 'success'
+                    ? 'bg-[#B8C96E] hover:bg-[#a6b85c]'
+                    : 'bg-[#FCE373] hover:bg-[#ecd25b]'
+                }`}
+              >
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ToastContext.Provider>
   );
 };
@@ -143,14 +223,15 @@ export const useToast = () => {
   if (!context) {
     // Fallback if component is rendered outside ToastProvider
     return {
-      showToast: (msg) => window.alert(msg),
+      showToast: (msg) => console.log(msg),
       removeToast: () => {},
+      confirm: async () => true,
       toast: {
-        show: (msg) => window.alert(msg),
-        success: (msg) => window.alert(msg),
-        error: (msg) => window.alert(msg),
-        warning: (msg) => window.alert(msg),
-        info: (msg) => window.alert(msg),
+        show: (msg) => console.log(msg),
+        success: (msg) => console.log(msg),
+        error: (msg) => console.log(msg),
+        warning: (msg) => console.log(msg),
+        info: (msg) => console.log(msg),
       }
     };
   }

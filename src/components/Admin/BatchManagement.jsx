@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import { Calendar, Users, Plus, Edit2, Trash2, UserPlus, CheckCircle, Clock, X } from 'lucide-react';
 
 function AdminBatchManagement() {
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [batches, setBatches] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +97,14 @@ function AdminBatchManagement() {
   };
 
   const handleDeleteBatch = async (id, name) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus "${name}"?`)) return;
+    const ok = await confirm({
+      title: 'Hapus Batch',
+      message: `Apakah Anda yakin ingin menghapus "${name}"? Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Ya, Hapus Batch',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!ok) return;
     try {
       await batchService.delete(id);
       toast.success(`Batch "${name}" berhasil dihapus.`);

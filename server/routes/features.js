@@ -599,7 +599,7 @@ router.get('/coordinator/early-warning', authenticateToken, async (req, res) => 
              COUNT(DISTINCT CASE WHEN a.status = 'Terlambat' THEN a.attendance_id END) as late_count,
              COUNT(DISTINCT CASE WHEN a.status = 'Alfa' THEN a.attendance_id END) as absent_count,
              COALESCE(AVG(p.nilai), 0) as avg_score,
-             COUNT(DISTINCT p.progress_id) as modules_completed
+             COUNT(DISTINCT p.id) as modules_completed
       FROM users u
       LEFT JOIN attendance_records a ON u.user_id = a.user_id
       LEFT JOIN progress p ON u.user_id = p.user_id

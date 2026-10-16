@@ -51,7 +51,7 @@ const defaultTemplates = [
 ];
 
 const Templates = () => {
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [templates, setTemplates] = useState(() => {
     const saved = localStorage.getItem('bpjs_templates');
     return saved ? JSON.parse(saved) : defaultTemplates;
@@ -93,8 +93,15 @@ const Templates = () => {
     toast.success(`Template "${created.name}" berhasil ditambahkan!`);
   };
 
-  const handleDeleteTemplate = (id, name) => {
-    if (!window.confirm(`Hapus template "${name}"?`)) return;
+  const handleDeleteTemplate = async (id, name) => {
+    const ok = await confirm({
+      title: 'Hapus Template Dokumen',
+      message: `Apakah Anda yakin ingin menghapus template "${name}"?`,
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!ok) return;
     setTemplates(templates.filter((t) => t.id !== id));
     toast.success(`Template "${name}" berhasil dihapus.`);
   };
