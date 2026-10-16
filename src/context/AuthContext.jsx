@@ -3,6 +3,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react'; // TAMBAHKIN useContext
 import authService from '../services/authService.js';
 import userService from '../services/userService.js';
+import PageLoader from '../components/Common/PageLoader';
 
 export const AuthContext = createContext();
 
@@ -144,14 +145,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Memuat...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
