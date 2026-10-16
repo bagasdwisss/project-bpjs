@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import authService from '../services/authService';
 import { ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
 import PageLoader from './Common/PageLoader';
 
@@ -10,6 +11,14 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   if (loading) {
     return <PageLoader />;
+  }
+
+  // Inactivity check on protected route access
+  const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
+  const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+  if (storedLastActive && (Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
+    authService.clearAuth();
+    return <Navigate to="/login?reason=idle_timeout" replace />;
   }
 
   if (!isAuthenticated) {

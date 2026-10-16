@@ -51,10 +51,9 @@ export const AuthProvider = ({ children }) => {
           const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
           if (storedLastActive && (Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
             console.warn('User idle for > 5 minutes before opening website. Redirecting to login...');
-            authService.logout();
+            authService.clearAuth();
             setUser(null);
             setCoordinator(null);
-            localStorage.removeItem('last_active_time');
             setLoading(false);
             window.location.href = '/login?reason=idle_timeout';
             return;
@@ -93,24 +92,41 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('last_active_time', Date.now().toString());
     }
 
+    const triggerIdleLogout = () => {
+      console.warn('Session expired due to 5-minute inactivity. Logging out...');
+      authService.logout('idle_timeout');
+      setUser(null);
+      setCoordinator(null);
+      window.location.href = '/login?reason=idle_timeout';
+    };
+
+    const checkInactivity = () => {
+      if (!authService.isAuthenticated()) return;
+      const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
+      if (storedLastActive && (Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
+        triggerIdleLogout();
+      }
+    };
+
     const handleUserActivity = () => {
+      // Ignore background activity if tab is hidden
+      if (document.visibilityState !== 'visible') return;
+
       const now = Date.now();
+      const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
+
+      // CRITICAL GUARD: If already idle for > 5 minutes, DO NOT refresh last_active_time!
+      // The user returned after > 5 minutes of inactivity; trigger logout immediately!
+      if (storedLastActive && (now - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
+        console.warn('Activity detected after > 5 minutes of idle. Triggering logout...');
+        triggerIdleLogout();
+        return;
+      }
+
       // Throttle updating localStorage to once every 2 seconds
       if (now - lastRecordedActivity > 2000) {
         lastRecordedActivity = now;
         localStorage.setItem('last_active_time', now.toString());
-      }
-    };
-
-    const checkInactivity = () => {
-      const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
-      if (storedLastActive && Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS) {
-        console.warn('User idle for > 5 minutes. Logging out for security...');
-        authService.logout();
-        setUser(null);
-        setCoordinator(null);
-        localStorage.removeItem('last_active_time');
-        window.location.href = '/login?reason=idle_timeout';
       }
     };
 
@@ -120,7 +136,7 @@ export const AuthProvider = ({ children }) => {
       window.addEventListener(event, handleUserActivity, { passive: true });
     });
 
-    // Check on focus / tab visibility change (e.g. when user switches tabs or wakes computer)
+    // Check immediately when user switches tabs or focuses window
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkInactivity();
@@ -129,8 +145,8 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', checkInactivity);
 
-    // Periodic check every 5 seconds (Pure local client-side interval, NO network requests)
-    const intervalId = setInterval(checkInactivity, 5000);
+    // Periodic check every 1 second (pure local client-side interval, 0 network requests)
+    const intervalId = setInterval(checkInactivity, 1000);
 
     return () => {
       activityEvents.forEach((event) => {
@@ -241,9 +257,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = async (reason = null) => {
     try {
-      await authService.logout();
+      await authService.logout(reason);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

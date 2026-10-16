@@ -143,8 +143,15 @@ router.get('/me', authenticateToken, (req, res) => {
  */
 router.post('/logout', authenticateToken, async (req, res) => {
   try {
-    await query(`UPDATE users SET current_session_token = NULL WHERE user_id = $1`, [req.user.user_id]);
-    await logActivity(req.user.user_id, 'LOGOUT', 'Sesi pengguna diakhiri / logout manual', req.ip);
+    const reason = req.body?.reason;
+    const detail = reason === 'idle_timeout'
+      ? 'Sesi ditutup otomatis: Inaktivitas pengguna melebihi 5 menit'
+      : 'Sesi pengguna diakhiri / logout manual';
+
+    if (req.user?.user_id) {
+      await query(`UPDATE users SET current_session_token = NULL WHERE user_id = $1`, [req.user.user_id]);
+      await logActivity(req.user.user_id, 'LOGOUT', detail, req.ip);
+    }
     return res.json({
       success: true,
       message: 'Logout berhasil.'

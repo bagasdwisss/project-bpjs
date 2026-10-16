@@ -61,19 +61,27 @@ const authService = {
     }
   },
 
-  async logout() {
+  async logout(reason = null) {
+    const token = this.getToken();
+    // 1. Synchronously wipe credentials from client storage
+    this.clearAuth();
+
+    // 2. Notify backend to log and close session
     try {
-      await api.post('/logout');
+      if (token) {
+        await api.post('/logout', { reason }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
     } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      this.clearAuth();
+      console.warn('Backend logout notification error:', error.message);
     }
   },
 
   clearAuth() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('last_active_time');
   },
 
   getCurrentUser() {
