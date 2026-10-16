@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
 import userService from '../../services/userService';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
-import LiveChatModal from '../Common/LiveChatModal';
+
+const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 import { 
   Users, TrendingUp, Award, Clock, CheckCircle, 
   AlertCircle, RefreshCw, ChevronRight, Eye, Edit3, 
@@ -808,12 +809,16 @@ const CoordinatorDashboard = () => {
           </div>
         )}
 
-        {/* Live Chat Modal Mount */}
-        <LiveChatModal
-          isOpen={chatModalOpen}
-          onClose={() => setChatModalOpen(false)}
-          defaultRecipientId={chatRecipientId}
-        />
+        {/* Live Chat Modal Mount (Lazy Loaded on Demand) */}
+        {chatModalOpen && (
+          <Suspense fallback={null}>
+            <LiveChatModal
+              isOpen={chatModalOpen}
+              onClose={() => setChatModalOpen(false)}
+              defaultRecipientId={chatRecipientId}
+            />
+          </Suspense>
+        )}
       </div>
     </Layout>
   );

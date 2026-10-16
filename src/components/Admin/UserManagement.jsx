@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import Layout from '../Layout/Layout';
-import UserModal from './UserModal';
-import * as XLSX from 'xlsx';
 import userService from '../../services/userService';
+
+const UserModal = lazy(() => import('./UserModal'));
 import { 
   Users, UserPlus, Upload, Search, Filter, 
   Edit3, Trash2, CheckCircle2, AlertCircle, X, Shield, Sparkles
@@ -371,12 +371,14 @@ const UserManagement = () => {
 
         {/* Modal User & Delete */}
         {showModal && (
-          <UserModal 
-            user={selectedUser} 
-            onClose={() => setShowModal(false)}
-            onSave={handleSaveUser}
-            coordinators={coordinators}
-          />
+          <Suspense fallback={null}>
+            <UserModal 
+              user={selectedUser} 
+              onClose={() => setShowModal(false)}
+              onSave={handleSaveUser}
+              coordinators={coordinators}
+            />
+          </Suspense>
         )}
 
         <ConfirmDeleteModal

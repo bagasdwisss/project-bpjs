@@ -1,7 +1,5 @@
-// src/components/Admin/ImportExport.jsx
 import React, { useState } from 'react';
 import Layout from '../Layout/Layout';
-import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { 
@@ -34,6 +32,7 @@ const ImportExport = () => {
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
+        const XLSX = await import('xlsx');
         const bstr = evt.target.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
@@ -67,6 +66,7 @@ const ImportExport = () => {
     setExportLoading(true);
     setStatusMsg(null);
     try {
+      const XLSX = await import('xlsx');
       let url = '/users';
       if (exportType === 'participants') url += '?role_id=1';
       else if (exportType === 'coordinators') url += '?role_id=2';
@@ -100,7 +100,8 @@ const ImportExport = () => {
     }
   };
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import('xlsx');
     const templateData = [
       {
         unique_id: 'PES999',

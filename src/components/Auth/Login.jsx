@@ -92,7 +92,7 @@ const Login = () => {
         <div className="text-center space-y-2">
           <div className="inline-flex items-center space-x-2.5 bg-white border border-[#EAE9E4] px-4 py-2 rounded-full shadow-sm">
             <div className="w-6 h-6 rounded-lg bg-[#F5C6EC] flex items-center justify-center overflow-hidden">
-              <img src={logo} alt="BPJS Logo" width="16" height="16" style={{ width: '16px', height: '16px', objectFit: 'contain' }} className="w-4 h-4 object-contain" />
+              <img src={logo} alt="BPJS Logo" width="16" height="16" loading="lazy" decoding="async" style={{ width: '16px', height: '16px', objectFit: 'contain' }} className="w-4 h-4 object-contain" />
             </div>
             <span className="font-bold text-base text-[#121214]">intelly</span>
             <span className="text-[10px] font-bold uppercase tracking-wider bg-[#121214] text-white px-2 py-0.5 rounded-full">

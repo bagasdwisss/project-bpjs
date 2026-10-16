@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import TanyaBPJSBot from '../Common/TanyaBPJSBot';
 import BroadcastPopup from '../Common/BroadcastPopup';
+
+const TanyaBPJSBot = lazy(() => import('../Common/TanyaBPJSBot'));
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -29,8 +30,10 @@ const Layout = ({ children }) => {
         </main>
       </div>
 
-      {/* Global AI Regulation Chatbot Assistant */}
-      <TanyaBPJSBot />
+      {/* Global AI Regulation Chatbot Assistant (Lazy Loaded) */}
+      <Suspense fallback={null}>
+        <TanyaBPJSBot />
+      </Suspense>
 
       {/* Global Broadcast Toast & Center Modal Alerts */}
       <BroadcastPopup />

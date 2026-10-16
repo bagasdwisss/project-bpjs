@@ -1,9 +1,10 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, User, Settings, LogOut, Key, Search, ChevronDown, Check, ChevronRight, Clock, Sparkles } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
-import ChangePasswordModal from './ChangePasswordModal';
 import api from '../../services/api';
+
+const ChangePasswordModal = lazy(() => import('./ChangePasswordModal'));
 
 const Header = ({ toggleSidebar }) => {
   const navigate = useNavigate();
@@ -296,11 +297,15 @@ const Header = ({ toggleSidebar }) => {
         </div>
       </header>
 
-      {/* Change Password Modal */}
-      <ChangePasswordModal 
-        isOpen={showChangePasswordModal}
-        onClose={() => setShowChangePasswordModal(false)}
-      />
+      {/* Change Password Modal (Lazy Loaded on Demand) */}
+      {showChangePasswordModal && (
+        <Suspense fallback={null}>
+          <ChangePasswordModal 
+            isOpen={showChangePasswordModal} 
+            onClose={() => setShowChangePasswordModal(false)} 
+          />
+        </Suspense>
+      )}
     </>
   );
 };

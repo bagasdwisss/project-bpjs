@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
@@ -10,9 +10,10 @@ import {
   Calculator, QrCode, MessageSquare
 } from 'lucide-react';
 import dashboardService from '../../services/DashboardService.js';
-import CalculatorModal from '../Common/CalculatorModal';
-import QRCodeModal from '../Common/QRCodeModal';
-import LiveChatModal from '../Common/LiveChatModal';
+
+const CalculatorModal = lazy(() => import('../Common/CalculatorModal'));
+const QRCodeModal = lazy(() => import('../Common/QRCodeModal'));
+const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 
 const ParticipantDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -467,10 +468,22 @@ const ParticipantDashboard = () => {
           </div>
         </div>
 
-        {/* Global Modals for Participant */}
-        <CalculatorModal isOpen={calcModalOpen} onClose={() => setCalcModalOpen(false)} />
-        <QRCodeModal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} user={user} />
-        <LiveChatModal isOpen={chatModalOpen} onClose={() => setChatModalOpen(false)} />
+        {/* Global Modals for Participant (Lazy Loaded on Demand) */}
+        {calcModalOpen && (
+          <Suspense fallback={null}>
+            <CalculatorModal isOpen={calcModalOpen} onClose={() => setCalcModalOpen(false)} />
+          </Suspense>
+        )}
+        {qrModalOpen && (
+          <Suspense fallback={null}>
+            <QRCodeModal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} user={user} />
+          </Suspense>
+        )}
+        {chatModalOpen && (
+          <Suspense fallback={null}>
+            <LiveChatModal isOpen={chatModalOpen} onClose={() => setChatModalOpen(false)} />
+          </Suspense>
+        )}
 
       </div>
     </Layout>
