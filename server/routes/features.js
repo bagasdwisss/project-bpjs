@@ -61,7 +61,7 @@ router.get('/leaves', authenticateToken, async (req, res) => {
   try {
     const result = await query(
       `SELECT l.*, u.full_name as participant_name, u.unique_id as participant_nim,
-              u.email, r.full_name as reviewed_by_name
+              COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, r.full_name as reviewed_by_name
        FROM leave_requests l
        JOIN users u ON l.user_id = u.user_id
        LEFT JOIN users r ON l.reviewed_by = r.user_id
@@ -197,7 +197,9 @@ router.get('/messages/contacts', authenticateToken, async (req, res) => {
     if (userRole === 'Peserta') {
       // Participant talks to Coordinators
       sql = `
-        SELECT u.user_id, u.full_name, u.unique_id, u.email, r.role_name,
+        SELECT u.user_id, u.full_name, u.unique_id, 
+               COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, 
+               r.role_name,
                (SELECT message_text FROM direct_messages 
                 WHERE (sender_id = u.user_id AND receiver_id = $1) OR (sender_id = $1 AND receiver_id = u.user_id) 
                 ORDER BY created_at DESC LIMIT 1) as last_message,
@@ -215,7 +217,9 @@ router.get('/messages/contacts', authenticateToken, async (req, res) => {
     } else {
       // Coordinator / Admin talks to Participants & Coordinators
       sql = `
-        SELECT u.user_id, u.full_name, u.unique_id, u.email, r.role_name,
+        SELECT u.user_id, u.full_name, u.unique_id, 
+               COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, 
+               r.role_name,
                (SELECT message_text FROM direct_messages 
                 WHERE (sender_id = u.user_id AND receiver_id = $1) OR (sender_id = $1 AND receiver_id = u.user_id) 
                 ORDER BY created_at DESC LIMIT 1) as last_message,
@@ -432,7 +436,7 @@ router.get('/certificates/my', authenticateToken, async (req, res) => {
     const userId = req.user.user_id;
     const result = await query(
       `SELECT c.*, u.full_name as participant_name, u.unique_id as participant_nim,
-              u.email, r.role_name
+              COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, r.role_name
        FROM certificates c
        JOIN users u ON c.user_id = u.user_id
        JOIN roles r ON u.role_id = r.role_id
@@ -589,7 +593,8 @@ router.get('/certificates/verify/:certNumber', async (req, res) => {
 router.get('/coordinator/early-warning', authenticateToken, async (req, res) => {
   try {
     const participants = await query(`
-      SELECT u.user_id, u.full_name, u.unique_id, u.email,
+      SELECT u.user_id, u.full_name, u.unique_id, 
+             COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email,
              COUNT(DISTINCT a.attendance_id) as total_attendance,
              COUNT(DISTINCT CASE WHEN a.status = 'Terlambat' THEN a.attendance_id END) as late_count,
              COUNT(DISTINCT CASE WHEN a.status = 'Alfa' THEN a.attendance_id END) as absent_count,

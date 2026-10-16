@@ -60,8 +60,25 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       is_mock_location 
     } = req.body;
 
-    const today = new Date().toISOString().split('T')[0];
-    const nowTime = new Date().toTimeString().split(' ')[0];
+    // Use Asia/Jakarta timezone for date and time
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+    const nowTime = new Intl.DateTimeFormat('en-GB', { 
+      timeZone: 'Asia/Jakarta', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    }).format(new Date());
+
+    // Normalize status to strictly match check constraint: 'Hadir', 'Terlambat', 'Izin', 'Sakit', 'Alfa'
+    let normalizedStatus = 'Hadir';
+    if (status) {
+      const s = String(status).trim().toLowerCase();
+      if (s === 'terlambat') normalizedStatus = 'Terlambat';
+      else if (s === 'izin') normalizedStatus = 'Izin';
+      else if (s === 'sakit') normalizedStatus = 'Sakit';
+      else if (s === 'alfa') normalizedStatus = 'Alfa';
+      else normalizedStatus = 'Hadir';
+    }
 
     // Check if already checked in today
     const existing = await query(
@@ -76,6 +93,32 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       });
     }
 
+    // Validate geofence_id against foreign key
+    let validGeofenceId = null;
+    if (geofence_id) {
+      const parsedId = parseInt(geofence_id, 10);
+      if (!isNaN(parsedId)) {
+        const checkG = await query(`SELECT id FROM geofence_locations WHERE id = $1`, [parsedId]);
+        if (checkG.rows.length > 0) {
+          validGeofenceId = parsedId;
+        }
+      }
+    }
+    if (!validGeofenceId) {
+      const defaultG = await query(`SELECT id FROM geofence_locations WHERE category = 'kantor' LIMIT 1`);
+      if (defaultG.rows.length > 0) {
+        validGeofenceId = defaultG.rows[0].id;
+      }
+    }
+
+    // Validate distance_meters
+    let validDistance = null;
+    if (distance_meters !== undefined && distance_meters !== null && !isNaN(Number(distance_meters))) {
+      validDistance = Math.round(Number(distance_meters) * 100) / 100;
+    }
+
+    const defaultOfficeAddress = 'BPJS Ketenagakerjaan Medan Kota, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153';
+
     const result = await query(
       `INSERT INTO attendance_records (
         user_id, attendance_date, check_in_time, status, notes, 
@@ -83,21 +126,21 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         selfie_image_url, geofence_id, distance_meters, is_mock_location,
         created_at
       )
-      VALUES ($1, $2, $3, COALESCE($4, 'Hadir'), $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
       RETURNING *`,
       [
         userId,
         today,
         nowTime,
-        status || 'Hadir',
+        normalizedStatus,
         notes || null,
         coordinates || null,
-        address || null,
+        address || defaultOfficeAddress,
         req.ip || '127.0.0.1',
         device_info || req.headers['user-agent'] || null,
         selfie_image_url || null,
-        geofence_id || null,
-        distance_meters || null,
+        validGeofenceId,
+        validDistance,
         Boolean(is_mock_location)
       ]
     );
@@ -108,7 +151,8 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       data: result.rows[0]
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error('Error during participant check-in:', error);
+    return res.status(500).json({ success: false, message: error.message || 'Gagal mencatat absensi' });
   }
 });
 

@@ -37,20 +37,40 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
   );
 };
 
-// Haversine distance calculator in meters
+// Haversine distance calculator in meters (using standard ASCII identifiers)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3; // metres
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const radLat1 = (lat1 * Math.PI) / 180;
+  const radLat2 = (lat2 * Math.PI) / 180;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
 
   const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return Math.round(R * c);
+};
+
+// Distance formatter: if < 1000m display in meters, if >= 1000m display in km
+const formatDistance = (meters) => {
+  if (meters === null || meters === undefined || isNaN(meters)) return '-';
+  const num = Number(meters);
+  if (num < 1000) {
+    return `${Math.round(num)} meter`;
+  }
+  const km = num / 1000;
+  return `${km < 10 ? km.toFixed(2) : km.toFixed(1)} km`;
+};
+
+// Titik Kantor Resmi BPJS Ketenagakerjaan
+const OFFICE_LOCATION = {
+  name: 'Kantor Cabang BPJS Ketenagakerjaan Medan Kota',
+  address: 'BPJS, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153',
+  lat: 3.575556,
+  lon: 98.665278,
+  radiusMeters: 150
 };
 
 const Attendance = () => {
@@ -73,11 +93,9 @@ const Attendance = () => {
   const [toast, setToast] = useState(null);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
 
-  // Geofencing State
-  const [geofences, setGeofences] = useState([]);
-  const [selectedGeofence, setSelectedGeofence] = useState(null);
+  // Geofencing & Office Location State
   const [currentCoords, setCurrentCoords] = useState(null);
-  const [distanceToGeofence, setDistanceToGeofence] = useState(null);
+  const [distanceToOffice, setDistanceToOffice] = useState(null);
   const [isWithinRadius, setIsWithinRadius] = useState(false);
   const [isMockLocation, setIsMockLocation] = useState(false);
   const [locationAddress, setLocationAddress] = useState('');
@@ -111,22 +129,9 @@ const Attendance = () => {
 
   const loadInitialData = async () => {
     await Promise.all([
-      loadGeofences(),
       loadAttendanceData(),
       loadLeaveHistory()
     ]);
-  };
-
-  const loadGeofences = async () => {
-    try {
-      const res = await api.get('/geofences');
-      if (res.data?.success && res.data.data.length > 0) {
-        setGeofences(res.data.data);
-        setSelectedGeofence(res.data.data[0]);
-      }
-    } catch (err) {
-      console.error('Error loading geofences:', err);
-    }
   };
 
   const loadAttendanceData = async () => {
@@ -189,19 +194,15 @@ const Attendance = () => {
         const altitude = pos.coords.altitude;
 
         // Anti-Fake GPS Heuristic Check:
-        // Mock providers often report accuracy exactly 0, or lack elevation/speed inconsistencies
         const mockDetected = accuracy < 1 || (speed === 0 && altitude === 0 && accuracy === 0);
         setIsMockLocation(mockDetected);
 
         setCurrentCoords({ lat, lon, accuracy });
 
-        // Calculate distance to selected geofence
-        const target = selectedGeofence || geofences[0];
-        if (target) {
-          const dist = calculateDistance(lat, lon, parseFloat(target.latitude), parseFloat(target.longitude));
-          setDistanceToGeofence(dist);
-          setIsWithinRadius(dist <= target.radius_meters);
-        }
+        // Calculate distance to BPJS Kapten Patimura Medan office
+        const dist = calculateDistance(lat, lon, OFFICE_LOCATION.lat, OFFICE_LOCATION.lon);
+        setDistanceToOffice(dist);
+        setIsWithinRadius(dist <= OFFICE_LOCATION.radiusMeters);
 
         // Reverse Geocode
         try {
@@ -221,7 +222,7 @@ const Attendance = () => {
       },
       (err) => {
         setCheckingLocation(false);
-        showToast('Gagal mendeteksi GPS: Pastikan izin lokasi aktif.', 'error');
+        showToast('Gagal mendeteksi GPS: Pastikan izin lokasi perangkat telah diaktifkan.', 'error');
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 }
     );
@@ -251,11 +252,24 @@ const Attendance = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      canvas.width = video.videoWidth || 320;
-      canvas.height = video.videoHeight || 320;
+      
+      const maxDim = 480;
+      let w = video.videoWidth || 320;
+      let h = video.videoHeight || 320;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUri = canvas.toDataURL('image/jpeg', 0.8);
+      ctx.drawImage(video, 0, 0, w, h);
+      const dataUri = canvas.toDataURL('image/jpeg', 0.7);
       setSelfieImage(dataUri);
 
       // Stop camera stream
@@ -277,23 +291,10 @@ const Attendance = () => {
       ctx.font = 'bold 16px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Selfie Verified', 150, 150);
-      setSelfieImage(dummyCanvas.toDataURL('image/jpeg'));
+      setSelfieImage(dummyCanvas.toDataURL('image/jpeg', 0.7));
       setCameraActive(false);
       setFaceDetected(true);
       showToast('Foto selfie berhasil diambil.', 'success');
-    }
-  };
-
-  const handleGeofenceChange = (e) => {
-    const geoId = parseInt(e.target.value, 10);
-    const found = geofences.find(g => g.id === geoId);
-    if (found) {
-      setSelectedGeofence(found);
-      if (currentCoords) {
-        const dist = calculateDistance(currentCoords.lat, currentCoords.lon, parseFloat(found.latitude), parseFloat(found.longitude));
-        setDistanceToGeofence(dist);
-        setIsWithinRadius(dist <= found.radius_meters);
-      }
     }
   };
 
@@ -323,26 +324,26 @@ const Attendance = () => {
 
       const payload = {
         status,
-        notes: notes || (isWithinRadius ? 'Presensi dalam radius titik binaan' : 'Presensi di luar radius binaan (Verifikasi Koordinator)'),
+        notes: notes || (isWithinRadius ? 'Presensi dalam radius Kantor BPJS Medan Kota' : 'Presensi di luar radius kantor resmi (Verifikasi Koordinator)'),
         coordinates: `${currentCoords.lat},${currentCoords.lon}`,
-        address: locationAddress || selectedGeofence?.name,
+        address: locationAddress || OFFICE_LOCATION.address,
         device_info: navigator.userAgent,
         selfie_image_url: selfieImage,
-        geofence_id: selectedGeofence?.id || null,
-        distance_meters: distanceToGeofence || 0,
+        geofence_id: 1,
+        distance_meters: distanceToOffice !== null ? distanceToOffice : 0,
         is_mock_location: isMockLocation
       };
 
       const res = await api.post('/participant/attendance/check-in', payload);
 
       if (res.data?.success) {
-        showToast('Presensi selfie & geofence berhasil dicatat!', 'success');
+        showToast('Presensi selfie & GPS berhasil dicatat!', 'success');
         setAttendanceStatus({
           id: res.data.data.attendance_id,
           status,
           checkIn: res.data.data.check_in_time,
           notes: res.data.data.notes,
-          location: locationAddress,
+          location: locationAddress || OFFICE_LOCATION.address,
           selfie: selfieImage
         });
         await loadAttendanceData();
@@ -500,22 +501,25 @@ const Attendance = () => {
                 )}
               </div>
 
-              {/* Geofence Selection */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-black uppercase text-[#121214]">
-                  Pilih Titik Penugasan Geofence:
-                </label>
-                <select
-                  value={selectedGeofence?.id || ''}
-                  onChange={handleGeofenceChange}
-                  className="w-full p-2.5 bg-white border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-hidden"
-                >
-                  {geofences.map((geo) => (
-                    <option key={geo.id} value={geo.id}>
-                      {geo.name} (Radius: {geo.radius_meters}m)
-                    </option>
-                  ))}
-                </select>
+              {/* Lokasi Kantor Acuan Presensi Resmi */}
+              <div className="bg-white p-4 rounded-xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-[#BDD4F2] border border-[#121214] flex items-center justify-center shrink-0">
+                      <MapPin className="w-4 h-4 text-[#121214]" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/60">Titik Kantor Presensi</span>
+                      <h3 className="text-xs font-black text-[#121214]">{OFFICE_LOCATION.name}</h3>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black bg-[#B8C96E] text-[#121214] px-2 py-0.5 rounded-full border border-[#121214]">
+                    Radius {OFFICE_LOCATION.radiusMeters}m
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#121214]/75 font-medium leading-relaxed bg-[#F5F4F0] p-2.5 rounded-lg border border-[#121214]/10">
+                  {OFFICE_LOCATION.address}
+                </p>
               </div>
 
               {/* GPS Detection Bar */}
@@ -536,17 +540,17 @@ const Attendance = () => {
                 {currentCoords ? (
                   <div className="space-y-1.5 text-[11px]">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500">Jarak ke Titik:</span>
-                      <strong className={`font-black ${isWithinRadius ? 'text-emerald-700' : 'text-amber-700'}`}>
-                        {distanceToGeofence !== null ? `${distanceToGeofence} meter` : '-'}
+                      <span className="text-gray-500 font-bold">Jarak ke Kantor BPJS:</span>
+                      <strong className={`font-black text-xs ${isWithinRadius ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {formatDistance(distanceToOffice)}
                       </strong>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500">Status Radius:</span>
+                      <span className="text-gray-500 font-bold">Status Keberadaan:</span>
                       <span className={`px-2 py-0.5 rounded font-black border border-[#121214] text-[10px] ${
                         isWithinRadius ? 'bg-[#B8C96E] text-[#121214]' : 'bg-[#FCE373] text-[#121214]'
                       }`}>
-                        {isWithinRadius ? 'Dalam Radius (Valid)' : 'Di Luar Radius Titik'}
+                        {isWithinRadius ? 'Dalam Radius Kantor (Valid)' : 'Di Luar Radius Kantor'}
                       </span>
                     </div>
                     {isMockLocation && (
@@ -557,7 +561,7 @@ const Attendance = () => {
                     )}
                   </div>
                 ) : (
-                  <p className="text-[11px] text-gray-500">Klik "Deteksi GPS" untuk memeriksa keberadaan Anda di titik binaan.</p>
+                  <p className="text-[11px] text-gray-500 font-medium">Klik "Deteksi GPS" untuk mengukur jarak keberadaan Anda ke kantor BPJS Medan.</p>
                 )}
               </div>
 
@@ -696,9 +700,9 @@ const Attendance = () => {
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {record.distance_meters && (
+                          {record.distance_meters !== null && record.distance_meters !== undefined && (
                             <span className="text-[10px] font-mono text-gray-600 bg-[#F5F4F0] px-1.5 py-0.5 rounded border border-[#121214]/20">
-                              {Math.round(record.distance_meters)}m
+                              {formatDistance(record.distance_meters)}
                             </span>
                           )}
                           {getStatusBadge(record.status)}
