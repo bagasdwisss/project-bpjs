@@ -4,6 +4,16 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import { notificationService } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
+import { 
+  Bell, 
+  Trash2, 
+  CheckCheck, 
+  RefreshCw, 
+  Clock, 
+  Calendar, 
+  AlertCircle,
+  Inbox
+} from 'lucide-react';
 
 const Notifications = () => {
   const { user } = useAuth();
@@ -20,8 +30,8 @@ const Notifications = () => {
     setLoading(true);
     try {
       const response = await notificationService.getAll();
-      if (response.data.success) {
-        setNotifications(response.data.data.data || response.data.data);
+      if (response.data?.success) {
+        setNotifications(response.data.data?.data || response.data.data || []);
       }
     } catch (error) {
       console.error('Error loading notifications:', error);
@@ -33,8 +43,8 @@ const Notifications = () => {
   const loadUnreadCount = async () => {
     try {
       const response = await notificationService.getUnreadCount();
-      if (response.data.success) {
-        setUnreadCount(response.data.data.unread_count);
+      if (response.data?.success) {
+        setUnreadCount(response.data.data.unread_count || response.data.data.count || 0);
       }
     } catch (error) {
       console.error('Error loading unread count:', error);
@@ -44,8 +54,10 @@ const Notifications = () => {
   const handleMarkAsRead = async (id) => {
     try {
       const response = await notificationService.markAsRead(id);
-      if (response.data.success) {
-        loadNotifications();
+      if (response.data?.success) {
+        setNotifications(prev => 
+          prev.map(n => n.notification_id === id ? { ...n, is_read: true } : n)
+        );
         loadUnreadCount();
       }
     } catch (error) {
@@ -56,34 +68,77 @@ const Notifications = () => {
   const handleMarkAllAsRead = async () => {
     try {
       const response = await notificationService.markAllAsRead();
-      if (response.data.success) {
-        loadNotifications();
-        loadUnreadCount();
+      if (response.data?.success) {
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setUnreadCount(0);
       }
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
   };
 
+  const handleDeleteNotification = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Hapus notifikasi ini dari akun Anda?')) return;
+    try {
+      const response = await notificationService.delete(id);
+      if (response.data?.success) {
+        setNotifications(prev => prev.filter(n => n.notification_id !== id));
+        loadUnreadCount();
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      alert('Gagal menghapus notifikasi: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleClearAllRead = async () => {
+    if (!window.confirm('Hapus seluruh notifikasi yang sudah Anda baca?')) return;
+    try {
+      const response = await notificationService.clearAllRead();
+      if (response.data?.success) {
+        setNotifications(prev => prev.filter(n => !n.is_read));
+      }
+    } catch (error) {
+      console.error('Error clearing read notifications:', error);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus SEMUA notifikasi di akun Anda?')) return;
+    try {
+      const response = await notificationService.clearAll();
+      if (response.data?.success) {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+    }
+  };
+
   const getPriorityColor = (priority) => {
+    const p = (priority || '').toLowerCase();
     const colors = {
       high: 'bg-rose-50 text-rose-700 border border-rose-200',
-      medium: 'bg-[#FCE373] text-[#121214] border border-[#F2CE46]/50',
-      low: 'bg-[#B8C96E] text-[#121214] border border-[#9CB04C]/50',
+      medium: 'bg-[#FCE373]/50 text-[#856B12] border border-[#FCE373]',
+      low: 'bg-[#B8C96E]/40 text-[#3C4A11] border border-[#B8C96E]',
     };
-    return colors[priority] || 'bg-[#FAF9F6] text-[#121214] border border-[#EAE9E4]';
+    return colors[p] || 'bg-[#FAF9F6] text-[#121214] border border-[#EAE9E4]';
   };
 
   const getTypeColor = (type) => {
+    const t = (type || '').toLowerCase();
     const colors = {
-      reminder: 'bg-[#BDD4F2] text-[#121214]',
-      announcement: 'bg-[#F5C6EC] text-[#121214]',
-      alert: 'bg-[#FCE373] text-[#121214]',
+      reminder: 'bg-[#BDD4F2] text-[#1E3A8A]',
+      announcement: 'bg-[#F5C6EC] text-[#8B2471]',
+      alert: 'bg-[#FCE373] text-[#856B12]',
     };
-    return colors[type] || 'bg-[#FAF9F6] text-[#121214]';
+    return colors[t] || 'bg-[#FAF9F6] text-[#121214]';
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('id-ID', {
       day: '2-digit',
       month: '2-digit',
@@ -93,97 +148,147 @@ const Notifications = () => {
     });
   };
 
+  const hasReadNotifications = notifications.some(n => n.is_read);
+
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 w-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#BDD4F2]/50 text-[#1E3A8A]">
+                <Bell className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Pemberitahuan</span>
+            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Pusat Notifikasi & Pengingat 🔔
+              Pusat Notifikasi & Pengingat
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
-              Informasi instruksi pembimbing, tenggat penugasan, dan pengumuman operasional BPJS
+              Informasi instruksi pembimbing, tenggat penugasan, dan pengumuman operasional BPJS Ketenagakerjaan
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Action Button Group */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm"
+                className="px-3.5 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm inline-flex items-center gap-1.5"
               >
+                <CheckCheck className="w-3.5 h-3.5 text-[#B8C96E]" />
                 Tandai Semua Dibaca ({unreadCount})
               </button>
             )}
+
+            {hasReadNotifications && (
+              <button
+                onClick={handleClearAllRead}
+                className="px-3.5 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                title="Hapus notifikasi yang telah dibaca"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus Terbaca
+              </button>
+            )}
+
+            {notifications.length > 0 && (
+              <button
+                onClick={handleClearAll}
+                className="px-3.5 py-2 bg-white border border-[#EAE9E4] text-rose-600 rounded-full text-xs font-bold hover:bg-rose-50 hover:border-rose-200 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                title="Hapus seluruh riwayat notifikasi"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus Semua
+              </button>
+            )}
+
             <button
-              onClick={loadNotifications}
-              className="px-4 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] transition-colors shadow-sm"
+              onClick={() => {
+                loadNotifications();
+                loadUnreadCount();
+              }}
+              className="p-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full hover:bg-[#FAF9F6] transition-colors shadow-sm"
+              title="Segarkan Notifikasi"
             >
-              Segarkan
+              <RefreshCw className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* 3 Quick Bento Cards */}
+        {/* 3 Bento Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+          <div className="rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between border-2 border-[#121214]">
             <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">♥</div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Pesan Baru</span>
             <div className="text-3xl font-black text-[#121214] my-1">{unreadCount}</div>
             <span className="text-[10px] font-bold text-[#121214]/70">Belum Dibuka</span>
           </div>
 
-          <div className="rounded-[22px] bg-[#FCE373] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+          <div className="rounded-[22px] bg-[#FCE373] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between border-2 border-[#121214]">
             <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">●</div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Total Notifikasi</span>
             <div className="text-3xl font-black text-[#121214] my-1">{notifications.length}</div>
             <span className="text-[10px] font-bold text-[#121214]/70">Tersimpan di Akun</span>
           </div>
 
-          <div className="rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
+          <div className="rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 relative overflow-hidden shadow-sm flex flex-col justify-between border-2 border-[#121214]">
             <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none text-7xl font-black">★</div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Pengingat Aktif</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Pengingat & Prioritas</span>
             <div className="text-3xl font-black text-[#121214] my-1">
-              {notifications.filter(n => n.type === 'reminder' || n.priority === 'high').length}
+              {notifications.filter(n => n.type === 'reminder' || n.priority === 'high' || n.priority === 'medium').length}
             </div>
-            <span className="text-[10px] font-bold text-[#121214]/70">Prioritas Tinggi</span>
+            <span className="text-[10px] font-bold text-[#121214]/70">Perlu Diperhatikan</span>
           </div>
         </div>
 
         {/* Notifications List Bento Card */}
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-[#EAE9E4] flex items-center justify-between">
-            <h2 className="text-sm sm:text-base font-bold text-[#121214]">
-              Riwayat Notifikasi
-              {unreadCount > 0 && (
-                <span className="ml-2.5 bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                  {unreadCount} baru
-                </span>
-              )}
-            </h2>
-            <span className="text-xs font-bold text-[#6E6D6A]">Klik untuk menandai dibaca</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#121214]"></span>
+              <h2 className="text-sm sm:text-base font-bold text-[#121214]">
+                Daftar Notifikasi Masuk
+                {unreadCount > 0 && (
+                  <span className="ml-2.5 bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                    {unreadCount} belum dibaca
+                  </span>
+                )}
+              </h2>
+            </div>
+            <span className="text-xs font-semibold text-[#8A8985] hidden sm:inline">
+              Klik baris untuk menandai telah dibaca
+            </span>
           </div>
           
           {loading ? (
-            <div className="flex flex-col items-center justify-center p-12 space-y-2">
+            <div className="flex flex-col items-center justify-center p-14 space-y-2">
               <div className="w-8 h-8 border-2 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-xs font-bold text-[#121214]">Memuat notifikasi...</p>
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-12 text-center text-[#6E6D6A] text-xs">Belum ada notifikasi baru untuk Anda saat ini.</div>
+            <div className="py-16 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center mx-auto text-[#121214]/40">
+                <Inbox className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-[#121214]">Tidak ada notifikasi</h3>
+              <p className="text-xs text-[#6E6D6A] max-w-sm mx-auto">
+                Kotak masuk notifikasi Anda bersih. Semua pengumuman dan instruksi baru akan ditampilkan di sini.
+              </p>
+            </div>
           ) : (
             <div className="divide-y divide-[#F0EFEA]">
               {notifications.map((notification) => (
                 <div 
                   key={notification.notification_id} 
-                  className={`p-5 sm:p-6 hover:bg-[#FAF9F6] transition-colors cursor-pointer ${
+                  className={`p-5 sm:p-6 hover:bg-[#FAF9F6] transition-colors cursor-pointer group relative ${
                     !notification.is_read ? 'bg-[#F5C6EC]/15 border-l-4 border-[#121214]' : ''
                   }`}
                   onClick={() => !notification.is_read && handleMarkAsRead(notification.notification_id)}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="flex-1 space-y-1.5">
+                    <div className="flex-1 space-y-1.5 pr-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-sm font-bold text-[#121214]">
                           {notification.title}
@@ -194,23 +299,41 @@ const Notifications = () => {
                           </span>
                         )}
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full ${getTypeColor(notification.type)}`}>
-                          {notification.type.toUpperCase()}
+                          {(notification.type || 'Pemberitahuan').toUpperCase()}
                         </span>
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full ${getPriorityColor(notification.priority)}`}>
-                          {notification.priority.toUpperCase()}
+                          {(notification.priority || 'Normal').toUpperCase()}
                         </span>
                       </div>
                       
-                      <p className="text-xs text-[#121214] leading-relaxed whitespace-pre-wrap">{notification.message}</p>
+                      <p className="text-xs text-[#121214]/85 leading-relaxed whitespace-pre-wrap font-medium">
+                        {notification.message}
+                      </p>
                       
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#8A8985] pt-1">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#8A8985] pt-1 font-medium">
                         {notification.due_date && (
-                          <span className="font-bold text-rose-600">
-                            ⏰ Tenggat: {formatDate(notification.due_date)}
+                          <span className="font-bold text-rose-600 inline-flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            Tenggat: {formatDate(notification.due_date)}
                           </span>
                         )}
-                        <span>🕒 {formatDate(notification.created_at)}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {formatDate(notification.created_at)}
+                        </span>
                       </div>
+                    </div>
+
+                    {/* Working Action Buttons (Delete Individual) */}
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-start pt-1 sm:pt-0">
+                      <button
+                        onClick={(e) => handleDeleteNotification(notification.notification_id, e)}
+                        className="p-2 rounded-xl bg-white hover:bg-rose-50 text-[#121214]/50 hover:text-rose-600 border border-[#EAE9E4] hover:border-rose-300 transition shadow-sm"
+                        title="Hapus notifikasi ini"
+                        aria-label="Hapus notifikasi"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>

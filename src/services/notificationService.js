@@ -14,6 +14,8 @@ export const notificationService = {
   
   clearAllRead: () => api.delete('/notifications/clear/read'),
   
+  clearAll: () => api.delete('/notifications/clear/all'),
+  
   getUnreadCount: () => api.get('/notifications/unread-count'),
 
   // Untuk koordinator

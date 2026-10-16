@@ -73,7 +73,8 @@ router.get('/coordinators', authenticateToken, async (req, res) => {
 
     return res.json({
       success: true,
-      data: result.rows
+      data: { coordinators: result.rows },
+      coordinators: result.rows
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -96,7 +97,8 @@ router.get('/participants/without-progress', authenticateToken, async (req, res)
 
     return res.json({
       success: true,
-      data: result.rows
+      data: { participants: result.rows },
+      participants: result.rows
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -194,7 +196,8 @@ router.get('/participants', authenticateToken, async (req, res) => {
 
     return res.json({
       success: true,
-      data: result.rows
+      data: { participants: result.rows },
+      participants: result.rows
     });
   } catch (error) {
     console.error('Grading participants error:', error);

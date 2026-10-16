@@ -89,6 +89,36 @@ router.delete('/clear/read', authenticateToken, async (req, res) => {
 });
 
 /**
+ * DELETE /api/notifications/clear/all
+ */
+router.delete('/clear/all', authenticateToken, async (req, res) => {
+  try {
+    await query(
+      `DELETE FROM notifications WHERE user_id = $1`,
+      [req.user.user_id]
+    );
+    return res.json({ success: true, message: 'Semua notifikasi berhasil dibersihkan.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * DELETE /api/notifications/coordinator/:id
+ */
+router.delete('/coordinator/:id', authenticateToken, async (req, res) => {
+  try {
+    await query(
+      `DELETE FROM notifications WHERE notification_id = $1`,
+      [req.params.id]
+    );
+    return res.json({ success: true, message: 'Notifikasi koordinator berhasil dihapus.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * DELETE /api/notifications/:id
  */
 router.delete('/:id', authenticateToken, async (req, res) => {
@@ -231,7 +261,7 @@ router.post('/coordinator/reminders/settings', authenticateToken, (req, res) => 
  */
 router.post('/admin/broadcast/send', authenticateToken, async (req, res) => {
   try {
-    const { title, message, content, priority, target } = req.body;
+    const { title, message, content, priority, target, start_at, end_at, show_on_login } = req.body;
     const msgTitle = title || 'Pengumuman Penting';
     const msgContent = message || content || '';
     const targetGroup = target || 'all';
@@ -253,16 +283,46 @@ router.post('/admin/broadcast/send', authenticateToken, async (req, res) => {
       );
     }
 
-    // Record in broadcast_messages table
-    await query(
-      `INSERT INTO broadcast_messages (sender_id, title, content, priority, target_role, sent_at)
-       VALUES ($1, $2, $3, COALESCE($4, 'Biasa'), $5, CURRENT_TIMESTAMP)`,
-      [req.user.user_id, msgTitle, msgContent, priority, targetGroup]
+    // Record in broadcast_messages table with duration and persistent login settings
+    const broadcastResult = await query(
+      `INSERT INTO broadcast_messages (
+        sender_id, title, content, priority, target_role,
+        start_at, end_at, show_on_login, is_active, sent_at
+      )
+      VALUES ($1, $2, $3, COALESCE($4, 'Biasa'), $5, COALESCE($6, CURRENT_TIMESTAMP), $7, COALESCE($8, TRUE), TRUE, CURRENT_TIMESTAMP)
+      RETURNING *`,
+      [
+        req.user.user_id, 
+        msgTitle, 
+        msgContent, 
+        priority || 'Biasa', 
+        targetGroup,
+        start_at || null,
+        end_at || null,
+        show_on_login !== undefined ? Boolean(show_on_login) : true
+      ]
     );
 
     return res.json({
       success: true,
-      message: `Broadcast berhasil dikirim ke ${recipients.rows.length} penerima.`
+      message: `Broadcast berhasil dikirim ke ${recipients.rows.length} penerima.`,
+      data: broadcastResult.rows[0]
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * DELETE /api/notifications/admin/broadcast/:id
+ */
+router.delete('/admin/broadcast/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query(`DELETE FROM broadcast_messages WHERE broadcast_id = $1`, [id]);
+    return res.json({
+      success: true,
+      message: 'Pesan siaran berhasil dihapus.'
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -281,6 +341,74 @@ router.get('/admin/broadcast/history', authenticateToken, async (req, res) => {
        ORDER BY b.sent_at DESC`
     );
     return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/notifications/broadcasts/active
+ * Used by participants, coordinators, and all users to display popup toast / center modal
+ */
+router.get('/broadcasts/active', authenticateToken, async (req, res) => {
+  try {
+    const userRole = req.user.role_name; // 'Peserta', 'Koordinator', 'Administrator'
+    const userId = req.user.user_id;
+
+    let targetFilter = `(b.target_role = 'all'`;
+    if (userRole === 'Peserta') {
+      targetFilter += ` OR b.target_role = 'participants')`;
+    } else if (userRole === 'Koordinator') {
+      targetFilter += ` OR b.target_role = 'coordinators')`;
+    } else {
+      targetFilter += ` OR b.target_role = 'all')`;
+    }
+
+    const sql = `
+      SELECT b.*
+      FROM broadcast_messages b
+      WHERE b.is_active = TRUE
+        AND ${targetFilter}
+        AND (b.start_at IS NULL OR b.start_at <= CURRENT_TIMESTAMP)
+        AND (b.end_at IS NULL OR b.end_at >= CURRENT_TIMESTAMP)
+        AND (
+          b.show_on_login = TRUE 
+          OR NOT EXISTS (
+            SELECT 1 FROM broadcast_dismissals bd 
+            WHERE bd.broadcast_id = b.broadcast_id AND bd.user_id = $1
+          )
+        )
+      ORDER BY 
+        CASE 
+          WHEN b.priority = 'Sangat Penting' THEN 1
+          WHEN b.priority = 'Penting' THEN 2
+          ELSE 3
+        END,
+        b.sent_at DESC
+      LIMIT 3
+    `;
+
+    const result = await query(sql, [userId]);
+    return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/notifications/broadcasts/:id/dismiss
+ */
+router.post('/broadcasts/:id/dismiss', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.user_id;
+    await query(
+      `INSERT INTO broadcast_dismissals (broadcast_id, user_id, dismissed_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (broadcast_id, user_id) DO UPDATE SET dismissed_at = CURRENT_TIMESTAMP`,
+      [id, userId]
+    );
+    return res.json({ success: true, message: 'Broadcast ditutup.' });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

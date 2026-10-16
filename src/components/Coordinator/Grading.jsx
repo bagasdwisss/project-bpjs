@@ -49,12 +49,14 @@ const Grading = () => {
       const response = await gradingService.getParticipants(filters, cancelTokenRef.current.token);
 
       if (response.success) {
-        setParticipants(response.data.participants);
+        const list = Array.isArray(response.data) ? response.data : (response.data?.participants || []);
+        setParticipants(list);
       }
 
       const coordinatorsResponse = await gradingService.getCoordinators();
       if (coordinatorsResponse.success) {
-        setCoordinators(coordinatorsResponse.data.coordinators);
+        const cList = Array.isArray(coordinatorsResponse.data) ? coordinatorsResponse.data : (coordinatorsResponse.data?.coordinators || []);
+        setCoordinators(cList);
       }
     } catch (err) {
       // Ignore cancellation errors
@@ -110,8 +112,9 @@ const Grading = () => {
       const response = await gradingService.getParticipantsWithoutProgress();
 
       if (response.success) {
-        console.log('Available participants:', response.data.participants);
-        setAvailableParticipants(response.data.participants);
+        const aList = Array.isArray(response.data) ? response.data : (response.data?.participants || []);
+        console.log('Available participants:', aList);
+        setAvailableParticipants(aList);
       } else {
         setError(response.message || 'Gagal memuat peserta yang tersedia');
       }
@@ -156,7 +159,7 @@ const Grading = () => {
     if (selectAll) {
       setSelectedParticipants([]);
     } else {
-      setSelectedParticipants(availableParticipants.map(p => p.user_id));
+      setSelectedParticipants((availableParticipants || []).map(p => p.user_id));
     }
     setSelectAll(!selectAll);
   };
@@ -396,7 +399,7 @@ const Grading = () => {
               className="w-full px-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]"
             >
               <option value="">Semua Koordinator</option>
-              {coordinators.map((coordinator) => (
+              {(coordinators || []).map((coordinator) => (
                 <option key={coordinator.user_id} value={coordinator.user_id}>
                   {coordinator.full_name}
                 </option>
@@ -407,7 +410,7 @@ const Grading = () => {
 
         {/* Assignment Table */}
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
-            {participants.length === 0 ? (
+            {(!participants || participants.length === 0) ? (
               <div className="text-center py-12">
                 <div className="text-gray-400 text-6xl mb-4">📝</div>
                 <h3 className="text-sm font-medium text-gray-900">Tidak ada assignment</h3>
@@ -427,7 +430,7 @@ const Grading = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EFEA] bg-white">
-                    {participants.map((participant) => {
+                    {(participants || []).map((participant) => {
                       const canEdit = canEditParticipant(participant);
                       const isMyParticipant = participant.coordinator_id === user?.user_id;
                       const status = participant.nilai !== null && participant.nilai !== 0 ? 'graded' : 'pending';
@@ -587,7 +590,7 @@ const Grading = () => {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-[#EAE9E4]">
-                          {availableParticipants.map((participant) => (
+                          {(availableParticipants || []).map((participant) => (
                             <tr key={participant.user_id} className="hover:bg-[#FAF9F6] transition">
                               <td className="px-4 py-2.5">
                                 <input

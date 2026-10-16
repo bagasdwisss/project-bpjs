@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import TanyaBPJSBot from '../Common/TanyaBPJSBot';
+import BroadcastPopup from '../Common/BroadcastPopup';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -30,6 +31,9 @@ const Layout = ({ children }) => {
 
       {/* Global AI Regulation Chatbot Assistant */}
       <TanyaBPJSBot />
+
+      {/* Global Broadcast Toast & Center Modal Alerts */}
+      <BroadcastPopup />
     </div>
   );
 };

@@ -274,7 +274,7 @@ const Monitoring = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {comparisonData.batchComparison.map((batch, idx) => (
+                {(comparisonData.batchComparison || []).map((batch, idx) => (
                   <div
                     key={idx}
                     className={`p-4 rounded-xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] space-y-3 ${
@@ -336,7 +336,7 @@ const Monitoring = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EFEA] bg-white">
-                    {comparisonData.regionalComparison.map((reg, idx) => (
+                    {(comparisonData.regionalComparison || []).map((reg, idx) => (
                       <tr key={idx} className="hover:bg-[#FAF9F6] transition-colors">
                         <td className="px-4 py-3 font-black text-[#121214]">{reg.region}</td>
                         <td className="px-4 py-3 text-gray-600 font-bold">{reg.area}</td>

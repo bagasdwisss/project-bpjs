@@ -1,9 +1,11 @@
 import React, { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, User, Settings, LogOut, Key, Search, ChevronDown, Check } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import ChangePasswordModal from './ChangePasswordModal';
 
 const Header = ({ toggleSidebar }) => {
+  const navigate = useNavigate();
   const { user, coordinator, isParticipant, logout } = useContext(AuthContext);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -14,6 +16,16 @@ const Header = ({ toggleSidebar }) => {
     if (user?.role_id === 2 || user?.role === 'Koordinator') return 'Portal Koordinator';
     if (user?.role_id === 3 || user?.role === 'Administrator') return 'Portal Administrator';
     return 'Portal BPJS';
+  };
+
+  const handleNotificationClick = () => {
+    if (isParticipant) {
+      navigate('/participant/notifications');
+    } else if (user?.role_id === 2 || user?.role === 'Koordinator') {
+      navigate('/coordinator/reminders');
+    } else if (user?.role_id === 3 || user?.role === 'Administrator') {
+      navigate('/admin/broadcast');
+    }
   };
 
   const handleLogout = () => {
@@ -107,8 +119,10 @@ const Header = ({ toggleSidebar }) => {
             {/* Connected Pitch-Black Pill Action Group (Intelly Signature) */}
             <div className="flex items-center bg-[#121214] text-white rounded-full p-1 shadow-sm">
               <button 
+                onClick={handleNotificationClick}
                 className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-white transition-colors relative"
-                title="Notifikasi"
+                title="Buka Pusat Notifikasi"
+                aria-label="Notifikasi"
               >
                 <Bell className="w-4 h-4" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-[#F5C6EC] rounded-full ring-2 ring-[#121214]"></span>

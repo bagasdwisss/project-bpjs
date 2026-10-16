@@ -116,13 +116,14 @@ apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/forum', forumRoutes);
 apiRouter.use('/documents', documentRoutes);
 apiRouter.use('/participant/documents', documentRoutes);
+// Enterprise Features Routes
+apiRouter.use('/features', featuresRoutes);
+apiRouter.use('/admin', featuresRoutes);
+apiRouter.use('/', featuresRoutes);
+
 apiRouter.use('/admin/batches', batchRoutes);
 apiRouter.use('/admin/modules', moduleRoutes);
 apiRouter.use('/admin', adminRoutes);
-
-// Enterprise Features Routes
-apiRouter.use('/features', featuresRoutes);
-apiRouter.use('/', featuresRoutes);
 
 // Coordinator routes
 apiRouter.use('/coordinator/certificates', adminRoutes);
