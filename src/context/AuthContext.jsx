@@ -46,6 +46,20 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       try {
         if (authService.isAuthenticated()) {
+          // Inactivity check: jika user tidak aktif lebih dari 5 menit sebelum membuka web
+          const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
+          const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+          if (storedLastActive && (Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
+            console.warn('User idle for > 5 minutes before opening website. Redirecting to login...');
+            authService.logout();
+            setUser(null);
+            setCoordinator(null);
+            localStorage.removeItem('last_active_time');
+            setLoading(false);
+            window.location.href = '/login?reason=idle_timeout';
+            return;
+          }
+
           const currentUser = authService.getCurrentUser();
           console.log('Current user from storage:', currentUser);
           setUser(currentUser);
@@ -69,13 +83,15 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // 5-Minute Inactivity Auto-Logout Tracker
+  // 5-Minute Inactivity Auto-Logout Tracker (Zero Network Heartbeat)
   useEffect(() => {
     if (!user) return;
 
     const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 menit = 300,000 ms
     let lastRecordedActivity = Date.now();
-    localStorage.setItem('last_active_time', Date.now().toString());
+    if (!localStorage.getItem('last_active_time')) {
+      localStorage.setItem('last_active_time', Date.now().toString());
+    }
 
     const handleUserActivity = () => {
       const now = Date.now();
@@ -99,7 +115,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Events to track user activity
-    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
     activityEvents.forEach((event) => {
       window.addEventListener(event, handleUserActivity, { passive: true });
     });
@@ -113,8 +129,8 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', checkInactivity);
 
-    // Periodic check every 10 seconds
-    const intervalId = setInterval(checkInactivity, 10000);
+    // Periodic check every 5 seconds (Pure local client-side interval, NO network requests)
+    const intervalId = setInterval(checkInactivity, 5000);
 
     return () => {
       activityEvents.forEach((event) => {
@@ -126,36 +142,9 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user]);
 
-  // Real-time Concurrent Session Tracker (Instant Kick-out without Refresh)
+  // Real-time Concurrent Session Sync (Pure local cross-tab sync, NO periodic network heartbeat)
   useEffect(() => {
     if (!user) return;
-
-    let isChecking = false;
-    const verifySession = async () => {
-      if (isChecking) return;
-      isChecking = true;
-      try {
-        await api.get('/session-check', { skipCache: true });
-      } catch (err) {
-        if (err.response?.status === 401) {
-          const code = err.response?.data?.code;
-          authService.logout();
-          setUser(null);
-          setCoordinator(null);
-          localStorage.removeItem('last_active_time');
-          if (code === 'CONCURRENT_LOGIN_DETECTED') {
-            window.location.href = '/login?reason=concurrent_session';
-          } else {
-            window.location.href = '/login?reason=session_expired';
-          }
-        }
-      } finally {
-        isChecking = false;
-      }
-    };
-
-    // Fast 3-second heartbeat for instant detection across separate devices / browsers
-    const heartbeatInterval = setInterval(verifySession, 3000);
 
     // Cross-tab broadcast detection for instant same-browser kickout
     let channel;
@@ -171,7 +160,7 @@ export const AuthProvider = ({ children }) => {
         }
       };
     } catch {
-      // Fallback to interval
+      // Fallback
     }
 
     // Storage event for instant same-browser cross-tab displacement
@@ -182,28 +171,16 @@ export const AuthProvider = ({ children }) => {
           authService.logout();
           setUser(null);
           setCoordinator(null);
+          localStorage.removeItem('last_active_time');
           window.location.href = '/login?reason=concurrent_session';
-        } else {
-          verifySession();
         }
       }
     };
     window.addEventListener('storage', handleStorageChange);
 
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        verifySession();
-      }
-    };
-    window.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', verifySession);
-
     return () => {
-      clearInterval(heartbeatInterval);
       if (channel) channel.close();
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', verifySession);
     };
   }, [user]);
 
@@ -221,6 +198,9 @@ export const AuthProvider = ({ children }) => {
         const currentUser = authService.getCurrentUser();
         console.log('Setting user state after login:', currentUser);
         
+        // Reset last_active_time on login
+        localStorage.setItem('last_active_time', Date.now().toString());
+
         // Notify other tabs immediately
         try {
           const channel = new BroadcastChannel('bpjs_session_channel');
@@ -270,6 +250,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setCoordinator(null);
       setError(null);
+      localStorage.removeItem('last_active_time');
     }
   };
 

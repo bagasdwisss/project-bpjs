@@ -8,7 +8,6 @@ import {
   EyeOff, 
   ShieldCheck, 
   ArrowRight, 
-  Sparkles, 
   AlertTriangle, 
   Clock, 
   ShieldAlert 
@@ -218,33 +217,6 @@ const Login = () => {
                   autoComplete="off"
                   disabled={loading}
                 />
-              </div>
-
-              {/* Integrated Smooth Slide-Down Role Card */}
-              <div
-                className={`overflow-hidden transition-all duration-300 ease-out ${
-                  roleDetected 
-                    ? 'max-h-14 opacity-100 mt-2 translate-y-0' 
-                    : 'max-h-0 opacity-0 mt-0 -translate-y-1.5 pointer-events-none'
-                }`}
-              >
-                <div className={`flex items-center justify-between px-3.5 py-2 rounded-xl border-2 border-[#121214] shadow-[2px_2px_0px_#121214] text-xs transition-colors duration-200 ${
-                  roleDetected === 'Administrator' 
-                    ? 'bg-[#F5C6EC]' 
-                    : roleDetected === 'Koordinator' 
-                      ? 'bg-[#FCE373]' 
-                      : 'bg-[#BDD4F2]'
-                }`}>
-                  <div className="flex items-center gap-2 font-black text-[#121214]">
-                    <Sparkles className="w-3.5 h-3.5 text-[#121214]" />
-                    <span className="text-[11px] font-extrabold uppercase tracking-wide">
-                      Portal: <span className="underline decoration-[#121214] underline-offset-2">{roleDetected}</span>
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-[#121214] text-white px-2 py-0.5 rounded-md shadow-xs">
-                    Siap Masuk
-                  </span>
-                </div>
               </div>
             </div>
 

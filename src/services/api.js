@@ -15,7 +15,20 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    const isAuthRoute = config.url?.includes('/login') || config.url?.includes('/logout');
+
+    // Cek batas inaktivitas 5 menit sebelum request dikirim
+    if (token && !isAuthRoute) {
+      const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
+      const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+      if (storedLastActive && Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS) {
+        console.warn('API call blocked: Inactivity timeout > 5 minutes');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('last_active_time');
+        window.location.href = '/login?reason=idle_timeout';
+        return Promise.reject(new Error('Sesi berakhir karena tidak ada interaksi selama 5 menit.'));
+      }
       config.headers.Authorization = `Bearer ${token}`;
     }
     
