@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import batchService from '../../services/batchService';
 import userService from '../../services/userService';
-import { Calendar, Users, Plus, Edit2, Trash2, UserPlus, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, Users, Plus, Edit2, Trash2, UserPlus, CheckCircle, Clock, X } from 'lucide-react';
 
 function AdminBatchManagement() {
   const [batches, setBatches] = useState([]);
@@ -99,7 +99,7 @@ function AdminBatchManagement() {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus "${name}"?`)) return;
     try {
       await batchService.delete(id);
-      setSuccessMsg('Batch berhasil dihapus!');
+      setSuccessMsg(`Batch "${name}" berhasil dihapus.`);
       loadData();
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
@@ -107,26 +107,26 @@ function AdminBatchManagement() {
     }
   };
 
-  const handleOpenAssign = (batch) => {
+  const handleOpenAssign = async (batch) => {
     setSelectedBatch(batch);
-    setSelectedUsers([]);
+    try {
+      const res = await batchService.getParticipants(batch.batch_id);
+      if (res.data.success) {
+        const assignedIds = res.data.data.map(p => p.user_id);
+        setSelectedUsers(assignedIds);
+      }
+    } catch (err) {
+      console.error('Error getting batch participants:', err);
+      setSelectedUsers([]);
+    }
     setShowAssignModal(true);
   };
 
-  const handleToggleUserSelect = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
-    );
-  };
-
   const handleSaveAssignment = async () => {
-    if (selectedUsers.length === 0) {
-      alert('Pilih setidaknya satu peserta untuk ditugaskan.');
-      return;
-    }
+    if (!selectedBatch) return;
     try {
-      await batchService.assignUsers(selectedBatch.batch_id, selectedUsers);
-      setSuccessMsg(`${selectedUsers.length} peserta berhasil ditugaskan ke batch!`);
+      await batchService.assignParticipants(selectedBatch.batch_id, selectedUsers);
+      setSuccessMsg(`Daftar peserta untuk "${selectedBatch.batch_name}" berhasil diperbarui.`);
       setShowAssignModal(false);
       loadData();
       setTimeout(() => setSuccessMsg(''), 4000);
@@ -135,128 +135,143 @@ function AdminBatchManagement() {
     }
   };
 
+  const toggleUserSelection = (userId) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
+
   return (
     <Layout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Manajemen Batch & Gelombang</h1>
-            <p className="text-sm text-gray-500 mt-1">Kelola jadwal pelatihan magang dan penugasan peserta ke dalam batch</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Kelola Batch & Gelombang
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Atur periode pelaksanaan program magang dan penugasan peserta per gelombang.
+            </p>
           </div>
           <button
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-sm transition-colors text-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
           >
-            <Plus className="w-4 h-4" /> Tambah Batch Baru
+            <Plus className="w-3.5 h-3.5" /> Tambah Batch Baru
           </button>
         </div>
 
         {/* Notifications */}
         {successMsg && (
-          <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
+          <div className="p-3.5 bg-[#B8C96E]/30 border border-[#B8C96E] text-[#121214] rounded-full text-xs font-bold flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-[#121214]" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+        {/* 3 Pastel Bento Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-5 rounded-[22px] bg-[#FCE373] text-[#121214] shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Total Batch</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">{batches.length}</h3>
+              <p className="text-[11px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Gelombang</p>
+              <h3 className="text-3xl font-black mt-1 text-[#121214]">{batches.length}</h3>
+              <p className="text-[10px] text-[#121214]/60 font-medium">Terjadwal di sistem</p>
             </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+            <div className="w-12 h-12 bg-[#121214] text-[#FCE373] rounded-[14px] flex items-center justify-center font-bold">
               <Calendar className="w-6 h-6" />
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+
+          <div className="p-5 rounded-[22px] bg-[#B8C96E] text-[#121214] shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Batch Aktif</p>
-              <h3 className="text-2xl font-bold text-green-600 mt-1">
+              <p className="text-[11px] font-bold text-[#121214]/70 uppercase tracking-wider">Batch Aktif</p>
+              <h3 className="text-3xl font-black mt-1 text-[#121214]">
                 {batches.filter(b => b.status === 'Aktif').length}
               </h3>
+              <p className="text-[10px] text-[#121214]/60 font-medium">Sedang berjalan</p>
             </div>
-            <div className="p-3 bg-green-50 text-green-600 rounded-xl">
+            <div className="w-12 h-12 bg-[#121214] text-[#B8C96E] rounded-[14px] flex items-center justify-center font-bold">
               <Clock className="w-6 h-6" />
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+
+          <div className="p-5 rounded-[22px] bg-[#F5C6EC] text-[#121214] shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Peserta Terdaftar</p>
-              <h3 className="text-2xl font-bold text-purple-600 mt-1">{participants.length}</h3>
+              <p className="text-[11px] font-bold text-[#121214]/70 uppercase tracking-wider">Peserta Terdaftar</p>
+              <h3 className="text-3xl font-black mt-1 text-[#121214]">{participants.length}</h3>
+              <p className="text-[10px] text-[#121214]/60 font-medium">Akun peserta magang</p>
             </div>
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+            <div className="w-12 h-12 bg-[#121214] text-[#F5C6EC] rounded-[14px] flex items-center justify-center font-bold">
               <Users className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        {/* Batches Table */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-800">Daftar Gelombang Pelatihan</h2>
+        {/* Batches Table Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-[#EAE9E4]">
+            <h2 className="text-sm font-bold text-[#121214]">Daftar Gelombang Pelatihan</h2>
           </div>
 
           {loading ? (
-            <div className="p-12 text-center text-gray-500">Memuat data batch...</div>
+            <div className="p-12 text-center text-xs text-[#6E6D6A]">Memuat data batch...</div>
           ) : batches.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">Belum ada batch terdaftar. Silakan buat batch baru.</div>
+            <div className="p-12 text-center text-xs text-[#6E6D6A]">Belum ada batch terdaftar. Silakan buat batch baru.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100 text-sm">
-                <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-semibold">
+              <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+                <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
                   <tr>
-                    <th className="px-6 py-3.5 text-left">Nama Batch</th>
-                    <th className="px-6 py-3.5 text-left">Periode Pelaksanaan</th>
-                    <th className="px-6 py-3.5 text-left">Status</th>
-                    <th className="px-6 py-3.5 text-left">Peserta</th>
-                    <th className="px-6 py-3.5 text-right">Aksi</th>
+                    <th className="px-5 py-3.5 text-left">Nama Batch</th>
+                    <th className="px-5 py-3.5 text-left">Periode Pelaksanaan</th>
+                    <th className="px-5 py-3.5 text-left">Status</th>
+                    <th className="px-5 py-3.5 text-left">Peserta</th>
+                    <th className="px-5 py-3.5 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#F0EFEA] bg-white">
                   {batches.map((batch) => (
-                    <tr key={batch.batch_id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-gray-900">{batch.batch_name}</td>
-                      <td className="px-6 py-4 text-gray-600">
+                    <tr key={batch.batch_id} className="hover:bg-[#FAF9F6] transition-colors">
+                      <td className="px-5 py-4 font-bold text-[#121214]">{batch.batch_name}</td>
+                      <td className="px-5 py-4 text-[#6E6D6A] font-medium">
                         {batch.start_date ? new Date(batch.start_date).toLocaleDateString('id-ID') : '-'} s/d{' '}
                         {batch.end_date ? new Date(batch.end_date).toLocaleDateString('id-ID') : '-'}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      <td className="px-5 py-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           batch.status === 'Aktif'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-600'
+                            ? 'bg-[#B8C96E] text-[#121214]'
+                            : 'bg-[#EAE9E4] text-[#6E6D6A]'
                         }`}>
                           {batch.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-medium text-xs">
-                          <Users className="w-3.5 h-3.5" />
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214] rounded-full font-bold text-[10px]">
+                          <Users className="w-3 h-3" />
                           {batch.participant_count || 0} Peserta
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
+                      <td className="px-5 py-4 text-right space-x-1">
                         <button
                           onClick={() => handleOpenAssign(batch)}
                           title="Tugaskan Peserta"
-                          className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          className="p-1.5 rounded-full hover:bg-[#F5F4F0] text-[#121214] transition-colors"
                         >
                           <UserPlus className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleOpenEdit(batch)}
                           title="Edit Batch"
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 rounded-full hover:bg-[#F5F4F0] text-[#121214] transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteBatch(batch.batch_id, batch.batch_name)}
                           title="Hapus Batch"
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 rounded-full hover:bg-rose-50 text-rose-600 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -271,70 +286,84 @@ function AdminBatchManagement() {
 
         {/* Create/Edit Batch Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-              <h3 className="text-lg font-bold text-gray-900">
-                {selectedBatch ? 'Edit Batch Pelatihan' : 'Tambah Batch Baru'}
-              </h3>
+          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-[28px] border border-[#EAE9E4] max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-[#EAE9E4] pb-3">
+                <h3 className="text-base font-extrabold text-[#121214]">
+                  {selectedBatch ? 'Edit Batch Pelatihan' : 'Tambah Batch Baru'}
+                </h3>
+                <button onClick={() => setShowModal(false)} className="p-1 rounded-full hover:bg-[#FAF9F6]">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
               <form onSubmit={handleSaveBatch} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Nama Batch / Gelombang</label>
+                  <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+                    Nama Gelombang
+                  </label>
                   <input
                     type="text"
                     required
                     value={formData.batch_name}
                     onChange={(e) => setFormData({ ...formData, batch_name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#121214] focus:outline-none"
                     placeholder="Contoh: Gelombang 1 2026"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Tanggal Mulai</label>
+                    <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+                      Tanggal Mulai
+                    </label>
                     <input
                       type="date"
                       required
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#121214] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Tanggal Selesai</label>
+                    <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+                      Tanggal Selesai
+                    </label>
                     <input
                       type="date"
                       required
                       value={formData.end_date}
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3.5 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#121214] focus:outline-none"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Status</label>
+                  <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1">
+                    Status Batch
+                  </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#121214] focus:outline-none"
                   >
                     <option value="Aktif">Aktif</option>
                     <option value="Selesai">Selesai</option>
-                    <option value="Mendatang">Mendatang</option>
+                    <option value="Direncanakan">Direncanakan</option>
                   </select>
                 </div>
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2.5 pt-3 border-t border-[#EAE9E4]">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold hover:bg-[#FAF9F6]"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium"
+                    className="px-6 py-2.5 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-neutral-800 shadow-sm"
                   >
-                    Simpan
+                    Simpan Batch
                   </button>
                 </div>
               </form>
@@ -342,52 +371,69 @@ function AdminBatchManagement() {
           </div>
         )}
 
-        {/* Assign Users Modal */}
+        {/* Assign Participants Modal */}
         {showAssignModal && selectedBatch && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Tugaskan Peserta ke Batch</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Pilih peserta untuk: <span className="font-semibold text-gray-800">{selectedBatch.batch_name}</span></p>
+          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-[28px] border border-[#EAE9E4] max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-[#EAE9E4] pb-3">
+                <div>
+                  <h3 className="text-base font-extrabold text-[#121214]">Tugaskan Peserta</h3>
+                  <p className="text-xs text-[#6E6D6A]">Batch: {selectedBatch.batch_name}</p>
+                </div>
+                <button onClick={() => setShowAssignModal(false)} className="p-1 rounded-full hover:bg-[#FAF9F6]">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 border rounded-xl p-2">
+              <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                 {participants.length === 0 ? (
-                  <p className="p-4 text-center text-sm text-gray-500">Tidak ada peserta ditemukan.</p>
+                  <p className="text-xs text-[#6E6D6A] text-center py-6">Tidak ada peserta ditemukan.</p>
                 ) : (
-                  participants.map(p => (
-                    <label key={p.user_id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.includes(p.user_id)}
-                        onChange={() => handleToggleUserSelect(p.user_id)}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{p.full_name}</p>
-                        <p className="text-xs text-gray-400">ID: {p.unique_id} • Penempatan: {p.penempatan || 'Belum diatur'}</p>
+                  participants.map(p => {
+                    const isChecked = selectedUsers.includes(p.user_id);
+                    return (
+                      <div 
+                        key={p.user_id} 
+                        onClick={() => toggleUserSelection(p.user_id)}
+                        className={`p-3 rounded-[16px] border flex items-center justify-between cursor-pointer transition-colors ${
+                          isChecked ? 'bg-[#F5C6EC]/40 border-[#F5C6EC]' : 'bg-[#FAF9F6] border-[#EAE9E4] hover:bg-[#F5F4F0]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}}
+                            className="w-4 h-4 rounded text-[#121214] focus:ring-[#121214]"
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-[#121214]">{p.full_name}</p>
+                            <p className="text-[10px] text-[#6E6D6A]">{p.unique_id} • {p.email || '-'}</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold bg-white border border-[#EAE9E4] px-2 py-0.5 rounded-full capitalize">
+                          {p.penempatan || 'Kantor'}
+                        </span>
                       </div>
-                    </label>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
-              <div className="flex justify-between items-center pt-2">
-                <span className="text-xs text-gray-500">{selectedUsers.length} peserta dipilih</span>
+              <div className="flex items-center justify-between pt-3 border-t border-[#EAE9E4]">
+                <span className="text-xs font-bold text-[#121214]">{selectedUsers.length} Peserta Terpilih</span>
                 <div className="flex gap-2">
                   <button
-                    type="button"
                     onClick={() => setShowAssignModal(false)}
-                    className="px-4 py-2 border rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+                    className="px-4 py-2 rounded-full border border-[#EAE9E4] text-xs font-bold hover:bg-[#FAF9F6]"
                   >
                     Batal
                   </button>
                   <button
-                    type="button"
                     onClick={handleSaveAssignment}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium"
+                    className="px-5 py-2 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-neutral-800 shadow-sm"
                   >
-                    Tugaskan Sekarang
+                    Tugaskan
                   </button>
                 </div>
               </div>

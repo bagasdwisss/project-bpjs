@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #F5F4F0;
+  --color-canvas-card: #FFFFFF;
+  --color-canvas-muted: #EAE9E4;
+  --color-pitch: #121214;
+  
+  --color-pastel-yellow: #FCE373;
+  --color-pastel-yellow-accent: #F2CE46;
+
+  --color-pastel-pink: #F5C6EC;
+  --color-pastel-pink-accent: #E59CD8;
+
+  --color-pastel-green: #B8C96E;
+  --color-pastel-green-accent: #9CB04C;
+
+  --color-pastel-blue: #BDD4F2;
+  --color-pastel-blue-accent: #91B6E6;
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+:root {
+  --bg-canvas: #F5F4F0;
+  --pitch-black: #121214;
+  --pastel-yellow: #FCE373;
+  --pastel-pink: #F5C6EC;
+  --pastel-green: #B8C96E;
+  --pastel-blue: #BDD4F2;
+}
+
+body {
+  background-color: #F5F4F0;
+  color: #121214;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Card utilities */
+.bento-card {
+  border-radius: 22px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bento-card-white {
+  background-color: #FFFFFF;
+  border: 1px solid #EAE9E4;
+}
+
+.bento-card-yellow {
+  background-color: #FCE373;
+  color: #121214;
+}
+
+.bento-card-pink {
+  background-color: #F5C6EC;
+  color: #121214;
+}
+
+.bento-card-green {
+  background-color: #B8C96E;
+  color: #121214;
+}
+
+.bento-card-blue {
+  background-color: #BDD4F2;
+  color: #121214;
+}
+
+.squircle {
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D5D4CF;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #AFAEA8;
+}

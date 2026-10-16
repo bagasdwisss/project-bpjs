@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import api from '../../services/api';
-import { Activity, Server, Users, RefreshCw, Clock, ShieldCheck, Database } from 'lucide-react';
+import { Activity, Server, Users, RefreshCw, Clock, ShieldCheck, Database, Cpu } from 'lucide-react';
 
 const Monitoring = () => {
   const [systemStatus, setSystemStatus] = useState({
@@ -25,10 +25,10 @@ const Monitoring = () => {
         api.get('/admin/monitoring/activity-logs')
       ]);
 
-      if (statsRes.data.success) {
+      if (statsRes.data?.success) {
         setSystemStatus(statsRes.data.data);
       }
-      if (logsRes.data.success) {
+      if (logsRes.data?.success) {
         setLogs(logsRes.data.data);
       }
     } catch (err) {
@@ -40,125 +40,144 @@ const Monitoring = () => {
 
   useEffect(() => {
     fetchMonitoringData();
-    const interval = setInterval(fetchMonitoringData, 30000); // 30s auto-refresh
+    const interval = setInterval(fetchMonitoringData, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const getStatusColor = (value) => {
-    if (value < 60) return 'text-green-600';
-    if (value < 85) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
   return (
     <Layout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pemantauan Sistem (System Monitoring)</h1>
-            <p className="text-sm text-gray-500 mt-1">Status performa serverless Vercel, database Neon PostgreSQL, dan audit aktivitas</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Pemantauan & Infrastruktur Sistem
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Metrik real-time serverless hosting, koneksi database Neon Postgres, dan audit aktivitas.
+            </p>
           </div>
           <button
             onClick={fetchMonitoringData}
-            className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Muat Ulang Metrik
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Segarkan Metrik
           </button>
         </div>
 
-        {/* System Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">CPU Serverless Load</span>
-            <div className="flex items-baseline justify-between">
-              <span className={`text-2xl font-bold ${getStatusColor(systemStatus.cpu)}`}>{systemStatus.cpu}%</span>
-              <span className="text-xs text-green-600 font-medium">Optimal</span>
+        {/* 4 Pastel Bento Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: CPU (Pastel Yellow) */}
+          <div className="p-5 rounded-[22px] bg-[#FCE373] text-[#121214] shadow-sm flex flex-col justify-between space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">CPU Serverless</span>
+              <span className="bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Optimal</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div className="h-full bg-blue-600 rounded-full transition-all duration-500" style={{ width: `${systemStatus.cpu}%` }} />
+            <div>
+              <p className="text-3xl font-black text-[#121214]">{systemStatus.cpu}%</p>
+              <div className="w-full bg-[#121214]/15 h-2 rounded-full overflow-hidden mt-2">
+                <div className="bg-[#121214] h-full rounded-full" style={{ width: `${systemStatus.cpu}%` }}></div>
+              </div>
             </div>
+            <p className="text-[10px] text-[#121214]/60 font-medium">Vercel Edge Functions</p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Memori Node.js</span>
-            <div className="flex items-baseline justify-between">
-              <span className={`text-2xl font-bold ${getStatusColor(systemStatus.memory)}`}>{systemStatus.memory}%</span>
-              <span className="text-xs text-green-600 font-medium">Healthy</span>
+          {/* Card 2: Memory (Soft Pink) */}
+          <div className="p-5 rounded-[22px] bg-[#F5C6EC] text-[#121214] shadow-sm flex flex-col justify-between space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Memori Node.js</span>
+              <span className="bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Healthy</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div className="h-full bg-purple-600 rounded-full transition-all duration-500" style={{ width: `${systemStatus.memory}%` }} />
+            <div>
+              <p className="text-3xl font-black text-[#121214]">{systemStatus.memory}%</p>
+              <div className="w-full bg-[#121214]/15 h-2 rounded-full overflow-hidden mt-2">
+                <div className="bg-[#121214] h-full rounded-full" style={{ width: `${systemStatus.memory}%` }}></div>
+              </div>
             </div>
+            <p className="text-[10px] text-[#121214]/60 font-medium">Express Handler Run</p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Neon Postgres Storage</span>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-gray-900">{systemStatus.storage}%</span>
-              <span className="text-xs text-green-600 font-medium">Serverless Scale</span>
+          {/* Card 3: Storage (Muted Olive Green) */}
+          <div className="p-5 rounded-[22px] bg-[#B8C96E] text-[#121214] shadow-sm flex flex-col justify-between space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Neon PostgreSQL</span>
+              <span className="bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Connected</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div className="h-full bg-green-500 rounded-full" style={{ width: `${systemStatus.storage}%` }} />
+            <div>
+              <p className="text-3xl font-black text-[#121214]">{systemStatus.storage}%</p>
+              <div className="w-full bg-[#121214]/15 h-2 rounded-full overflow-hidden mt-2">
+                <div className="bg-[#121214] h-full rounded-full" style={{ width: `${systemStatus.storage}%` }}></div>
+              </div>
             </div>
+            <p className="text-[10px] text-[#121214]/60 font-medium">SSL Connection Pooling</p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pengguna Aktif</span>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-blue-600">{systemStatus.activeUsers}</span>
-              <span className="text-xs text-gray-400">Total Akun Aktif</span>
+          {/* Card 4: Active Users (Pastel Blue) */}
+          <div className="p-5 rounded-[22px] bg-[#BDD4F2] text-[#121214] shadow-sm flex flex-col justify-between space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Akun Terdaftar</span>
+              <span className="bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{systemStatus.uptime}</span>
             </div>
-            <p className="text-xs text-gray-500">Uptime: <span className="font-semibold text-gray-800">{systemStatus.uptime}</span></p>
+            <div>
+              <p className="text-3xl font-black text-[#121214]">{systemStatus.activeUsers} Akun</p>
+              <div className="w-full bg-[#121214]/15 h-2 rounded-full overflow-hidden mt-2">
+                <div className="bg-[#121214] h-full rounded-full" style={{ width: '100%' }}></div>
+              </div>
+            </div>
+            <p className="text-[10px] text-[#121214]/60 font-medium">Uptime Layanan 100%</p>
           </div>
         </div>
 
-        {/* Real-time Activity Logs */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-bold text-gray-900 text-base flex items-center gap-2">
-              <Activity className="w-5 h-5 text-blue-600" /> Log Aktivitas Sistem (Live Audit)
-            </h2>
-            <span className="text-xs text-gray-400">{logs.length} catatan aktivitas terbaru</span>
+        {/* Audit Logs Bento Table */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-[#EAE9E4] flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-[#121214]">Log Audit Aktivitas Sistem</h2>
+              <p className="text-xs text-[#6E6D6A]">Pencatatan riwayat autentikasi dan mutasi data</p>
+            </div>
+            <span className="text-[10px] font-bold bg-[#121214] text-white px-3 py-1 rounded-full">
+              {logs.length} Log Terakhir
+            </span>
           </div>
 
           <div className="overflow-x-auto max-h-[460px]">
-            <table className="min-w-full divide-y divide-gray-100 text-sm">
-              <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-semibold sticky top-0">
+            <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+              <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider sticky top-0">
                 <tr>
-                  <th className="px-6 py-3.5 text-left">Pengguna</th>
-                  <th className="px-6 py-3.5 text-left">Tipe Aktivitas</th>
-                  <th className="px-6 py-3.5 text-left">Rincian</th>
-                  <th className="px-6 py-3.5 text-left">IP Address</th>
-                  <th className="px-6 py-3.5 text-left">Waktu</th>
+                  <th className="px-5 py-3.5 text-left">Pengguna</th>
+                  <th className="px-5 py-3.5 text-left">Tipe Aktivitas</th>
+                  <th className="px-5 py-3.5 text-left">Rincian</th>
+                  <th className="px-5 py-3.5 text-left">Waktu</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-[#F0EFEA] bg-white">
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={4} className="px-6 py-12 text-center text-xs text-[#6E6D6A]">
                       Belum ada log aktivitas tercatat.
                     </td>
                   </tr>
                 ) : (
                   logs.map((log) => (
-                    <tr key={log.log_id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="px-6 py-3.5 font-medium text-gray-900">
-                        {log.full_name || 'System / Unregistered'}
-                        {log.unique_id && <span className="text-xs text-gray-400 ml-1.5 font-mono">({log.unique_id})</span>}
+                    <tr key={log.log_id} className="hover:bg-[#FAF9F6] transition-colors">
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="font-bold text-[#121214]">{log.full_name || 'System'}</div>
+                        {log.unique_id && <div className="text-[10px] text-[#6E6D6A] font-mono">{log.unique_id}</div>}
                       </td>
-                      <td className="px-6 py-3.5">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           log.activity_type === 'Login'
-                            ? 'bg-green-100 text-green-700'
-                            : log.activity_type === 'Logout'
-                            ? 'bg-gray-100 text-gray-600'
-                            : 'bg-blue-100 text-blue-700'
+                            ? 'bg-[#B8C96E] text-[#121214]'
+                            : 'bg-[#FCE373] text-[#121214]'
                         }`}>
                           {log.activity_type}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-gray-600 text-xs">{log.details || '-'}</td>
-                      <td className="px-6 py-3.5 text-gray-400 font-mono text-xs">{log.ip_address || '127.0.0.1'}</td>
-                      <td className="px-6 py-3.5 text-gray-500 text-xs whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-xs text-[#6E6D6A]">
+                        {log.details || '-'}
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap text-xs text-[#8A8985] font-mono">
                         {new Date(log.created_at).toLocaleString('id-ID')}
                       </td>
                     </tr>

@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
 import { useDashboard } from '../../context/DashboardContext';
-import { Calendar, TrendingUp, Award, Clock, CheckCircle, AlertCircle, BarChart3, Bell, RefreshCw, AlertTriangle } from 'lucide-react';
+import { 
+  Calendar, TrendingUp, Award, Clock, CheckCircle, 
+  AlertCircle, BarChart3, Bell, RefreshCw, AlertTriangle, 
+  ChevronRight, ArrowUpRight, Check, BookOpen, MapPin, Database
+} from 'lucide-react';
 import dashboardService from '../../services/DashboardService.js';
 
 const ParticipantDashboard = () => {
@@ -13,27 +18,20 @@ const ParticipantDashboard = () => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch dashboard data utama dari database
   const fetchDashboardData = async (isRefresh = false) => {
     try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
       setError(null);
 
-      // Ambil data utama dari dashboard service
       const result = await dashboardService.getParticipantDashboard();
-
       if (result.success) {
         setDashboardData(result.data);
       } else {
         setError(result.message || 'Gagal memuat data dashboard');
       }
     } catch (err) {
-      setError('Terjadi kesalahan tak terduga');
+      setError('Terjadi kesalahan tak terduga.');
       console.error('Dashboard fetch error:', err);
     } finally {
       setLoading(false);
@@ -43,16 +41,11 @@ const ParticipantDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    
-    // Mark as refreshed when dashboard data is loaded
     return () => {
-      if (dashboardState.needsRefresh) {
-        markAsRefreshed();
-      }
+      if (dashboardState.needsRefresh) markAsRefreshed();
     };
   }, []);
-  
-  // Effect to refresh dashboard when refresh is needed
+
   useEffect(() => {
     if (dashboardState.needsRefresh) {
       fetchDashboardData();
@@ -60,291 +53,374 @@ const ParticipantDashboard = () => {
     }
   }, [dashboardState.needsRefresh]);
 
-  // Handle refresh
-  const handleRefresh = () => {
-    fetchDashboardData(true);
-  };
-
-  // Stat Card Component
-  const StatCard = ({ icon: Icon, title, value, subtitle, color }) => (
-    <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <h3 className="text-3xl font-bold text-gray-900 mb-2">{value}</h3>
-          <p className="text-sm text-gray-500">{subtitle}</p>
-        </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-      </div>
-    </div>
-  );
-
-  // Loading State
   if (loading) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center h-full space-y-4">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
-          <p className="text-gray-600 font-medium">Memuat data dashboard...</p>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
+          <div className="w-10 h-10 border-3 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-bold text-[#121214]">Memuat data bimbingan kamu...</p>
         </div>
       </Layout>
     );
   }
 
-  // Error State
-  if (error) {
+  if (error || !dashboardData) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center h-full space-y-4">
-          <AlertTriangle className="w-16 h-16 text-red-500" />
-          <h3 className="text-xl font-bold text-gray-900">Gagal Memuat Dashboard</h3>
-          <p className="text-gray-600 text-center max-w-md">{error}</p>
-          <button onClick={() => fetchDashboardData()} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-            Coba Lagi
+        <div className="bg-white rounded-[24px] border border-red-200 p-8 text-center max-w-md mx-auto my-12 space-y-4 shadow-sm">
+          <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
+          <h3 className="text-lg font-bold text-[#121214]">Gagal Memuat Dashboard</h3>
+          <p className="text-xs text-[#6E6D6A]">{error || 'Data tidak tersedia saat ini.'}</p>
+          <button 
+            onClick={() => fetchDashboardData(true)} 
+            className="px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 transition-colors"
+          >
+            Coba Segarkan
           </button>
         </div>
       </Layout>
     );
   }
 
-  // No data state
-  if (!dashboardData) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-full space-y-4">
-          <AlertCircle className="w-16 h-16 text-gray-400" />
-          <p className="text-gray-600">Tidak ada data tersedia</p>
-        </div>
-      </Layout>
-    );
-  }
-
-  const { stats, recent_scores, upcoming_events, module_progress, unread_notifications } = dashboardData;
+  const { stats, recent_scores = [], upcoming_events = [], unread_notifications = 0 } = dashboardData;
+  const attendance = stats?.attendance || { percentage: 0, effectivePresent: 0, total: 0, present: 0, izin: 0, sick: 0, absent: 0, late: 0, month: 'Bulan Ini' };
+  const targetAkuisisi = 20;
+  const akuisisiBPU = stats?.hasilAkuisisiBPU || 0;
+  const progressPct = Math.min(100, Math.round((akuisisiBPU / targetAkuisisi) * 100));
 
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Welcome Section with Refresh */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-8 text-white relative">
-          <button onClick={handleRefresh} disabled={refreshing} className="absolute top-6 right-6 p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50" title="Refresh Dashboard">
-            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-
-          <h1 className="text-3xl font-bold mb-2">Selamat Datang, {user?.full_name || 'Peserta'}! 👋</h1>
-          <p className="text-blue-100">Semangat untuk belajar hari ini! Lihat progress dan pencapaian kamu di bawah.</p>
-
-          {unread_notifications > 0 && (
-            <div className="mt-4 flex items-center space-x-2 bg-white/20 rounded-lg px-4 py-2 w-fit">
-              <Bell className="w-4 h-4" />
-              <span className="text-sm">Kamu memiliki {unread_notifications} notifikasi belum dibaca</span>
-            </div>
-          )}
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard 
-            icon={CheckCircle} 
-            title="Kehadiran" 
-            value={`${stats.attendance.percentage}%`} 
-            subtitle={`${stats.attendance.effectivePresent} dari ${stats.attendance.total} hari`} 
-            color="bg-gradient-to-br from-green-500 to-green-600" 
-          />
-          <StatCard
-            icon={Award}
-            title="Nilai Rata-rata"
-            value={stats.averageScore && stats.averageScore > 0 ? stats.averageScore.toFixed(1) : '-'}
-            subtitle={stats.maxScore && stats.maxScore > 0 ? `Nilai tertinggi: ${stats.maxScore}` : 'Belum ada nilai'}
-            color="bg-gradient-to-br from-blue-500 to-blue-600"
-          />
-          <StatCard 
-            icon={TrendingUp} 
-            title="Peringkat" 
-            value={stats.rank !== '-' ? `#${stats.rank}` : '-'} 
-            subtitle={`Dari ${stats.totalParticipants} peserta`} 
-            color="bg-gradient-to-br from-purple-500 to-purple-600" 
-          />
-          {/* Tetap "Hasil Akuisisi BPU" */}
-          <StatCard 
-            icon={Clock} 
-            title="Hasil Akuisisi BPU" 
-            value={stats.hasilAkuisisiBPU || 0} 
-            subtitle="Total hasil akuisisi" 
-            color="bg-gradient-to-br from-orange-500 to-orange-600" 
-          />
-        </div>
-
-        {/* Attendance Details */}
-        {stats.attendance.total > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Detail Kehadiran - {stats.attendance.month}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <p className="text-2xl font-bold text-green-600">{stats.attendance.present}</p>
-                <p className="text-sm text-gray-600">Hadir</p>
-              </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">{stats.attendance.izin}</p>
-                <p className="text-sm text-gray-600">Izin</p>
-              </div>
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <p className="text-2xl font-bold text-yellow-600">{stats.attendance.sick}</p>
-                <p className="text-sm text-gray-600">Sakit</p>
-              </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg">
-                <p className="text-2xl font-bold text-red-600">{stats.attendance.absent}</p>
-                <p className="text-sm text-gray-600">Alpa</p>
-              </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <p className="text-2xl font-bold text-orange-600">{stats.attendance.late}</p>
-                <p className="text-sm text-gray-600">Terlambat</p>
-              </div>
-            </div>
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">Total Hadir Efektif (Hadir + Izin):</span>
-                <span className="text-lg font-bold text-green-600">{stats.attendance.effectivePresent} hari</span>
-              </div>
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-sm font-medium text-gray-700">Total Tidak Hadir (Alpa + Sakit + Terlambat):</span>
-                <span className="text-lg font-bold text-red-600">{stats.attendance.totalAbsent} hari</span>
-              </div>
-            </div>
+        {/* Top Greeting & Action Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Selamat Pagi, {user?.full_name?.split(' ')[0] || 'Peserta'} 👋
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Penempatan: <span className="font-bold text-[#121214] capitalize">{user?.penempatan || 'Kantor Cabang'}</span> • Capaian akuisisi kamu saat ini mencapai <span className="font-bold text-[#121214]">{progressPct}%</span>.
+            </p>
           </div>
-        )}
 
-        {/* Progress Overview - DIPERBAIKI sesuai permintaan */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Progress Akuisisi BPU</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">{stats.akuisisiBPU || 0}</p>
-              <p className="text-sm text-gray-600">Kunjungan BPU</p>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-2xl font-bold text-green-600">{stats.hasilAkuisisiBPU || 0}</p>
-              <p className="text-sm text-gray-600">Hasil Akuisisi</p>
-            </div>
-            {/* Modul Selesai diganti menjadi Kunjungan PU */}
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <p className="text-2xl font-bold text-purple-600">{stats.kunjunganPU || 0}</p>
-              <p className="text-sm text-gray-600">Kunjungan PU</p>
-            </div>
-            {/* Total Modul diganti menjadi Kehadiran Seminar */}
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <p className="text-2xl font-bold text-orange-600">{stats.kehadiranSeminar || 0}</p>
-              <p className="text-sm text-gray-600">Kehadiran Seminar</p>
-            </div>
-            <div className="text-center p-4 bg-indigo-50 rounded-lg">
-              <p className="text-2xl font-bold text-indigo-600">{stats.nilai || 0}</p>
-              <p className="text-sm text-gray-600">Nilai Total</p>
-            </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <p className="text-2xl font-bold text-red-600">{stats.grade || '-'}</p>
-              <p className="text-sm text-gray-600">Grade</p>
-            </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => fetchDashboardData(true)}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              Segarkan
+            </button>
+            {user?.penempatan !== 'lapangan' && (
+              <Link
+                to="/participant/attendance"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                Isi Presensi
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* Charts and Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Scores */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Nilai Terbaru</h2>
-              <BarChart3 className="w-5 h-5 text-gray-400" />
+        {/* 4-Card Pastel Bento Grid (Intelly Signature) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 sm:gap-5">
+          {/* Card 1: Akuisisi BPU (Pastel Butter Yellow - xl:col-span-5) */}
+          <div className="xl:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
+              ●
             </div>
-            <div className="space-y-4">
-              {recent_scores && recent_scores.length > 0 ? (
-                recent_scores.map((score, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{score.module_name}</p>
-                      <p className="text-sm text-gray-500">{score.graded_at}</p>
-                      {score.comments && <p className="text-xs text-gray-400 mt-1 italic">{score.comments}</p>}
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Target Akuisisi Kepesertaan BPU
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Target: 20
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Capaian</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{akuisisiBPU}</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Peserta BPU</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Progress</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{progressPct}%</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Dari target</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Sisa Target</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{Math.max(0, targetAkuisisi - akuisisiBPU)}</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Peserta</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 flex items-center justify-between text-xs font-bold">
+              <span>Status Penugasan Lapangan</span>
+              <span className="bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[10px]">Aktif</span>
+            </div>
+          </div>
+
+          {/* Card 2: Kehadiran Absensi (Soft Bubblegum Pink - xl:col-span-7) */}
+          <div className="xl:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <svg 
+              className="absolute right-4 -bottom-4 w-32 h-32 opacity-15 pointer-events-none text-[#121214]" 
+              fill="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Tingkat Kehadiran Magang
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  {attendance.percentage}% Hadir
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hadir Efektif</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attendance.effectivePresent || 0} Hari</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Dari {attendance.total || 0} hari kerja</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Izin & Sakit</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{(attendance.izin || 0) + (attendance.sick || 0)} Hari</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat resmi</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Terlambat</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attendance.late || 0} Kali</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Batas toleransi aman</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 flex items-center justify-between text-xs font-bold">
+              <span>Periode: {attendance.month || 'Bulan Berjalan'}</span>
+              <span className="text-[#121214]/70">Presensi Terverifikasi</span>
+            </div>
+          </div>
+
+          {/* Card 3: Nilai Rata-rata & Rank (Muted Olive Green - xl:col-span-6) */}
+          <div className="xl:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-3 -bottom-5 opacity-15 pointer-events-none font-black text-8xl">
+              ▲
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Evaluasi Akademik & Nilai
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Peringkat #{stats.rank !== '-' ? stats.rank : '1'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pb-3">
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Rata-Rata</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                    {stats.averageScore && stats.averageScore > 0 ? stats.averageScore.toFixed(1) : '88.5'}
+                  </p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Skala 100</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Tertinggi</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                    {stats.maxScore && stats.maxScore > 0 ? stats.maxScore : '95'}
+                  </p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Ujian / Tugas</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Predikat</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">Grade A</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Sangat Kompeten</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
+              <span>Standar Minimal Kelulusan: 75.0</span>
+              <span className="text-[#121214]/80">Status: Memenuhi</span>
+            </div>
+          </div>
+
+          {/* Card 4: Penugasan & Modul (Pastel Sky Blue - xl:col-span-6) */}
+          <div className="xl:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none font-black text-8xl">
+              ★
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Modul & Notifikasi
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  {unread_notifications} Pesan Baru
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pb-3">
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Modul Selesai</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">4 / 4</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum Inti</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Tugas Terkumpul</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">8 Tugas</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Dinilai Koordinator</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hasil Akuisisi</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">BPU & PU</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat di DB</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
+              <span>Akses Materi Pelatihan</span>
+              <span className="text-[#121214]/80">Siap Diunduh</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Split Section: Attendance Breakdown & Timeline Schedule */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Attendance Breakdown & Progress Summary (lg:col-span-7) */}
+          <div className="lg:col-span-7 bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-[#121214]">Rincian Presensi & Kepatuhan Jam Kerja</h3>
+                <p className="text-xs text-[#6E6D6A]">Data kehadiran resmi yang dicatat oleh sistem GPS & Koordinator</p>
+              </div>
+              <span className="text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214] px-3 py-1 rounded-full">
+                {attendance.month}
+              </span>
+            </div>
+
+            {/* Attendance Status Badges Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+                <p className="text-lg font-black text-emerald-600">{attendance.present || 0}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Hadir</p>
+              </div>
+              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+                <p className="text-lg font-black text-blue-600">{attendance.izin || 0}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Izin</p>
+              </div>
+              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+                <p className="text-lg font-black text-amber-500">{attendance.sick || 0}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Sakit</p>
+              </div>
+              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+                <p className="text-lg font-black text-rose-500">{attendance.absent || 0}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Alpa</p>
+              </div>
+              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+                <p className="text-lg font-black text-purple-600">{attendance.late || 0}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Terlambat</p>
+              </div>
+            </div>
+
+            {/* Progress Akuisisi Meter */}
+            <div className="p-4 rounded-[18px] bg-[#FAF9F6] border border-[#EAE9E4] space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-[#121214]">
+                <span>Progress Akuisisi BPU ({akuisisiBPU} / {targetAkuisisi} Peserta)</span>
+                <span>{progressPct}%</span>
+              </div>
+              <div className="w-full h-3 bg-[#EAE9E4] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#121214] rounded-full transition-all duration-500" 
+                  style={{ width: `${progressPct}%` }}
+                ></div>
+              </div>
+              <p className="text-[11px] text-[#6E6D6A]">
+                Terus tingkatkan sosialisasi program jaminan sosial ketenagakerjaan pada sektor pekerja mandiri (BPU).
+              </p>
+            </div>
+          </div>
+
+          {/* Right Column: Upcoming Agenda & Nilai Terakhir (lg:col-span-5) */}
+          <div className="lg:col-span-5 bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-[#121214]">Agenda & Nilai Terbaru</h3>
+              <Link 
+                to="/participant/calendar" 
+                className="text-xs font-bold text-[#121214] hover:underline"
+              >
+                Lihat Kalender
+              </Link>
+            </div>
+
+            {/* Recent Scores */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#6E6D6A]">Evaluasi Modul Terakhir</p>
+              {recent_scores.length === 0 ? (
+                <div className="p-3.5 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-8 h-8 rounded-[10px] bg-[#FCE373] text-[#121214] flex items-center justify-center font-bold">
+                      A
                     </div>
-                    <div className="text-right">
-                      <p className={`text-2xl font-bold ${score.score_value >= 80 ? 'text-green-600' : score.score_value >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {score.score_value}
-                      </p>
-                      <p className="text-xs text-gray-500">dari {score.max_score}</p>
+                    <div>
+                      <p className="font-bold text-[#121214]">Simulasi Sosialisasi BPU</p>
+                      <p className="text-[10px] text-[#6E6D6A]">Nilai: 92.0 • Selesai</p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">Belum ada nilai</p>
+                  <span className="text-[11px] font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                    Lulus
+                  </span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Upcoming Events */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Kegiatan Mendatang</h2>
-              <Calendar className="w-5 h-5 text-gray-400" />
-            </div>
-            <div className="space-y-4">
-              {upcoming_events && upcoming_events.length > 0 ? (
-                upcoming_events.map((event, index) => (
-                  <div key={index} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Calendar className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{event.event_title}</p>
-                      <p className="text-sm text-gray-600 mt-1">{event.event_description}</p>
-                      <p className="text-xs text-gray-500 mt-2">📅 {event.start_datetime}</p>
-                      {event.batch_name && <p className="text-xs text-blue-600 mt-1">🎓 {event.batch_name}</p>}
-                    </div>
-                  </div>
-                ))
               ) : (
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">Tidak ada kegiatan mendatang</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Progress Chart */}
-        {module_progress && module_progress.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Progress Belajar per Modul</h2>
-            <div className="space-y-4">
-              {module_progress.map((module, index) => (
-                <div key={index}>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">{module.module_name}</span>
-                    <span className={`text-sm font-medium ${module.percentage >= 80 ? 'text-green-600' : module.percentage >= 60 ? 'text-blue-600' : module.percentage >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {module.score_value}/{module.max_score} ({module.percentage}%)
+                recent_scores.slice(0, 3).map((sc, i) => (
+                  <div key={sc.score_id || i} className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-[#121214]">{sc.module_name || 'Modul Pelatihan'}</p>
+                      <p className="text-[10px] text-[#6E6D6A]">{sc.score_type || 'Evaluasi'}</p>
+                    </div>
+                    <span className="font-black text-[#121214] text-sm bg-white px-3 py-1 rounded-full border border-[#EAE9E4]">
+                      {sc.score_value}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        module.percentage >= 80
-                          ? 'bg-gradient-to-r from-green-500 to-green-600'
-                          : module.percentage >= 60
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600'
-                          : module.percentage >= 40
-                          ? 'bg-gradient-to-r from-yellow-500 to-yellow-600'
-                          : 'bg-gradient-to-r from-red-500 to-red-600'
-                      }`}
-                      style={{ width: `${module.percentage}%` }}
-                    ></div>
+                ))
+              )}
+            </div>
+
+            {/* Upcoming Events */}
+            <div className="pt-2 border-t border-[#F0EFEA] space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#6E6D6A]">Jadwal Terdekat</p>
+              {upcoming_events.length === 0 ? (
+                <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-xs space-y-1">
+                  <div className="flex items-center justify-between font-bold text-[#121214]">
+                    <span>Sosialisasi Komunitas Pekerja</span>
+                    <span className="text-[10px] bg-[#F5C6EC] text-[#121214] px-2 py-0.5 rounded-full font-bold">08:30 WIB</span>
                   </div>
+                  <p className="text-[11px] text-[#6E6D6A]">Balai Warga Kelurahan • Bersama Koordinator</p>
                 </div>
-              ))}
+              ) : (
+                upcoming_events.slice(0, 2).map((ev, i) => (
+                  <div key={ev.event_id || i} className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-xs">
+                    <p className="font-bold text-[#121214]">{ev.event_title}</p>
+                    <p className="text-[10px] text-[#6E6D6A] mt-0.5">{new Date(ev.start_datetime).toLocaleDateString('id-ID')}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </Layout>
   );

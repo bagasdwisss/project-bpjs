@@ -2,13 +2,11 @@ import React, { useContext } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, Calendar, FileText, ClipboardList, TrendingUp, 
-  FolderOpen, MessageSquare, Bell, Users, Award, 
-  BarChart3, FileSpreadsheet, Download, 
-  Database, Radio, LogOut, X 
+  FolderOpen, Bell, Users, Award, 
+  BarChart3, Download, 
+  Database, Radio, LogOut, X, ChevronRight, Sparkles
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
-
-// Import logo
 import logo from '../../assets/27102023_091008_dorong_universal.png';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -21,170 +19,193 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     navigate('/login');
   };
 
-  // Fungsi untuk mendapatkan menu items berdasarkan role
-  const getMenuItems = () => {
-    const role = user?.role;
+  const role = user?.role || '';
+  const roleLower = role.toLowerCase();
 
-    // Filter menu items based on user placement (for participants)
-    const getFilteredParticipantMenu = () => {
-      const baseMenu = [
+  // Menu categorization into General & Tools
+  const getCategorizedMenu = () => {
+    if (roleLower.includes('admin') || roleLower.includes('administrator')) {
+      return {
+        general: [
+          { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
+          { path: '/admin/users', icon: Users, label: 'Kelola User' },
+          { path: '/admin/batches', icon: Calendar, label: 'Kelola Batch' },
+          { path: '/admin/reports', icon: FileText, label: 'Laporan' },
+          { path: '/admin/monitoring', icon: BarChart3, label: 'Monitoring' },
+        ],
+        tools: [
+          { path: '/admin/import-export', icon: Download, label: 'Import / Export' },
+          { path: '/admin/backup', icon: Database, label: 'Backup Data' },
+          { path: '/admin/broadcast', icon: Radio, label: 'Broadcast Pesan' },
+        ]
+      };
+    } else if (roleLower.includes('koordinator') || roleLower.includes('coordinator')) {
+      return {
+        general: [
+          { path: '/coordinator/dashboard', icon: Home, label: 'Dashboard' },
+          { path: '/coordinator/participants', icon: Users, label: 'Data Peserta' },
+          { path: '/coordinator/grading', icon: Award, label: 'Penilaian' },
+          { path: '/coordinator/analysis', icon: BarChart3, label: 'Analisis Metrik' },
+        ],
+        tools: [
+          { path: '/coordinator/reminders', icon: Bell, label: 'Pengingat' },
+        ]
+      };
+    } else {
+      // Peserta
+      const generalItems = [
         { path: '/participant/dashboard', icon: Home, label: 'Dashboard' },
-        { path: '/participant/attendance', icon: ClipboardList, label: 'Absensi' },
-        { path: '/participant/calendar', icon: Calendar, label: 'Kalender' },
+        { path: '/participant/attendance', icon: ClipboardList, label: 'Absensi Harian' },
+        { path: '/participant/calendar', icon: Calendar, label: 'Jadwal & Kalender' },
         { path: '/participant/progress', icon: TrendingUp, label: 'Progress Saya' },
-        { path: '/participant/documents', icon: FolderOpen, label: 'Dokumen' },
-        { path: '/participant/notifications', icon: Bell, label: 'Notifikasi' },
         { path: '/participant/acquisition-result', icon: Database, label: 'Hasil Akuisisi' },
       ];
 
-      // Hide attendance menu for "lapangan" participants
-      if (user?.penempatan === 'lapangan') {
-        return baseMenu.filter(item => item.path !== '/participant/attendance');
-      }
+      // Hide attendance for "lapangan"
+      const filteredGeneral = user?.penempatan === 'lapangan'
+        ? generalItems.filter(item => item.path !== '/participant/attendance')
+        : generalItems;
 
-      return baseMenu;
-    };
-
-    const participantMenu = getFilteredParticipantMenu();
-
-    const coordinatorMenu = [
-      { path: '/coordinator/dashboard', icon: Home, label: 'Dashboard' },
-      { path: '/coordinator/participants', icon: Users, label: 'Data Peserta' },
-      { path: '/coordinator/grading', icon: Award, label: 'Penilaian' },
-      { path: '/coordinator/analysis', icon: BarChart3, label: 'Analisis' },
-      { path: '/coordinator/reminders', icon: Bell, label: 'Pengingat' },
-    ];
-
-    const adminMenu = [
-      { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
-      { path: '/admin/users', icon: Users, label: 'Kelola User' },
-      { path: '/admin/batches', icon: Calendar, label: 'Kelola Batch' },
-      { path: '/admin/reports', icon: FileText, label: 'Laporan' },
-      { path: '/admin/import-export', icon: Download, label: 'Import/Export' },
-      { path: '/admin/monitoring', icon: BarChart3, label: 'Monitoring' },
-      { path: '/admin/backup', icon: Database, label: 'Backup' },
-      { path: '/admin/broadcast', icon: Radio, label: 'Broadcast' },
-    ];
-
-    // Logic untuk menentukan menu berdasarkan role
-    if (!role) {
-      return participantMenu;
-    }
-
-    const roleLower = role.toLowerCase();
-    
-    if (roleLower.includes('peserta') || roleLower.includes('participant') || roleLower.includes('student')) {
-      return participantMenu;
-    } else if (roleLower.includes('koordinator') || roleLower.includes('coordinator') || roleLower.includes('trainer')) {
-      return coordinatorMenu;
-    } else if (roleLower.includes('admin') || roleLower.includes('administrator')) {
-      return adminMenu;
-    } else {
-      return participantMenu;
+      return {
+        general: filteredGeneral,
+        tools: [
+          { path: '/participant/documents', icon: FolderOpen, label: 'Basis Dokumen' },
+          { path: '/participant/notifications', icon: Bell, label: 'Notifikasi' },
+        ]
+      };
     }
   };
 
-  const currentMenu = getMenuItems();
+  const { general, tools } = getCategorizedMenu();
+
+  const renderNavList = (items) => (
+    <ul className="space-y-1">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const isActive = location.pathname === item.path;
+
+        return (
+          <li key={item.path}>
+            <Link
+              to={item.path}
+              onClick={() => {
+                if (window.innerWidth < 1024) toggleSidebar();
+              }}
+              className={`
+                group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all duration-200
+                ${isActive 
+                  ? 'bg-[#1C1C20] text-[#F5C6EC] border-l-[3px] border-[#F5C6EC] pl-3 shadow-inner' 
+                  : 'text-[#9CA3AF] hover:bg-[#18181B] hover:text-white'
+                }
+              `}
+            >
+              <div className="flex items-center space-x-3 min-w-0">
+                <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#F5C6EC]' : 'text-[#9CA3AF]'}`} />
+                <span className="truncate">{item.label}</span>
+              </div>
+              {isActive && (
+                <div className="w-1.5 h-1.5 rounded-full bg-[#F5C6EC] shrink-0"></div>
+              )}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
 
   return (
     <>
+      {/* Mobile Backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={toggleSidebar}
         />
       )}
 
+      {/* Pitch-Black Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-full bg-gradient-to-b from-slate-800 to-slate-900 
-        text-white w-64 z-50 transform transition-transform duration-300 ease-in-out
+        fixed top-0 left-0 h-full bg-[#121214] text-white w-64 z-50 flex flex-col justify-between
+        transform transition-transform duration-300 ease-in-out border-r border-[#1C1C20]
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto
       `}>
-        <div className="p-6 border-b border-slate-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              {/* Ganti ikon dengan logo */}
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                <img 
-                  src={logo} 
-                  alt="Logo" 
-                  className="w-full h-full object-cover"
-                />
+        {/* Top Header & Branding */}
+        <div>
+          <div className="px-5 pt-6 pb-4 flex items-center justify-between border-b border-[#1C1C20]">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FCE373] via-[#F5C6EC] to-[#BDD4F2] p-0.5 flex items-center justify-center shadow-md">
+                <div className="w-full h-full bg-[#121214] rounded-[10px] flex items-center justify-center overflow-hidden">
+                  <img src={logo} alt="Logo" className="w-5 h-5 object-contain" />
+                </div>
               </div>
-              <span className="font-bold text-lg">Absensi & Nilai</span>
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-bold text-xl tracking-tight text-white font-sans">intelly</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#F5C6EC] bg-[#1C1C20] px-1.5 py-0.5 rounded-full">BPJS</span>
+              </div>
             </div>
+
             <button 
               onClick={toggleSidebar}
-              className="lg:hidden text-slate-400 hover:text-white"
+              className="lg:hidden text-[#9CA3AF] hover:text-white p-1 rounded-lg"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
 
-        <div className="p-6 border-b border-slate-700">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-lg font-bold">
-              {user?.full_name?.charAt(0) || 'U'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">
-                {user?.full_name || 'User'}
-              </p>
-              <span className="inline-block px-2 py-1 text-xs bg-blue-500 bg-opacity-20 text-blue-300 rounded-full mt-1">
-                {user?.role || 'Role'}
-              </span>
+          {/* User Mini Card in Pitch Black */}
+          <div className="px-5 py-4 border-b border-[#1C1C20]">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-[#F5C6EC] text-[#121214] flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+                {user?.full_name?.charAt(0) || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-white truncate">
+                  {user?.full_name || 'Pengguna'}
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="inline-block text-[10px] font-semibold bg-[#1C1C20] text-[#F5C6EC] px-2 py-0.5 rounded-full border border-[#27272A]">
+                    {user?.role || 'Peserta'}
+                  </span>
+                  {user?.unique_id && (
+                    <span className="text-[10px] text-[#71717A] truncate">
+                      {user.unique_id}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Navigation Menu (General & Tools) */}
+          <nav className="px-3 py-4 space-y-6 overflow-y-auto max-h-[calc(100vh-220px)]">
+            <div>
+              <p className="px-3 mb-2 text-[10px] font-bold text-[#71717A] uppercase tracking-wider">
+                General
+              </p>
+              {renderNavList(general)}
+            </div>
+
+            <div>
+              <p className="px-3 mb-2 text-[10px] font-bold text-[#71717A] uppercase tracking-wider">
+                Tools
+              </p>
+              {renderNavList(tools)}
+            </div>
+          </nav>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4">
-          {currentMenu.length > 0 ? (
-            <ul className="space-y-1">
-              {currentMenu.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                
-                return (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      onClick={() => {
-                        if (window.innerWidth < 1024) {
-                          toggleSidebar();
-                        }
-                      }}
-                      className={`
-                        flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200
-                        ${isActive 
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/50' 
-                          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                        }
-                      `}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div className="text-center py-8 text-slate-400">
-              <p>No menu items available</p>
-              <p className="text-sm mt-2">Check user role configuration</p>
-            </div>
-          )}
-        </nav>
-
-        <div className="p-4 border-t border-slate-700">
+        {/* Footer Sidebar (Logout Button) */}
+        <div className="p-4 border-t border-[#1C1C20]">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center space-x-3 px-4 py-3 text-slate-300 hover:bg-red-600 hover:text-white rounded-lg transition-all duration-200"
+            className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-semibold text-[#9CA3AF] hover:text-red-400 hover:bg-[#1C1C20] transition-all duration-200"
           >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Logout</span>
+            <div className="flex items-center space-x-2.5">
+              <LogOut className="w-4 h-4 text-[#9CA3AF] group-hover:text-red-400" />
+              <span>Keluar (Log out)</span>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 opacity-50" />
           </button>
         </div>
       </aside>

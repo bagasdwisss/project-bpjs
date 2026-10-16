@@ -1,32 +1,19 @@
 import React, { useContext, useState } from 'react';
-import { Menu, Bell, User, Settings, LogOut, Key } from 'lucide-react';
+import { Menu, Bell, User, Settings, LogOut, Key, Search, ChevronDown, Check } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
-import ChangePasswordModal from './ChangePasswordModal'; // Komponen baru
+import ChangePasswordModal from './ChangePasswordModal';
 
 const Header = ({ toggleSidebar }) => {
   const { user, coordinator, isParticipant, logout } = useContext(AuthContext);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('Semua');
 
-  // Fungsi untuk mendapatkan judul header dinamis berdasarkan role
   const getHeaderTitle = () => {
-    if (isParticipant) {
-      return 'Dashboard Peserta';
-    } else if (user?.role_id === 2 || user?.role === 'Koordinator') {
-      return 'Dashboard Koordinator';
-    } else if (user?.role_id === 3 || user?.role === 'Administrator') {
-      return 'Dashboard Administrator';
-    } else {
-      return 'Dashboard';
-    }
-  };
-
-  // Fungsi untuk mendapatkan nama role yang ditampilkan
-  const getDisplayRole = () => {
-    if (user?.role_id === 1 || user?.role === 'Peserta') return 'Peserta';
-    if (user?.role_id === 2 || user?.role === 'Koordinator') return 'Koordinator';
-    if (user?.role_id === 3 || user?.role === 'Administrator') return 'Administrator';
-    return user?.role || 'Peran';
+    if (isParticipant) return 'Portal Peserta';
+    if (user?.role_id === 2 || user?.role === 'Koordinator') return 'Portal Koordinator';
+    if (user?.role_id === 3 || user?.role === 'Administrator') return 'Portal Administrator';
+    return 'Portal BPJS';
   };
 
   const handleLogout = () => {
@@ -41,81 +28,139 @@ const Header = ({ toggleSidebar }) => {
 
   return (
     <>
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4">
-          {/* Left Section */}
-          <div className="flex items-center min-w-0">
+      <header className="bg-[#F5F4F0] border-b border-[#EAE9E4] sticky top-0 z-30 px-4 sm:px-8 py-3.5">
+        <div className="flex items-center justify-between gap-4">
+          {/* Mobile Hamburger & Logo preview */}
+          <div className="flex items-center gap-3">
             <button
               onClick={toggleSidebar}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors mr-2 text-gray-700"
-              aria-label="Buka Menu"
+              className="lg:hidden p-2 rounded-xl bg-white border border-[#EAE9E4] text-[#121214] hover:bg-[#EAE9E4] transition-colors"
+              aria-label="Toggle menu"
             >
               <Menu className="w-5 h-5" />
             </button>
-            
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-                <h1 className="text-base sm:text-xl font-semibold text-gray-900 truncate">
-                  {getHeaderTitle()}
-                </h1>
-                
-                {/* Tampilkan info koordinator untuk peserta */}
-                {isParticipant && coordinator && (
-                  <div className="hidden sm:flex items-center text-xs sm:text-sm text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                    <span className="font-medium">Koordinator:</span>
-                    <span className="ml-1 font-semibold truncate max-w-[150px]">{coordinator.full_name}</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5 hidden sm:block truncate">
-                Sistem Absensi & Penilaian BPJS Ketenagakerjaan
-              </p>
+            <div className="lg:hidden font-bold text-lg tracking-tight text-[#121214]">
+              intelly <span className="text-xs text-[#F5C6EC] bg-[#121214] px-1.5 py-0.5 rounded-full">BPJS</span>
             </div>
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center space-x-4">
-            {/* Notifications */}
-            <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+          {/* Top Search Bar with Inline Filter Pills (Intelly Signature) */}
+          <div className="flex-1 max-w-2xl hidden md:flex items-center bg-[#EAE9E4] rounded-full px-2 py-1.5 border border-[#E0DFDA] shadow-inner">
+            <div className="w-8 h-8 rounded-full bg-[#F5C6EC] text-[#121214] flex items-center justify-center shrink-0 shadow-sm ml-0.5">
+              <Search className="w-4 h-4" />
+            </div>
+            
+            <input 
+              type="text" 
+              placeholder="Cari data peserta, riwayat absensi, penilaian..." 
+              className="bg-transparent border-none outline-none text-xs text-[#121214] placeholder-[#8A8985] px-3.5 flex-1 font-medium"
+            />
 
-            {/* User Profile */}
-            <div className="relative">
-              <button
-                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            <div className="flex items-center gap-1.5 text-[11px] shrink-0 pr-1">
+              <span className="text-[#8A8985] font-semibold text-[10px] uppercase tracking-wider ml-1">In:</span>
+              <button 
+                type="button" 
+                onClick={() => setActiveFilter('Peserta')}
+                className={`px-3 py-1 rounded-full font-bold transition-all text-[11px] ${
+                  activeFilter === 'Peserta' 
+                    ? 'bg-[#121214] text-white shadow-sm' 
+                    : 'text-[#6E6D6A] hover:text-[#121214]'
+                }`}
               >
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">{user?.full_name || 'Nama Pengguna'}</p>
-                  <p className="text-xs text-gray-500">{getDisplayRole()}</p>
-                </div>
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {user?.full_name?.charAt(0) || 'U'}
-                </div>
+                Peserta
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setActiveFilter('Batch')}
+                className={`px-2.5 py-1 rounded-full font-semibold transition-all text-[11px] ${
+                  activeFilter === 'Batch' 
+                    ? 'bg-[#121214] text-white shadow-sm' 
+                    : 'text-[#6E6D6A] hover:text-[#121214]'
+                }`}
+              >
+                Batch
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setActiveFilter('Status')}
+                className={`px-2.5 py-1 rounded-full font-semibold transition-all text-[11px] ${
+                  activeFilter === 'Status' 
+                    ? 'bg-[#121214] text-white shadow-sm' 
+                    : 'text-[#6E6D6A] hover:text-[#121214]'
+                }`}
+              >
+                Status
+              </button>
+            </div>
+          </div>
+
+          {/* Right Section: Connected Dark Pill Action Group */}
+          <div className="flex items-center gap-3">
+            {/* Koordinator Info Pill for Participant */}
+            {isParticipant && coordinator && (
+              <div className="hidden xl:flex items-center text-xs bg-[#FFFFFF] border border-[#EAE9E4] px-3 py-1.5 rounded-full text-[#121214] shadow-sm">
+                <span className="text-[#6E6D6A] mr-1">Koordinator:</span>
+                <span className="font-bold text-[#121214]">{coordinator.full_name}</span>
+              </div>
+            )}
+
+            {/* Connected Pitch-Black Pill Action Group (Intelly Signature) */}
+            <div className="flex items-center bg-[#121214] text-white rounded-full p-1 shadow-sm">
+              <button 
+                className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-white transition-colors relative"
+                title="Notifikasi"
+              >
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[#F5C6EC] rounded-full ring-2 ring-[#121214]"></span>
               </button>
 
-              {/* Profile Dropdown */}
-              {showProfileDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                  <button
-                    onClick={handleChangePassword}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <Key className="w-4 h-4 mr-2" />
-                    Ganti Password
-                  </button>
-                  <div className="border-t border-gray-200 my-1"></div>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Keluar
-                  </button>
-                </div>
-              )}
+              <div className="w-[1px] h-4 bg-neutral-700 mx-1"></div>
+
+              {/* User Dropdown Trigger */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="flex items-center space-x-2 pl-1 pr-2 py-0.5 rounded-full hover:bg-neutral-800 transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-full bg-[#F5C6EC] text-[#121214] flex items-center justify-center font-bold text-xs shadow-inner">
+                    {user?.full_name?.charAt(0) || 'U'}
+                  </div>
+                  <span className="text-xs font-semibold max-w-[100px] truncate hidden sm:inline text-white">
+                    {user?.full_name?.split(' ')[0] || 'User'}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF]" />
+                </button>
+
+                {/* Profile Dropdown */}
+                {showProfileDropdown && (
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-[20px] shadow-xl border border-[#EAE9E4] p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-2.5 border-b border-[#F0EFEA]">
+                      <p className="text-xs font-bold text-[#121214] truncate">{user?.full_name}</p>
+                      <p className="text-[11px] text-[#6E6D6A] font-medium">{user?.role} • {user?.unique_id}</p>
+                    </div>
+
+                    <div className="py-1">
+                      <button
+                        onClick={handleChangePassword}
+                        className="flex items-center w-full px-3 py-2 text-xs font-semibold text-[#121214] hover:bg-[#F5F4F0] rounded-xl transition-colors"
+                      >
+                        <Key className="w-3.5 h-3.5 mr-2.5 text-[#6E6D6A]" />
+                        Ganti Password
+                      </button>
+                    </div>
+
+                    <div className="border-t border-[#F0EFEA] pt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                      >
+                        <LogOut className="w-3.5 h-3.5 mr-2.5" />
+                        Keluar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

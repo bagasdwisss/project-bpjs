@@ -563,103 +563,106 @@ const AcquisitionResult = () => {
 
   return (
     <Layout>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Hasil Akuisisi</h1>
-        <p className="text-gray-600 mt-2">
-          Informasi pendaftaran dan status pelatihan peserta BPJS
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Table className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Peserta</p>
-              <p className="text-2xl font-bold text-gray-900">{acquisitionData.length}</p>
-            </div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Hasil Akuisisi Kepesertaan BPU
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Catatan pendaftaran peserta BPU mandiri, verifikasi pembayaran, dan bukti sosialisasi lapangan.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openAddForm}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Tambah Hasil Akuisisi
+            </button>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <AlertCircle className="w-6 h-6 text-green-600" />
+        {/* 4-Card Pastel Bento Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 rounded-[22px] bg-[#FCE373] text-[#121214] shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Peserta BPU</p>
+              <h3 className="text-3xl font-black mt-1 text-[#121214]">{acquisitionData.length}</h3>
+              <p className="text-[10px] text-[#121214]/60 font-medium">Target magang: 20</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Aktif</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="w-11 h-11 bg-[#121214] text-[#FCE373] rounded-[14px] flex items-center justify-center font-bold">
+              <Table className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="p-5 rounded-[22px] bg-[#B8C96E] text-[#121214] shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Terbayar / Aktif</p>
+              <h3 className="text-3xl font-black mt-1 text-[#121214]">
                 {safeData.filter(p => p.status_pendaftaran === 'PEMBAYARAN BERHASIL').length}
-              </p>
+              </h3>
+              <p className="text-[10px] text-[#121214]/60 font-medium">Iuran lunas</p>
+            </div>
+            <div className="w-11 h-11 bg-[#121214] text-[#B8C96E] rounded-[14px] flex items-center justify-center font-bold">
+              <CheckCircle className="w-5 h-5" />
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <AlertCircle className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Menunggu</p>
-              <p className="text-2xl font-bold text-gray-900">
+          <div className="p-5 rounded-[22px] bg-[#BDD4F2] text-[#121214] shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Menunggu Bayar</p>
+              <h3 className="text-3xl font-black mt-1 text-[#121214]">
                 {safeData.filter(p => p.status_pendaftaran === 'MENUNGGU PEMBAYARAN').length}
-              </p>
+              </h3>
+              <p className="text-[10px] text-[#121214]/60 font-medium">Dalam proses</p>
+            </div>
+            <div className="w-11 h-11 bg-[#121214] text-[#BDD4F2] rounded-[14px] flex items-center justify-center font-bold">
+              <AlertCircle className="w-5 h-5" />
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <AlertCircle className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Baru Daftar</p>
-              <p className="text-2xl font-bold text-gray-900">
+          <div className="p-5 rounded-[22px] bg-[#F5C6EC] text-[#121214] shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Baru Terdaftar</p>
+              <h3 className="text-3xl font-black mt-1 text-[#121214]">
                 {safeData.filter(p => p.status_pendaftaran === 'BARU DAFTAR').length}
-              </p>
+              </h3>
+              <p className="text-[10px] text-[#121214]/60 font-medium">Form sosialisasi</p>
+            </div>
+            <div className="w-11 h-11 bg-[#121214] text-[#F5C6EC] rounded-[14px] flex items-center justify-center font-bold">
+              <Plus className="w-5 h-5" />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Search and Controls */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        {/* Search and Controls */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-3.5 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="relative flex-1 w-full max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A8985] w-4 h-4" />
             <input
               type="text"
               placeholder="Cari berdasarkan NIK, nama, atau email..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-9 pr-4 py-2 w-full bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] placeholder-[#8A8985] focus:outline-none focus:ring-2 focus:ring-[#121214]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <div className="flex space-x-2">
-            <button
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              onClick={openAddForm}
+          <div className="flex items-center gap-2">
+            <button 
+              className="flex items-center px-4 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] transition-colors"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Tambah Data
-            </button>
-            <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-3.5 h-3.5 mr-1.5" />
               Export Data
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Data Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Data Table */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -667,55 +670,55 @@ const AcquisitionResult = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+            <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+              <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Peserta</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIK</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Daftar</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pekerjaan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program Terdaftar</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Periode Pendaftaran</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Biaya</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  <th className="px-5 py-3.5 text-left">Nama Peserta</th>
+                  <th className="px-5 py-3.5 text-left">NIK</th>
+                  <th className="px-5 py-3.5 text-left">Tgl Daftar</th>
+                  <th className="px-5 py-3.5 text-left">Pekerjaan</th>
+                  <th className="px-5 py-3.5 text-left">Email</th>
+                  <th className="px-5 py-3.5 text-left">Program</th>
+                  <th className="px-5 py-3.5 text-left">Status</th>
+                  <th className="px-5 py-3.5 text-left">Periode</th>
+                  <th className="px-5 py-3.5 text-left">Iuran</th>
+                  <th className="px-5 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-[#F0EFEA] bg-white">
                 {filteredData.length > 0 ? (
-                  filteredData.map((item, index) => (
-                    <tr key={item.peserta_id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {item.nama_peserta || 'Nama Tidak Tersedia'}
+                  filteredData.map((item) => (
+                    <tr key={item.peserta_id} className="hover:bg-[#FAF9F6] transition-colors">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs font-bold text-[#121214]">
+                        {item.nama_peserta || 'Peserta BPU'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nik}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs font-mono text-[#6E6D6A]">{item.nik}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-[#6E6D6A]">
                         {new Date(item.tanggal_pendaftaran).toLocaleDateString('id-ID')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.pekerjaan || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.email || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-[#6E6D6A]">{item.pekerjaan || '-'}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-[#6E6D6A]">{item.email || '-'}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-xs font-semibold text-[#121214]">
                         {formatProgramTerdaftar(item.program_terdaftar)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           item.status_pendaftaran === 'BARU DAFTAR'
-                            ? 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-[#F5C6EC] text-[#121214]'
                             : item.status_pendaftaran === 'MENUNGGU PEMBAYARAN'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-green-100 text-green-800'
+                              ? 'bg-[#FCE373] text-[#121214]'
+                              : 'bg-[#B8C96E] text-[#121214]'
                         }`}>
                           {item.status_pendaftaran}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-[#6E6D6A]">
                         {item.periode_pelatihan?.replace('bulan', ' Bulan') || '1 Bulan'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs font-bold text-[#121214]">
                         {formatRupiah(item.biaya)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="px-5 py-4 whitespace-nowrap text-right">
                         <div className="flex space-x-2">
                           <button
                             className="text-blue-600 hover:text-blue-900"
@@ -1148,6 +1151,7 @@ const AcquisitionResult = () => {
           onClose={() => removeToast(toast.id)}
         />
       ))}
+      </div>
     </Layout>
   );
 };

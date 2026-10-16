@@ -10,18 +10,18 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-[#F5F4F0] overflow-hidden font-sans">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <Header toggleSidebar={toggleSidebar} />
         
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-3 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto w-full">
+        {/* Scrollable Viewport */}
+        <main className="flex-1 overflow-y-auto bg-[#F5F4F0] px-3 sm:px-6 lg:px-8 py-5">
+          <div className="max-w-[1600px] mx-auto w-full">
             {children}
           </div>
         </main>

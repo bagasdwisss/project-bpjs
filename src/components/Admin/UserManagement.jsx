@@ -3,98 +3,65 @@ import Layout from '../Layout/Layout';
 import UserModal from './UserModal';
 import * as XLSX from 'xlsx';
 import userService from '../../services/userService';
+import { 
+  Users, UserPlus, Upload, Search, Filter, 
+  Edit3, Trash2, CheckCircle2, AlertCircle, X, Shield, Sparkles
+} from 'lucide-react';
 
-// Komponen Toast yang didefinisikan langsung dalam file yang sama
+// Toast Notification in Intelly Style
 const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
     }, duration);
-
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
-  const getBackgroundColor = () => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-500';
-      case 'error':
-        return 'bg-red-500';
-      case 'warning':
-        return 'bg-yellow-500';
-      case 'info':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return '✓';
-      case 'error':
-        return '✕';
-      case 'warning':
-        return '⚠';
-      case 'info':
-        return 'ℹ';
-      default:
-        return '';
-    }
-  };
+  const isSuccess = type === 'success';
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
-      <div className={`${getBackgroundColor()} text-white px-6 py-3 rounded-lg shadow-lg flex items-center justify-between min-w-64 max-w-sm`}>
-        <div className="flex items-center">
-          <span className="mr-2 font-bold">{getIcon()}</span>
-          <span className="text-sm">{message}</span>
-        </div>
-        <button
-          onClick={onClose}
-          className="ml-4 text-white hover:text-gray-200 focus:outline-none text-lg font-bold"
-        >
-          ×
+    <div className="fixed top-6 right-6 z-50 animate-in slide-in-from-right duration-200">
+      <div className={`px-5 py-3 rounded-full shadow-lg flex items-center justify-between gap-3 text-xs font-bold ${
+        isSuccess ? 'bg-[#121214] text-white' : 'bg-rose-600 text-white'
+      }`}>
+        <span>{message}</span>
+        <button onClick={onClose} className="p-0.5 hover:opacity-70">
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
   );
 };
 
-// Komponen Confirm Delete Modal
+// Confirm Delete Modal in Soft Neo-Brutalism Style
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, userName }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div className="p-6">
-          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
-            Delete User
-          </h3>
-          <p className="text-sm text-gray-600 text-center mb-6">
-            Are you sure you want to delete <span className="font-semibold">{userName}</span>? This action cannot be undone.
+    <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl max-w-sm w-full p-6 text-center space-y-4">
+        <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto">
+          <Trash2 className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-[#121214]">Hapus Pengguna</h3>
+          <p className="text-xs text-[#6E6D6A] mt-1">
+            Yakin ingin menghapus akun <span className="font-bold text-[#121214]">{userName}</span>? Tindakan ini tidak dapat dibatalkan.
           </p>
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              Delete User
-            </button>
-          </div>
+        </div>
+        <div className="flex gap-2.5 pt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 px-4 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#F5F4F0] transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 px-4 rounded-full bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition-colors shadow-sm"
+          >
+            Hapus Akun
+          </button>
         </div>
       </div>
     </div>
@@ -113,18 +80,12 @@ const UserManagement = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, user: null });
   const fileInputRef = useRef(null);
 
-  // Load data dari API
   useEffect(() => {
     loadUsers();
   }, []);
 
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-  };
-
-  const closeToast = () => {
-    setToast(null);
-  };
+  const showToast = (message, type = 'success') => setToast({ message, type });
+  const closeToast = () => setToast(null);
 
   const loadUsers = async () => {
     try {
@@ -136,13 +97,8 @@ const UserManagement = () => {
         : (Array.isArray(rawData?.data) ? rawData.data : []);
       
       setUsers(userList);
-      
-      // Extract coordinators dari data users yang sudah ada (role_id = 2)
-      const coordinatorUsers = userList.filter(user => user.role_id === 2);
+      const coordinatorUsers = userList.filter(u => u.role_id === 2);
       setCoordinators(coordinatorUsers);
-      
-      console.log('Users loaded:', userList.length);
-      console.log('Coordinators extracted:', coordinatorUsers.length);
     } catch (error) {
       console.error('Error loading users:', error);
       showToast('Gagal memuat data pengguna', 'error');
@@ -163,7 +119,6 @@ const UserManagement = () => {
 
   const handleSaveUser = async (userData) => {
     try {
-      // Pastikan coordinator_id dikonversi ke number atau null
       const processedData = {
         ...userData,
         coordinator_id: userData.coordinator_id ? parseInt(userData.coordinator_id) : null,
@@ -171,52 +126,40 @@ const UserManagement = () => {
       };
 
       if (selectedUser) {
-        // Edit user
         await userService.updateUser(selectedUser.user_id, processedData);
-        showToast('User updated successfully!', 'success');
+        showToast('Data pengguna berhasil diperbarui!', 'success');
       } else {
-        // Add new user
         await userService.createUser(processedData);
-        showToast('User created successfully!', 'success');
+        showToast('Pengguna baru berhasil ditambahkan!', 'success');
       }
       
       setShowModal(false);
-      await loadUsers(); // Reload data
+      await loadUsers();
     } catch (error) {
       console.error('Error saving user:', error);
-      showToast(`Failed to ${selectedUser ? 'update' : 'create'} user: ${error.response?.data?.message || error.message}`, 'error');
+      showToast(`Gagal menyimpan: ${error.response?.data?.message || error.message}`, 'error');
     }
   };
 
   const handleDeleteClick = (user) => {
-    setDeleteModal({
-      isOpen: true,
-      user: user
-    });
+    setDeleteModal({ isOpen: true, user });
   };
 
   const handleDeleteConfirm = async () => {
     if (!deleteModal.user) return;
-
     try {
       await userService.deleteUser(deleteModal.user.user_id);
-      await loadUsers(); // Reload data
-      showToast('User deleted successfully!', 'success');
+      await loadUsers();
+      showToast('Pengguna berhasil dihapus!', 'success');
     } catch (error) {
       console.error('Error deleting user:', error);
-      showToast('Failed to delete user', 'error');
+      showToast('Gagal menghapus pengguna', 'error');
     } finally {
       setDeleteModal({ isOpen: false, user: null });
     }
   };
 
-  const handleDeleteCancel = () => {
-    setDeleteModal({ isOpen: false, user: null });
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current.click();
-  };
+  const handleImportClick = () => fileInputRef.current.click();
 
   const handleFileImport = async (e) => {
     const file = e.target.files[0];
@@ -225,61 +168,49 @@ const UserManagement = () => {
     try {
       const result = await userService.importUsers(file);
       showToast(result.data.message || 'Users imported successfully!', 'success');
-      await loadUsers(); // Reload data
+      await loadUsers();
     } catch (error) {
       console.error('Error importing users:', error);
       showToast('Failed to import users', 'error');
     }
   };
 
-  const getRoleName = (roleId) => {
-    const roles = {
-      1: 'participant',
-      2: 'coordinator',
-      3: 'admin'
-    };
-    return roles[roleId] || 'unknown';
+  const getRoleBadge = (roleId) => {
+    if (roleId === 1) return <span className="text-[10px] font-bold bg-[#FCE373] text-[#121214] px-2.5 py-0.5 rounded-full">Peserta</span>;
+    if (roleId === 2) return <span className="text-[10px] font-bold bg-[#F5C6EC] text-[#121214] px-2.5 py-0.5 rounded-full">Koordinator</span>;
+    if (roleId === 3) return <span className="text-[10px] font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">Administrator</span>;
+    return <span className="text-[10px] font-bold bg-[#EAE9E4] text-[#121214] px-2.5 py-0.5 rounded-full">User</span>;
   };
 
-  const getCoordinatorName = (coordinatorId) => {
-    if (!coordinatorId) return '-';
-    const coordinator = coordinators.find(coord => coord.user_id === coordinatorId);
-    return coordinator ? coordinator.full_name : '-';
+  const getCoordinatorName = (coordId) => {
+    if (!coordId) return '-';
+    const c = coordinators.find(coord => coord.user_id === coordId);
+    return c ? c.full_name : '-';
   };
 
-  const filteredUsers = (Array.isArray(users) ? users : []).filter(user => {
-    const name = user?.full_name || '';
-    const uid = user?.unique_id || '';
-    const matchesSearch = 
-      name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      uid.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user?.role_id?.toString() === roleFilter;
+  const filteredUsers = (Array.isArray(users) ? users : []).filter(u => {
+    const name = u?.full_name || '';
+    const uid = u?.unique_id || '';
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || uid.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || u?.role_id?.toString() === roleFilter;
     return matchesSearch && matchesRole;
   });
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="p-6">
-          <div className="flex justify-center items-center h-64">
-            <div className="text-lg">Loading users...</div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
-      <div className="p-3 sm:p-6 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              {coordinators.length} coordinators available from user data
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Kelola Pengguna Sistem
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Total {users.length} pengguna terdaftar ({coordinators.length} koordinator pembimbing aktif).
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+
+          <div className="flex items-center gap-2.5 flex-wrap">
             <input
               type="file"
               ref={fileInputRef}
@@ -289,102 +220,153 @@ const UserManagement = () => {
             />
             <button
               onClick={handleImportClick}
-              className="inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all"
             >
-              Import from Excel
+              <Upload className="w-3.5 h-3.5" />
+              Import Excel
             </button>
             <button
               onClick={handleAddUser}
-              className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent rounded-lg shadow-sm text-xs sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
             >
-              Add New User
+              <UserPlus className="w-3.5 h-3.5" />
+              Tambah Pengguna Baru
             </button>
           </div>
         </div>
 
-        {/* Search and Filter */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-64 px-4 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="w-full sm:w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Roles</option>
-            <option value="1">Participant</option>
-            <option value="2">Coordinator</option>
-            <option value="3">Admin</option>
-          </select>
+        {/* Search & Filter Pill Group */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-[22px] border border-[#EAE9E4] shadow-sm">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A8985]" />
+            <input
+              type="text"
+              placeholder="Cari nama, ID pengguna..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] placeholder-[#8A8985] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+            <button
+              onClick={() => setRoleFilter('all')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                roleFilter === 'all' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A] hover:text-[#121214]'
+              }`}
+            >
+              Semua ({users.length})
+            </button>
+            <button
+              onClick={() => setRoleFilter('1')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                roleFilter === '1' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A] hover:text-[#121214]'
+              }`}
+            >
+              Peserta
+            </button>
+            <button
+              onClick={() => setRoleFilter('2')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                roleFilter === '2' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A] hover:text-[#121214]'
+              }`}
+            >
+              Koordinator
+            </button>
+            <button
+              onClick={() => setRoleFilter('3')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                roleFilter === '3' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A] hover:text-[#121214]'
+              }`}
+            >
+              Admin
+            </button>
+          </div>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Penempatan</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Coordinator</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.user_id}>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.unique_id}</td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
-                  </td>
-                  <td className="px-6 py-4 capitalize">{getRoleName(user.role_id)}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.penempatan === 'Kantor' ? 'bg-blue-100 text-blue-800' : 
-                      user.penempatan === 'Lapangan' ? 'bg-green-100 text-green-800' : 
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {user.penempatan || 'Belum ditentukan'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {getCoordinatorName(user.coordinator_id)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
-                    <button 
-                      onClick={() => handleEditUser(user)} 
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteClick(user)} 
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
-                  </td>
+        {/* Users Table Card */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-[#EAE9E4]">
+              <thead className="bg-[#FAF9F6]">
+                <tr>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">ID</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Nama Lengkap</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Role</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Penempatan</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Koordinator</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-3.5 text-right text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#F0EFEA] bg-white">
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-12 text-center text-xs text-[#6E6D6A]">
+                      Tidak ada pengguna yang cocok dengan kriteria pencarian.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((u) => (
+                    <tr key={u.user_id} className="hover:bg-[#FAF9F6] transition-colors">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs font-bold text-[#121214]">
+                        <span className="bg-[#FAF9F6] border border-[#EAE9E4] px-2.5 py-1 rounded-full">
+                          {u.unique_id}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="text-xs font-bold text-[#121214]">{u.full_name}</div>
+                        <div className="text-[11px] text-[#6E6D6A]">{u.email || '-'}</div>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {getRoleBadge(u.role_id)}
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full capitalize ${
+                          u.penempatan === 'kantor' ? 'bg-[#BDD4F2] text-[#121214]' :
+                          u.penempatan === 'lapangan' ? 'bg-[#FCE373] text-[#121214]' :
+                          'bg-[#FAF9F6] text-[#6E6D6A] border border-[#EAE9E4]'
+                        }`}>
+                          {u.penempatan || 'Kantor'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-[#6E6D6A] font-medium">
+                        {getCoordinatorName(u.coordinator_id)}
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                          u.status === 'Aktif' || !u.status ? 'bg-[#B8C96E] text-[#121214]' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {u.status || 'Aktif'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap text-right text-xs">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleEditUser(u)}
+                            className="p-1.5 rounded-full hover:bg-[#F5F4F0] text-[#121214] transition-colors"
+                            title="Edit Pengguna"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(u)}
+                            className="p-1.5 rounded-full hover:bg-rose-50 text-rose-600 transition-colors"
+                            title="Hapus Pengguna"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-        
-        {/* User Modal */}
+
+        {/* Modal User & Delete */}
         {showModal && (
           <UserModal 
             user={selectedUser} 
@@ -394,15 +376,13 @@ const UserManagement = () => {
           />
         )}
 
-        {/* Confirm Delete Modal */}
         <ConfirmDeleteModal
           isOpen={deleteModal.isOpen}
-          onClose={handleDeleteCancel}
+          onClose={() => setDeleteModal({ isOpen: false, user: null })}
           onConfirm={handleDeleteConfirm}
           userName={deleteModal.user?.full_name || ''}
         />
 
-        {/* Toast Notification */}
         {toast && (
           <Toast
             message={toast.message}

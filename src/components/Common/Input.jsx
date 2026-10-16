@@ -13,9 +13,9 @@ export const Input = ({
   ...props
 }) => {
   return (
-    <div className={`space-y-1 ${containerClassName}`}>
+    <div className={`space-y-1.5 ${containerClassName}`}>
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={id} className="block text-xs font-semibold text-[#121214]">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -23,13 +23,13 @@ export const Input = ({
         id={id}
         type={type}
         required={required}
-        className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-          error ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500'
+        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-sm text-[#121214] placeholder-[#A09F9B] transition-all focus:outline-none focus:ring-2 focus:ring-[#121214] focus:border-[#121214] ${
+          error ? 'border-red-500 focus:ring-red-400' : 'border-[#EAE9E4]'
         } ${className}`}
         {...props}
       />
       {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
-      {helperText && !error && <p className="text-xs text-gray-500 mt-1">{helperText}</p>}
+      {helperText && !error && <p className="text-xs text-[#6E6D6A] mt-1">{helperText}</p>}
     </div>
   );
 };

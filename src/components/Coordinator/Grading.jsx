@@ -333,84 +333,80 @@ const Grading = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white shadow">
-          <div className="px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Assignment Grading</h1>
-                <p className="mt-1 text-sm text-gray-600">Review and grade participant submissions</p>
-              </div>
-              <div className="text-sm text-gray-500">
-                Koordinator: <span className="font-semibold">{user?.full_name}</span>
-              </div>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Penilaian & Evaluasi Peserta
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Evaluasi hasil capaian tugas, performa lapangan, dan penetapan nilai grade resmi.
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button 
+              onClick={() => {
+                if (cancelTokenRef.current) cancelTokenRef.current.cancel('Refresh');
+                setSearchDebounced(search);
+                fetchData();
+              }} 
+              className="px-4 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] shadow-sm transition-all"
+            >
+              Segarkan
+            </button>
+            <button 
+              onClick={openAddParticipantModal} 
+              className="px-5 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+            >
+              + Tambah Peserta Penilaian
+            </button>
           </div>
         </div>
 
-        <div className="p-6">
-          {/* Messages */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
+        {/* Messages */}
+        {error && (
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-full text-xs font-bold px-5">
+            {error}
+          </div>
+        )}
 
-          {successMessage && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-700">{successMessage}</p>
-            </div>
-          )}
+        {successMessage && (
+          <div className="p-3.5 bg-[#B8C96E]/30 border border-[#B8C96E] text-[#121214] rounded-full text-xs font-bold px-5">
+            {successMessage}
+          </div>
+        )}
 
-          {/* Filters */}
-          <div className="mb-6 bg-white p-4 rounded-lg shadow">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="Search assignments..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="flex-1">
-                <select value={coordinatorFilter} onChange={(e) => setCoordinatorFilter(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">All Coordinators</option>
-                  {coordinators.map((coordinator) => (
-                    <option key={coordinator.user_id} value={coordinator.user_id}>
-                      {coordinator.full_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => {
-                    // Cancel any ongoing request
-                    if (cancelTokenRef.current) {
-                      cancelTokenRef.current.cancel('Refresh button clicked');
-                    }
-                    // Trigger immediate search when clicking refresh
-                    setSearchDebounced(search);
-                    fetchData();
-                  }} 
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                >
-                  Refresh
-                </button>
-                <button onClick={openAddParticipantModal} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                  Tambah Peserta
-                </button>
-              </div>
-            </div>
+        {/* Filters */}
+        <div className="bg-white p-3.5 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col md:flex-row gap-3">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Cari peserta, assignment..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] placeholder-[#8A8985] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+            />
           </div>
 
-          {/* Assignment Table */}
-          <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="md:w-64">
+            <select 
+              value={coordinatorFilter} 
+              onChange={(e) => setCoordinatorFilter(e.target.value)} 
+              className="w-full px-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+            >
+              <option value="">Semua Koordinator</option>
+              {coordinators.map((coordinator) => (
+                <option key={coordinator.user_id} value={coordinator.user_id}>
+                  {coordinator.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Assignment Table */}
+        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
             {participants.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-400 text-6xl mb-4">📝</div>
@@ -419,66 +415,86 @@ const Grading = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+                  <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PARTICIPANT</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ASSIGNMENT</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SUBMITTED</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SCORE</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                      <th className="px-5 py-3.5 text-left">PESERTA</th>
+                      <th className="px-5 py-3.5 text-left">PENUGASAN</th>
+                      <th className="px-5 py-3.5 text-left">UPDATE TERAKHIR</th>
+                      <th className="px-5 py-3.5 text-left">STATUS</th>
+                      <th className="px-5 py-3.5 text-left">NILAI & GRADE</th>
+                      <th className="px-5 py-3.5 text-right">AKSI</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-[#F0EFEA] bg-white">
                     {participants.map((participant) => {
                       const canEdit = canEditParticipant(participant);
                       const isMyParticipant = participant.coordinator_id === user?.user_id;
-
-                      // Determine status based on grading state
                       const status = participant.nilai !== null && participant.nilai !== 0 ? 'graded' : 'pending';
-                      const assignmentName = `${participant.participant_name} - Progress Penilaian`;
+                      const assignmentName = `${participant.participant_name} - Penilaian Magang`;
 
                       return (
-                        <tr key={participant.id} className="hover:bg-gray-50">
+                        <tr key={participant.id} className="hover:bg-[#FAF9F6] transition-colors">
                           {/* PARTICIPANT */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{participant.participant_name}</div>
-                            <div className="text-sm text-gray-500">{participant.coordinator_name}</div>
-                            {isMyParticipant && <div className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded mt-1 inline-block">Peserta Anda</div>}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <div className="text-xs font-bold text-[#121214]">{participant.participant_name}</div>
+                            <div className="text-[11px] text-[#6E6D6A]">{participant.coordinator_name}</div>
+                            {isMyParticipant && (
+                              <span className="text-[10px] font-bold bg-[#F5C6EC] text-[#121214] px-2 py-0.5 rounded-full mt-1 inline-block">
+                                Peserta Anda
+                              </span>
+                            )}
                           </td>
 
                           {/* ASSIGNMENT */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{assignmentName}</div>
+                          <td className="px-5 py-4 whitespace-nowrap text-xs font-medium text-[#121214]">
+                            {assignmentName}
                           </td>
 
                           {/* SUBMITTED */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(participant.last_updated)}</td>
+                          <td className="px-5 py-4 whitespace-nowrap text-xs text-[#6E6D6A]">
+                            {formatDate(participant.last_updated)}
+                          </td>
 
                           {/* STATUS */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(status)}`}>{status}</span>
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize ${
+                              status === 'graded' ? 'bg-[#B8C96E] text-[#121214]' : 'bg-[#FCE373] text-[#121214]'
+                            }`}>
+                              {status === 'graded' ? 'Sudah Dinilai' : 'Menunggu'}
+                            </span>
                           </td>
 
                           {/* SCORE */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {participant.nilai ? `${participant.nilai}%` : '-'}
-                            {participant.grade && <span className={`ml-2 px-2 py-1 text-xs rounded-full ${getGradeColor(participant.grade)}`}>{participant.grade}</span>}
+                          <td className="px-5 py-4 whitespace-nowrap text-xs font-black text-[#121214]">
+                            {participant.nilai ? `${participant.nilai}` : '-'}
+                            {participant.grade && (
+                              <span className="ml-2 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full bg-[#121214] text-white">
+                                Grade {participant.grade}
+                              </span>
+                            )}
                           </td>
 
                           {/* ACTIONS */}
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
+                          <td className="px-5 py-4 whitespace-nowrap text-right text-xs">
+                            <div className="flex justify-end space-x-1.5">
                               {canEdit ? (
-                                <button onClick={() => openGradeModal(participant)} className="text-blue-600 hover:text-blue-900 font-medium px-3 py-1 border border-blue-600 rounded hover:bg-blue-50">
-                                  Grade
+                                <button 
+                                  onClick={() => openGradeModal(participant)} 
+                                  className="px-3 py-1 bg-[#121214] text-white font-bold rounded-full hover:bg-neutral-800 transition-colors"
+                                >
+                                  Beri Nilai
                                 </button>
                               ) : (
-                                <span className="text-gray-400 px-3 py-1 border border-gray-300 rounded">View Only</span>
+                                <span className="text-[#6E6D6A] px-3 py-1 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-[11px] font-bold">
+                                  Lihat Saja
+                                </span>
                               )}
-                              <button onClick={() => viewDetails(participant.id)} className="text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
-                                Details
+                              <button 
+                                onClick={() => viewDetails(participant.id)} 
+                                className="px-3 py-1 bg-white border border-[#EAE9E4] text-[#121214] font-bold rounded-full hover:bg-[#FAF9F6] transition-colors"
+                              >
+                                Detail
                               </button>
                             </div>
                           </td>
@@ -490,7 +506,6 @@ const Grading = () => {
               </div>
             )}
           </div>
-        </div>
 
         {/* Add Participant Modal */}
         {showAddParticipantModal && (

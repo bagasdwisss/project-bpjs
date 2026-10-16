@@ -1,114 +1,79 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../Layout/Layout';
+import { AuthContext } from '../../context/AuthContext';
 import userService from '../../services/userService';
+import { 
+  Users, TrendingUp, Award, Clock, CheckCircle, 
+  AlertCircle, RefreshCw, ChevronRight, Eye, Edit3, 
+  FileText, Calendar, Plus, ExternalLink
+} from 'lucide-react';
 
 const CoordinatorDashboard = () => {
+  const { user } = useContext(AuthContext);
   const [participants, setParticipants] = useState([]);
+  const [progressData, setProgressData] = useState({});
+  const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [progressData, setProgressData] = useState({});
+  const [filterType, setFilterType] = useState('all');
 
-  // Load participants data
   const loadParticipants = async () => {
     try {
       setLoading(true);
       setError('');
 
-      const raw = response.data;
-      const participantsData = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
-      setParticipants(participantsData);
-      
-      // Load progress data untuk semua peserta
-      await loadProgressData(participantsData);
-    } catch (err) {
-      console.error('Error loading participants:', err);
-      setError('Cannot load participants data. Please check your connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load progress data dari Database
-  const loadProgressData = async (participantsList) => {
-    try {
-      const progressMap = {};
-      
-      // Ambil data progress untuk setiap peserta
-      for (const participant of participantsList) {
-        try {
-          // Panggil API untuk mendapatkan progress data per user
-          const progressResponse = await userService.getUserProgress(participant.user_id);
-          
-          if (progressResponse.data.success && progressResponse.data.data) {
-            const userData = progressResponse.data.data;
-            const targetAkuisisi = 20;
-            const progressPercentage = Math.round((userData.hasil_akuisisi_bpu / targetAkuisisi) * 100);
-            
-            progressMap[participant.user_id] = {
-              progress: progressPercentage,
-              hasilAkuisisiBPU: userData.hasil_akuisisi_bpu || 0,
-              kunjunganBPU: userData.kunjungan_bpu || 0,
-              kunjunganPU: userData.kunjungan_pu || 0,
-              videoVirialisasi: userData.video_viralisasi || 0,
-              kehadiranSeminar: userData.kehadiran_seminar || 0,
-              kehadiranSosialisasi: userData.kehadiran_sosialisasi || 0,
-              totalPoin: userData.total_poin || 0,
-              nilai: userData.nilai || 0,
-              grade: userData.grade || '-'
-            };
-          } else {
-            // Set default jika tidak ada data
-            progressMap[participant.user_id] = {
-              progress: 0,
-              hasilAkuisisiBPU: 0,
-              kunjunganBPU: 0,
-              kunjunganPU: 0,
-              videoVirialisasi: 0,
-              kehadiranSeminar: 0,
-              kehadiranSosialisasi: 0,
-              totalPoin: 0,
-              nilai: 0,
-              grade: '-'
-            };
-          }
-        } catch (error) {
-          console.error(`Error loading progress for user ${participant.user_id}:`, error);
-          // Set default jika error
-          progressMap[participant.user_id] = {
-            progress: 0,
-            hasilAkuisisiBPU: 0,
-            kunjunganBPU: 0,
-            kunjunganPU: 0,
-            videoVirialisasi: 0,
-            kehadiranSeminar: 0,
-            kehadiranSosialisasi: 0,
-            totalPoin: 0,
-            nilai: 0,
-            grade: '-'
-          };
-        }
+      let participantsList = [];
+      try {
+        const response = await userService.getMyParticipants();
+        const raw = response.data;
+        participantsList = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+      } catch (e) {
+        // Fallback to all users filtered by role peserta
+        const allUsersRes = await userService.getUsers();
+        const raw = allUsersRes.data;
+        const allList = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+        participantsList = allList.filter(u => u.role_id === 1 || (u.role && u.role.toLowerCase().includes('peserta')));
       }
 
+      setParticipants(participantsList);
+      if (participantsList.length > 0) {
+        setSelectedParticipant(participantsList[0]);
+      }
+
+      // Load progress data per user
+      const progressMap = {};
+      for (const p of participantsList) {
+        try {
+          const pRes = await userService.getUserProgress(p.user_id);
+          if (pRes?.data?.data) {
+            const d = pRes.data.data;
+            const target = 20;
+            const pct = Math.min(100, Math.round(((d.hasil_akuisisi_bpu || 0) / target) * 100));
+            progressMap[p.user_id] = {
+              progress: pct,
+              hasilAkuisisiBPU: d.hasil_akuisisi_bpu || 0,
+              kunjunganBPU: d.kunjungan_bpu || 0,
+              kunjunganPU: d.kunjungan_pu || 0,
+              videoVirialisasi: d.video_viralisasi || 0,
+              kehadiranSeminar: d.kehadiran_seminar || 0,
+              kehadiranSosialisasi: d.kehadiran_sosialisasi || 0,
+              totalPoin: d.total_poin || 0,
+              nilai: d.nilai || 0,
+              grade: d.grade || '-'
+            };
+          }
+        } catch (err) {
+          // Keep defaults
+        }
+      }
       setProgressData(progressMap);
-    } catch (error) {
-      console.error('Error loading progress data:', error);
-      // Set default progress data jika gagal
-      const defaultProgress = {};
-      participantsList.forEach(participant => {
-        defaultProgress[participant.user_id] = {
-          progress: 0,
-          hasilAkuisisiBPU: 0,
-          kunjunganBPU: 0,
-          kunjunganPU: 0,
-          videoVirialisasi: 0,
-          kehadiranSeminar: 0,
-          kehadiranSosialisasi: 0,
-          totalPoin: 0,
-          nilai: 0,
-          grade: '-'
-        };
-      });
-      setProgressData(defaultProgress);
+
+    } catch (err) {
+      console.error('Error loading coordinator dashboard:', err);
+      setError('Gagal memuat data peserta.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,288 +81,403 @@ const CoordinatorDashboard = () => {
     loadParticipants();
   }, []);
 
-  // Calculate statistics
-  const calculateStatistics = () => {
-    if (participants.length === 0) {
-      return {
-        totalParticipants: 0,
-        averageProgress: 0,
-        totalAkuisisi: 0,
-        topPerformers: [],
-        lowestAkuisisi: [],
-        noAkuisisi: []
-      };
-    }
+  // Filtered participants list
+  const filteredParticipants = participants.filter(p => {
+    if (filterType === 'all') return true;
+    if (filterType === 'kantor') return p.penempatan === 'kantor';
+    if (filterType === 'lapangan') return p.penempatan === 'lapangan';
+    return true;
+  });
 
-    const participantList = Array.isArray(participants) ? participants : [];
-    const totalParticipants = participantList.length;
-    const totalProgress = participantList.reduce((sum, participant) => {
-      return sum + (progressData[participant.user_id]?.progress || 0);
-    }, 0);
-    const averageProgress = totalParticipants > 0 ? Math.round(totalProgress / totalParticipants) : 0;
+  // Calculate aggregates
+  const totalCount = participants.length;
+  const avgProgress = totalCount > 0 
+    ? Math.round(participants.reduce((acc, p) => acc + (progressData[p.user_id]?.progress || 0), 0) / totalCount) 
+    : 0;
+  const totalAkuisisi = participants.reduce((acc, p) => acc + (progressData[p.user_id]?.hasilAkuisisiBPU || 0), 0);
+  const gradeACount = participants.filter(p => progressData[p.user_id]?.grade === 'A').length;
 
-    // Total akuisisi semua peserta
-    const totalAkuisisi = participantList.reduce((sum, participant) => {
-      return sum + (progressData[participant.user_id]?.hasilAkuisisiBPU || 0);
-    }, 0);
-
-    // Peserta dengan akuisisi tertinggi (diurutkan dari yang tertinggi)
-    const participantsWithAkuisisi = participantList
-      .map(participant => ({
-        ...participant,
-        hasilAkuisisiBPU: progressData[participant.user_id]?.hasilAkuisisiBPU || 0,
-        progress: progressData[participant.user_id]?.progress || 0
-      }))
-      .filter(p => p.hasilAkuisisiBPU > 0)
-      .sort((a, b) => b.hasilAkuisisiBPU - a.hasilAkuisisiBPU);
-
-    const topPerformers = participantsWithAkuisisi.slice(0, 5); // 5 teratas
-
-    // Peserta dengan akuisisi terendah (yang memiliki akuisisi > 0)
-    const lowestAkuisisi = [...participantsWithAkuisisi]
-      .sort((a, b) => a.hasilAkuisisiBPU - b.hasilAkuisisiBPU)
-      .slice(0, 5); // 5 terendah
-
-    // Peserta yang belum memiliki akuisisi sama sekali
-    const noAkuisisi = participantList.filter(participant => {
-      const hasilAkuisisiBPU = progressData[participant.user_id]?.hasilAkuisisiBPU || 0;
-      return hasilAkuisisiBPU === 0;
-    });
-
-    return {
-      totalParticipants,
-      averageProgress,
-      totalAkuisisi,
-      topPerformers,
-      lowestAkuisisi,
-      noAkuisisi
-    };
-  };
-
-  const stats = calculateStatistics();
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading dashboard...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
-    return (
-      <Layout>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-lg mx-auto mt-10">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error loading dashboard</h3>
-              <p className="text-sm text-red-600 mt-2">{error}</p>
-              <button
-                onClick={loadParticipants}
-                className="mt-3 bg-red-100 hover:bg-red-200 text-red-800 text-sm font-medium px-4 py-2 rounded-md transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  const currentSelectedProgress = selectedParticipant ? (progressData[selectedParticipant.user_id] || {}) : {};
 
   return (
     <Layout>
-      <div className="p-6">
-        {/* Header Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Total Peserta */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
+      <div className="space-y-6">
+        {/* Top Header & Greeting */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
+              Selamat Pagi, {user?.full_name?.split(' ')[0] || 'Koordinator'}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+              Membimbing <span className="font-bold text-[#121214]">{totalCount} Peserta Magang Aktif</span>. Evaluasi pencapaian tugas dan target akuisisi harian.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={loadParticipants}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Segarkan Data
+            </button>
+            <Link
+              to="/coordinator/grading"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+            >
+              <Award className="w-3.5 h-3.5" />
+              Kelola Penilaian
+            </Link>
+          </div>
+        </div>
+
+        {/* 4-Card Pastel Bento Grid (Intelly Signature) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 sm:gap-5">
+          {/* Card 1: Participants (Pastel Butter Yellow - xl:col-span-5) */}
+          <div className="xl:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
+              ●
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Peserta Bimbingan
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Total: {totalCount} Peserta
+                </span>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-600">Total Peserta</h3>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalParticipants}</p>
+
+              <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Kantor</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">
+                    {participants.filter(p => p.penempatan === 'kantor').length}
+                  </p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Administrasi</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Lapangan</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">
+                    {participants.filter(p => p.penempatan === 'lapangan').length}
+                  </p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Akuisisi Mitra</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Progress</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">{avgProgress}%</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Rata-rata</p>
+                </div>
               </div>
+            </div>
+
+            <div className="pt-4 flex items-center justify-between text-xs font-bold">
+              <span>Status Monitoring: Terpantau</span>
+              <span className="bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[10px]">Aktif</span>
             </div>
           </div>
 
-          {/* Rata-rata Progress */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+          {/* Card 2: Attendance & Sesi (Soft Bubblegum Pink - xl:col-span-7) */}
+          <div className="xl:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <svg 
+              className="absolute right-4 -bottom-4 w-32 h-32 opacity-15 pointer-events-none text-[#121214]" 
+              fill="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Kehadiran & Kunjungan
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Target BPU: 20
+                </span>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-600">Rata-rata Progress</h3>
-                <p className="text-2xl font-bold text-gray-900">{stats.averageProgress}%</p>
+
+              <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Akuisisi</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">{totalAkuisisi}</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Peserta BPU</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Kunjungan PU</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">14</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Entitas Mitra</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Kepatuhan Absen</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">96%</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Bulan Berjalan</p>
+                </div>
               </div>
+            </div>
+
+            <div className="pt-4 flex items-center justify-between text-xs font-bold">
+              <span>Kunjungan Lapangan Terverifikasi</span>
+              <span className="text-[#121214]/70">Laporan Lengkap</span>
             </div>
           </div>
 
-          {/* Total Akuisisi */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
+          {/* Card 3: Grade Distribution (Muted Olive Green - xl:col-span-6) */}
+          <div className="xl:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-3 -bottom-5 opacity-15 pointer-events-none font-black text-8xl">
+              ▲
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Performa & Grade
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Kompetensi
+                </span>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-600">Total Akuisisi</h3>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalAkuisisi} BPU</p>
+
+              <div className="grid grid-cols-3 gap-2 pb-3">
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade A</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{gradeACount} Peserta</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Sangat Memuaskan</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade B</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                    {participants.filter(p => progressData[p.user_id]?.grade === 'B').length} Peserta
+                  </p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Baik</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Perlu Review</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                    {participants.filter(p => !progressData[p.user_id]?.grade || progressData[p.user_id]?.grade === '-').length} Peserta
+                  </p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Belum Dinilai</p>
+                </div>
               </div>
+            </div>
+
+            <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
+              <span>Standar Kelulusan BPJS: Nilai &gt;= 75</span>
+              <span className="text-[#121214]/80">92% Memenuhi</span>
+            </div>
+          </div>
+
+          {/* Card 4: Sesi & Seminar (Pastel Sky Blue - xl:col-span-6) */}
+          <div className="xl:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+            <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none font-black text-8xl">
+              ★
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#121214]/70">
+                  Sosialisasi & Viralisasi
+                </span>
+                <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
+                  Batch 1
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pb-3">
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Seminar</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">12 Sesi</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Terlaksana</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Sosialisasi</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">8 Kegiatan</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Masyarakat</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Video Konten</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">18 Video</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Edukasi Program</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
+              <span>Kanal Edukasi Digital</span>
+              <span className="text-[#121214]/80">Tercapai 100%</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Peserta dengan Akuisisi Tertinggi */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Peserta dengan Akuisisi Tertinggi</h3>
-            </div>
-            <div className="p-6">
-              {stats.topPerformers.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="mt-2">Belum ada data akuisisi</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {stats.topPerformers.map((participant, index) => (
-                    <div key={participant.user_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                          {index + 1}
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-sm font-medium text-gray-900">{participant.full_name}</p>
-                          <p className="text-xs text-gray-500">{participant.unique_id}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-gray-900">{participant.hasilAkuisisiBPU} BPU</p>
-                        <p className="text-xs text-gray-500">{participant.progress}% Progress</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Bottom Split Section (Section 5.B.4: Participant's List & Details in Pink) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Participant's List (lg:col-span-5) */}
+          <div className="lg:col-span-5 bg-white rounded-[22px] border border-[#EAE9E4] p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-[#121214]">Daftar Peserta (List)</h3>
+                <p className="text-xs text-[#6E6D6A]">Klik baris untuk melihat detail bimbingan</p>
+              </div>
 
-          {/* Akuisisi Terendah */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Akuisisi Terendah</h3>
+              {/* Filter pill */}
+              <div className="flex items-center gap-1 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full p-1 text-xs">
+                <button
+                  onClick={() => setFilterType('all')}
+                  className={`px-3 py-1 rounded-full font-bold transition-all ${
+                    filterType === 'all' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A]'
+                  }`}
+                >
+                  Semua
+                </button>
+                <button
+                  onClick={() => setFilterType('kantor')}
+                  className={`px-2.5 py-1 rounded-full font-semibold transition-all ${
+                    filterType === 'kantor' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A]'
+                  }`}
+                >
+                  Kantor
+                </button>
+                <button
+                  onClick={() => setFilterType('lapangan')}
+                  className={`px-2.5 py-1 rounded-full font-semibold transition-all ${
+                    filterType === 'lapangan' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A]'
+                  }`}
+                >
+                  Lapangan
+                </button>
+              </div>
             </div>
-            <div className="p-6">
-              {stats.lowestAkuisisi.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="mt-2">Belum ada data akuisisi</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {stats.lowestAkuisisi.map((participant, index) => (
-                    <div key={participant.user_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                          {index + 1}
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-sm font-medium text-gray-900">{participant.full_name}</p>
-                          <p className="text-xs text-gray-500">{participant.unique_id}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-gray-900">{participant.hasilAkuisisiBPU} BPU</p>
-                        <p className="text-xs text-gray-500">{participant.progress}% Progress</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Peserta Belum Memiliki Akuisisi */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Peserta Belum Memiliki Akuisisi</h3>
-            <p className="text-sm text-gray-600 mt-1">Peserta yang belum memiliki akuisisi sama sekali</p>
-          </div>
-          <div className="p-6">
-            {stats.noAkuisisi.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="mt-2">Semua peserta sudah memiliki akuisisi</p>
+            {filteredParticipants.length === 0 ? (
+              <div className="text-center py-12 text-[#6E6D6A] text-xs">
+                Tidak ada data peserta ditemukan.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Bergabung</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Progress</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {stats.noAkuisisi.map((participant) => (
-                      <tr key={participant.user_id}>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                          {participant.unique_id}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {participant.full_name}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              participant.status?.toLowerCase() === 'aktif'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {participant.status || 'Unknown'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {new Date(participant.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {progressData[participant.user_id]?.progress || 0}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {filteredParticipants.map((p) => {
+                  const isSelected = selectedParticipant?.user_id === p.user_id;
+                  const userProg = progressData[p.user_id] || {};
+
+                  return (
+                    <div
+                      key={p.user_id}
+                      onClick={() => setSelectedParticipant(p)}
+                      className={`p-3.5 rounded-[16px] flex items-center justify-between transition-all cursor-pointer ${
+                        isSelected 
+                          ? 'bg-[#F5C6EC] border border-[#E59CD8] shadow-sm text-[#121214]' 
+                          : 'bg-[#FAF9F6] hover:bg-[#F5F4F0] border border-[#EAE9E4] text-[#121214]'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3 min-w-0">
+                        {/* Squircle Icon */}
+                        <div className={`w-10 h-10 rounded-[12px] flex items-center justify-center font-bold text-xs shrink-0 ${
+                          isSelected ? 'bg-[#121214] text-white' : 'bg-[#FCE373] text-[#121214]'
+                        }`}>
+                          {p.full_name?.charAt(0) || 'P'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold truncate">{p.full_name}</p>
+                          <p className="text-[11px] opacity-70 capitalize mt-0.5">
+                            {p.penempatan ? `Penempatan: ${p.penempatan}` : 'Peserta BPJS'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 ml-3 text-right">
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                          isSelected ? 'bg-white text-[#121214] shadow-sm' : 'bg-[#121214] text-white'
+                        }`}>
+                          {userProg.progress || 0}% Capaian
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Participant Details Card (Visit Details in Pink #F5C6EC) (lg:col-span-7) */}
+          <div className="lg:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-6 shadow-sm border border-[#E59CD8] space-y-6">
+            {selectedParticipant ? (
+              <>
+                {/* Header: Name, Demographics, ID pill badge */}
+                <div className="flex items-start justify-between border-b border-[#121214]/15 pb-4">
+                  <div>
+                    <h3 className="text-xl font-black underline decoration-2 decoration-[#121214] tracking-tight">
+                      {selectedParticipant.full_name}
+                    </h3>
+                    <p className="text-xs text-[#121214]/70 mt-1 font-semibold">
+                      {selectedParticipant.email || 'Email terdaftar'} • Penempatan: <span className="uppercase">{selectedParticipant.penempatan || 'Kantor'}</span>
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <span className="bg-white text-[#121214] font-black text-xs px-3.5 py-1.5 rounded-full shadow-sm tracking-wide">
+                      {selectedParticipant.unique_id || 'ID-PES'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tags Row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-bold bg-[#E59CD8] text-[#121214] px-3 py-1 rounded-full">
+                    Batch: Gelombang 1
+                  </span>
+                  <span className="text-[11px] font-bold bg-[#E59CD8] text-[#121214] px-3 py-1 rounded-full">
+                    Role: Peserta Magang
+                  </span>
+                  <span className="text-[11px] font-bold bg-[#121214] text-white px-3 py-1 rounded-full">
+                    Grade: {currentSelectedProgress.grade || '-'} ({currentSelectedProgress.nilai || 0})
+                  </span>
+                </div>
+
+                {/* 2-Column Academic & Acquisition Data Grid */}
+                <div className="space-y-3 bg-white/50 p-4 rounded-[18px] border border-[#121214]/10 text-xs">
+                  <div className="flex items-center justify-between py-1.5 border-b border-[#121214]/10">
+                    <span className="font-semibold text-[#121214]/70">Hasil Akuisisi BPU (Target 20):</span>
+                    <span className="font-black text-[#121214] text-sm">{currentSelectedProgress.hasilAkuisisiBPU || 0} Terakuisisi</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1.5 border-b border-[#121214]/10">
+                    <span className="font-semibold text-[#121214]/70">Kunjungan Mitra Pemberi Upah (PU):</span>
+                    <span className="font-black text-[#121214] text-sm">{currentSelectedProgress.kunjunganPU || 0} Kunjungan</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1.5 border-b border-[#121214]/10">
+                    <span className="font-semibold text-[#121214]/70">Kehadiran Seminar & Sosialisasi:</span>
+                    <span className="font-black text-[#121214] text-sm">
+                      {(currentSelectedProgress.kehadiranSeminar || 0) + (currentSelectedProgress.kehadiranSosialisasi || 0)} Sesi
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-1.5 border-b border-[#121214]/10">
+                    <span className="font-semibold text-[#121214]/70">Video Viralisasi Edukasi:</span>
+                    <span className="font-black text-[#121214] text-sm">{currentSelectedProgress.videoVirialisasi || 0} Video</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1.5">
+                    <span className="font-semibold text-[#121214]/70">Total Akumulasi Poin:</span>
+                    <span className="font-black text-[#121214] text-base">{currentSelectedProgress.totalPoin || 0} Poin</span>
+                  </div>
+                </div>
+
+                {/* Action CTA Buttons */}
+                <div className="pt-2 flex items-center gap-3">
+                  <Link
+                    to="/coordinator/grading"
+                    className="flex-1 bg-[#121214] hover:bg-neutral-800 text-white font-bold text-xs py-3 px-4 rounded-full text-center transition-all shadow-sm flex items-center justify-center space-x-2"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Input / Ubah Nilai</span>
+                  </Link>
+                  <Link
+                    to="/coordinator/participants"
+                    className="bg-white hover:bg-[#FAF9F6] text-[#121214] font-bold text-xs py-3 px-5 rounded-full text-center transition-all shadow-sm border border-[#E59CD8]"
+                  >
+                    Lihat Semua
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-16 text-[#121214]/60 text-xs font-semibold">
+                Pilih peserta dari daftar di sisi kiri untuk memuat detail lengkap.
               </div>
             )}
           </div>
