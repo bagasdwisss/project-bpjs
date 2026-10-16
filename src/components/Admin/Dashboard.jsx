@@ -55,7 +55,7 @@ const AdminDashboard = () => {
     <Layout>
       <div className="space-y-6">
         {/* Top Greeting & Daily Summary */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Selamat Pagi, {user?.full_name?.split(' ')[0] || 'Admin'}

@@ -125,10 +125,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
       {/* Pitch-Black Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-full bg-[#121214] text-white w-64 z-50 flex flex-col justify-between
-        transform transition-transform duration-300 ease-in-out border-r border-[#1C1C20]
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:z-auto
+        fixed top-0 left-0 h-full bg-[#121214] text-white w-64 shrink-0 z-50 flex flex-col justify-between
+        transition-transform duration-300 ease-in-out border-r border-[#1C1C20]
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        lg:static lg:z-auto
       `}>
         {/* Top Header & Branding */}
         <div>
