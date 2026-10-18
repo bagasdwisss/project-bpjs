@@ -226,12 +226,12 @@ const ImportExport = () => {
                   <h2 className="text-base font-bold text-[#121214]">Ekspor Data ke Excel</h2>
                 </div>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70">
-                  Database Neon
+                  Basis Data BPJSTK
                 </span>
               </div>
 
               <p className="text-xs text-[#121214]/60 mb-4">
-                Unduh snapshot data akun peserta magang atau koordinator langsung dari basis data Neon PostgreSQL.
+                Unduh data akun peserta magang atau koordinator langsung dari basis data sistem BPJSTK.
               </p>
 
               <div className="space-y-4">
@@ -291,9 +291,9 @@ const ImportExport = () => {
               <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
                 <Database className="w-3.5 h-3.5" />
               </div>
-              <h4 className="text-xs font-bold text-[#121214]">Koneksi Langsung Neon</h4>
+              <h4 className="text-xs font-bold text-[#121214]">Koneksi Real-Time</h4>
             </div>
-            <p className="text-[11px] text-[#121214]/70 font-medium">Data diekstrak secara real-time dari PostgreSQL pooler tanpa jeda cache.</p>
+            <p className="text-[11px] text-[#121214]/70 font-medium">Data diekstrak secara instan langsung dari basis data operasional BPJSTK.</p>
           </div>
         </div>
 

@@ -378,7 +378,7 @@ const BpuCalculatorSettings = () => {
                 {/* Pilih Skema Program */}
                 <div className="space-y-1.5 pt-2">
                   <label className="text-xs font-black text-[#121214]">Pilihan Paket Program</label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                     <button
                       type="button"
                       onClick={() => setSimProgram('2-program')}

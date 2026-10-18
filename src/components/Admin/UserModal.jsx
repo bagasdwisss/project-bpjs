@@ -169,7 +169,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
             <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
               Penempatan Kerja
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {placementOptions.map(p => {
                 const isSelected = formData.penempatan === p.code;
                 return (

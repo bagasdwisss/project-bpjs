@@ -131,7 +131,7 @@ const OfficeLocation = () => {
             {/* Kolom Kiri: Form Koordinat & Radius (lg:col-span-7) */}
             <div className="lg:col-span-7 space-y-6">
               <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
-                <div className="flex items-center justify-between border-b-2 border-gray-100 pb-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b-2 border-gray-100 pb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-[#B8C96E] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214]">
                       <Navigation className="w-4 h-4" />

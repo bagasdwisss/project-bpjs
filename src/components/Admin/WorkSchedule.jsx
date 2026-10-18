@@ -654,7 +654,7 @@ const WorkSchedule = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-xs min-w-[650px]">
                     <thead className="bg-[#121214] text-white uppercase text-[10px] tracking-wider font-black">
                       <tr>
                         <th className="py-3 px-4">Tanggal Libur</th>

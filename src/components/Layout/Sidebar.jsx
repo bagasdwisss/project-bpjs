@@ -160,9 +160,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         lg:static lg:z-auto
       `}>
-        {/* Top Header & Branding */}
-        <div>
-          <div className="px-5 pt-6 pb-4 flex items-center justify-between border-b border-[#1C1C20]">
+        {/* Top Header, User, & Navigation */}
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="px-5 pt-6 pb-4 flex items-center justify-between border-b border-[#1C1C20] shrink-0">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FCE373] via-[#F5C6EC] to-[#BDD4F2] p-0.5 flex items-center justify-center shadow-md">
                 <div className="w-full h-full bg-[#121214] rounded-[10px] flex items-center justify-center overflow-hidden">
@@ -177,14 +177,14 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
             <button 
               onClick={toggleSidebar}
-              className="lg:hidden text-[#9CA3AF] hover:text-white p-1 rounded-lg"
+              className="lg:hidden text-[#9CA3AF] hover:text-white p-1 rounded-lg cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* User Mini Card in Pitch Black */}
-          <div className="px-5 py-4 border-b border-[#1C1C20]">
+          <div className="px-5 py-4 border-b border-[#1C1C20] shrink-0">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full bg-[#F5C6EC] text-[#121214] flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
                 {user?.full_name?.charAt(0) || 'U'}
@@ -207,8 +207,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </div>
           </div>
 
-          {/* Navigation Menu (General & Tools) */}
-          <nav className="px-3 py-4 space-y-6 overflow-y-auto max-h-[calc(100vh-220px)]">
+          {/* Navigation Menu (General & Tools) with Full Height Scroll */}
+          <nav className="px-3 py-4 space-y-6 flex-1 overflow-y-auto">
             <div>
               <p className="px-3 mb-2 text-[10px] font-bold text-[#71717A] uppercase tracking-wider">
                 General

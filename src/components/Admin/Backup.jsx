@@ -108,7 +108,7 @@ const Backup = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Pemeliharaan & Keamanan</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Backup & Restore Database</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Kelola pencadangan data sistem dan snapshot database Neon PostgreSQL secara berkala</p>
+            <p className="text-sm text-[#121214]/60 mt-1">Kelola pencadangan data sistem dan snapshot basis data utama BPJSTK secara berkala</p>
           </div>
 
           <button
@@ -148,7 +148,7 @@ const Backup = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-[#121214] text-base sm:text-lg">Buat Snapshot Database Baru</h3>
-                  <p className="text-xs text-[#121214]/60">Snapshot instan dari database Neon PostgreSQL</p>
+                  <p className="text-xs text-[#121214]/60">Snapshot instan dari basis data operasional BPJSTK</p>
                 </div>
               </div>
               <p className="text-xs sm:text-sm text-[#121214]/70 leading-relaxed font-medium">
@@ -174,19 +174,19 @@ const Backup = () => {
                   <Shield className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#121214] text-base sm:text-lg">Status & Ketahanan Sistem</h3>
-                  <p className="text-xs text-[#121214]/60">Infrastruktur Serverless Neon + Vercel</p>
+                  <h3 className="font-bold text-[#121214] text-base sm:text-lg">Status & Ketahanan Data</h3>
+                  <p className="text-xs text-[#121214]/60">Keamanan & Ketahanan Data Operasional</p>
                 </div>
               </div>
 
               <div className="space-y-2 text-xs font-medium text-[#121214]/70 divide-y divide-[#EAE9E4]">
                 <div className="flex justify-between py-1.5">
-                  <span>Database Engine:</span>
-                  <span className="font-bold text-[#121214]">Neon PostgreSQL v16</span>
+                  <span>Tipe Basis Data:</span>
+                  <span className="font-bold text-[#121214]">PostgreSQL Relasional</span>
                 </div>
                 <div className="flex justify-between py-1.5">
-                  <span>Hosting Platform:</span>
-                  <span className="font-bold text-[#121214]">Vercel Serverless (IAD1)</span>
+                  <span>Ketersediaan Cadangan:</span>
+                  <span className="font-bold text-[#121214]">Terenkripsi & Otomatis</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span>Point-in-Time Recovery:</span>

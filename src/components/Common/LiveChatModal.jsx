@@ -1,5 +1,17 @@
+// src/components/Common/LiveChatModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, User, CheckCheck, Clock, RefreshCw, Sparkles } from 'lucide-react';
+import { 
+  MessageSquare, 
+  X, 
+  Send, 
+  User, 
+  Clock, 
+  Sparkles, 
+  ArrowLeft, 
+  ShieldCheck, 
+  GraduationCap, 
+  UserCheck 
+} from 'lucide-react';
 import api from '../../services/api';
 
 const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
@@ -12,6 +24,7 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   
   const messagesEndRef = useRef(null);
   const pollIntervalRef = useRef(null);
@@ -23,16 +36,18 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
     try {
       const res = await api.get('/messages/contacts');
       if (res.data?.success) {
-        setContacts(res.data.data || []);
+        const contactList = res.data.data || [];
+        setContacts(contactList);
         
         // If defaultRecipientId provided, set as active
         if (defaultRecipientId) {
-          const found = res.data.data.find(c => c.user_id === Number(defaultRecipientId));
+          const found = contactList.find(c => c.user_id === Number(defaultRecipientId));
           if (found) {
             setActiveContact(found);
+            setShowMobileChat(true);
           }
-        } else if (!activeContact && res.data.data.length > 0) {
-          setActiveContact(res.data.data[0]);
+        } else if (!activeContact && contactList.length > 0 && window.innerWidth >= 640) {
+          setActiveContact(contactList[0]);
         }
       }
     } catch (err) {
@@ -66,7 +81,6 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
     if (activeContact) {
       fetchMessages(activeContact.user_id);
 
-      // Start 3-second polling for active conversation
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = setInterval(() => {
         fetchMessages(activeContact.user_id, true);
@@ -107,39 +121,79 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
     }
   };
 
+  const getContactBadge = (contact) => {
+    if (contact.role_name === 'Administrator') {
+      return (
+        <span className="text-[9px] bg-[#121214] text-white px-1.5 py-0.5 rounded font-black flex items-center gap-1">
+          <ShieldCheck className="w-2.5 h-2.5 text-[#FCE373]" />
+          Admin
+        </span>
+      );
+    }
+    if (currentUser.role === 'Koordinator' && contact.role_name === 'Peserta') {
+      return (
+        <span className="text-[9px] bg-[#B8C96E] text-[#121214] px-1.5 py-0.5 rounded border border-[#121214] font-black flex items-center gap-1">
+          <GraduationCap className="w-2.5 h-2.5" />
+          Anak Didik
+        </span>
+      );
+    }
+    if (currentUser.role === 'Peserta' && contact.role_name === 'Koordinator') {
+      return (
+        <span className="text-[9px] bg-[#BDD4F2] text-[#121214] px-1.5 py-0.5 rounded border border-[#121214] font-black flex items-center gap-1">
+          <UserCheck className="w-2.5 h-2.5" />
+          Pembimbing
+        </span>
+      );
+    }
+    return (
+      <span className="text-[9px] bg-white px-1.5 py-0.5 rounded border border-[#121214] font-bold text-gray-700">
+        {contact.role_name}
+      </span>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[8px_8px_0px_#121214] w-full max-w-4xl h-[620px] max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[8px_8px_0px_#121214] w-full max-w-4xl h-[94vh] sm:h-[620px] flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-3.5 sm:p-4 border-b-2 border-[#121214] bg-[#F5C6EC]">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b-2 border-[#121214] bg-[#F5C6EC]">
           <div className="flex items-center space-x-2.5">
-            <div className="w-10 h-10 rounded-xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
-              <MessageSquare className="w-5 h-5 text-[#121214]" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-[#121214]" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="font-black text-base sm:text-lg text-[#121214]">Live Chat Internal BPJSTK</h3>
-                <span className="hidden sm:inline bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded">Encrypted Portal</span>
+                <h3 className="font-black text-sm sm:text-lg text-[#121214]">Chat Bimbingan BPJSTK</h3>
+                <span className="hidden sm:inline bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded">Jalur Resmi</span>
               </div>
-              <p className="text-xs font-medium text-[#121214]/80">Saluran Diskusi Cepat Peserta & Koordinator Pembimbing</p>
+              <p className="text-[11px] sm:text-xs font-medium text-[#121214]/80">
+                {currentUser.role === 'Koordinator' 
+                  ? 'Saluran khusus komunikasi dengan anak didik & admin'
+                  : currentUser.role === 'Peserta'
+                  ? 'Saluran konsultasi dengan koordinator pembimbing & admin'
+                  : 'Pusat bantuan & komunikasi seluruh pengguna'}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg border-2 border-[#121214] bg-white hover:bg-red-50 text-[#121214] shadow-[2px_2px_0px_#121214]"
+            className="p-1.5 rounded-lg border-2 border-[#121214] bg-white hover:bg-red-50 text-[#121214] shadow-[2px_2px_0px_#121214] cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
-        {/* Content Layout: Sidebar Contacts + Chat Window */}
-        <div className="flex-1 flex flex-col sm:flex-row min-h-0 bg-[#F5F4F0]">
+        {/* Content Layout: Responsive Split */}
+        <div className="flex-1 flex min-h-0 bg-[#F5F4F0] overflow-hidden">
           
-          {/* Contacts Sidebar */}
-          <div className="w-full sm:w-72 border-b sm:border-b-0 sm:border-r-2 border-[#121214] bg-white flex flex-col max-h-[160px] sm:max-h-full">
+          {/* Contacts Sidebar (Visible on desktop always; on mobile visible only when !showMobileChat) */}
+          <div className={`w-full sm:w-72 border-r-0 sm:border-r-2 border-[#121214] bg-white flex flex-col ${
+            showMobileChat ? 'hidden sm:flex' : 'flex'
+          }`}>
             <div className="p-3 border-b border-[#121214]/15 bg-[#F5F4F0] font-black text-xs uppercase text-[#121214] flex justify-between items-center">
-              <span>Daftar Kontak</span>
+              <span>Kontak Terhubung</span>
               <span className="text-[10px] bg-[#BDD4F2] px-1.5 py-0.5 rounded border border-[#121214] font-bold">
                 {contacts.length} Orang
               </span>
@@ -147,17 +201,22 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
 
             <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
               {loadingContacts ? (
-                <div className="p-4 text-center text-xs text-gray-500 font-medium">Memuat kontak...</div>
+                <div className="p-6 text-center text-xs text-gray-500 font-medium">Memuat kontak...</div>
               ) : contacts.length === 0 ? (
-                <div className="p-4 text-center text-xs text-gray-500 font-medium">Tidak ada kontak tersedia.</div>
+                <div className="p-6 text-center text-xs text-gray-500 font-medium leading-relaxed">
+                  Belum ada kontak yang tersedia untuk akun Anda.
+                </div>
               ) : (
                 contacts.map((contact) => {
                   const isSelected = activeContact?.user_id === contact.user_id;
                   return (
                     <button
                       key={contact.user_id}
-                      onClick={() => setActiveContact(contact)}
-                      className={`w-full p-3 text-left transition-colors flex items-center space-x-2.5 ${
+                      onClick={() => {
+                        setActiveContact(contact);
+                        setShowMobileChat(true);
+                      }}
+                      className={`w-full p-3 text-left transition-colors flex items-center space-x-2.5 cursor-pointer ${
                         isSelected ? 'bg-[#FCE373] font-bold' : 'hover:bg-[#F5F4F0]'
                       }`}
                     >
@@ -165,11 +224,9 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
                         {contact.full_name?.charAt(0) || 'U'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-1">
                           <p className="text-xs font-bold text-[#121214] truncate">{contact.full_name}</p>
-                          <span className="text-[9px] bg-white px-1.5 py-0.2 rounded border border-[#121214] font-semibold text-gray-700">
-                            {contact.role_name}
-                          </span>
+                          {getContactBadge(contact)}
                         </div>
                         <p className="text-[11px] text-gray-500 truncate mt-0.5">
                           {contact.last_message || 'Belum ada riwayat pesan'}
@@ -182,31 +239,47 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
             </div>
           </div>
 
-          {/* Chat Messages Area */}
-          <div className="flex-1 flex flex-col min-w-0 bg-[#F5F4F0]">
+          {/* Chat Messages Area (Visible on desktop always; on mobile visible only when showMobileChat) */}
+          <div className={`flex-1 flex flex-col min-w-0 bg-[#F5F4F0] ${
+            !showMobileChat ? 'hidden sm:flex' : 'flex'
+          }`}>
             {activeContact ? (
               <>
-                {/* Active Contact Bar */}
-                <div className="p-3 bg-white border-b-2 border-[#121214] flex items-center justify-between">
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#B8C96E] border-2 border-[#121214] flex items-center justify-center font-black text-xs">
+                {/* Active Contact Bar with Mobile Back Button */}
+                <div className="p-2.5 sm:p-3 bg-white border-b-2 border-[#121214] flex items-center justify-between">
+                  <div className="flex items-center space-x-2 sm:space-x-2.5 min-w-0">
+                    {/* Mobile Back to Contacts Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowMobileChat(false)}
+                      className="sm:hidden p-1.5 rounded-lg border-2 border-[#121214] bg-white hover:bg-gray-100 text-[#121214] shadow-[1px_1px_0px_#121214] shrink-0"
+                      title="Kembali ke Kontak"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+
+                    <div className="w-8 h-8 rounded-lg bg-[#B8C96E] border-2 border-[#121214] flex items-center justify-center font-black text-xs shrink-0">
                       {activeContact.full_name?.charAt(0)}
                     </div>
-                    <div>
-                      <h4 className="font-black text-xs sm:text-sm text-[#121214]">{activeContact.full_name}</h4>
-                      <p className="text-[10px] text-gray-500 font-medium">
-                        {activeContact.role_name} • {activeContact.unique_id || activeContact.email}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-black text-xs sm:text-sm text-[#121214] truncate">{activeContact.full_name}</h4>
+                        {getContactBadge(activeContact)}
+                      </div>
+                      <p className="text-[10px] text-gray-500 font-medium truncate">
+                        {activeContact.unique_id || activeContact.email}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-1.5 text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-300">
+
+                  <div className="flex items-center space-x-1.5 text-[10px] sm:text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 sm:py-1 rounded-md border border-emerald-300 shrink-0">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Tersambung</span>
+                    <span className="hidden sm:inline">Tersambung</span>
                   </div>
                 </div>
 
                 {/* Messages Feed */}
-                <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3">
                   {loadingMessages ? (
                     <div className="text-center py-10 text-xs text-gray-500 font-bold">Memuat riwayat chat...</div>
                   ) : messages.length === 0 ? (
@@ -215,7 +288,9 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
                         <Sparkles className="w-6 h-6 text-[#121214]" />
                       </div>
                       <p className="text-xs font-bold text-[#121214]">Mulai percakapan langsung</p>
-                      <p className="text-[11px] text-gray-500">Ajukan pertanyaan, bimbingan tugas, atau konsultasi lapangan.</p>
+                      <p className="text-[11px] text-gray-500 max-w-xs mx-auto">
+                        Kirim pesan seputar bimbingan tugas, konsultasi kendala presensi, atau pengumuman bimbingan.
+                      </p>
                     </div>
                   ) : (
                     messages.map((m) => {
@@ -226,13 +301,13 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
                           className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                         >
                           <div
-                            className={`max-w-[78%] p-3 rounded-xl border-2 border-[#121214] text-xs leading-relaxed shadow-[3px_3px_0px_#121214] ${
+                            className={`max-w-[85%] sm:max-w-[78%] p-3 rounded-xl border-2 border-[#121214] text-xs leading-relaxed shadow-[2px_2px_0px_#121214] ${
                               isMe
                                 ? 'bg-[#BDD4F2] text-[#121214] font-medium rounded-br-xs'
                                 : 'bg-white text-[#121214] rounded-bl-xs'
                             }`}
                           >
-                            <p className="whitespace-pre-wrap">{m.message_text}</p>
+                            <p className="whitespace-pre-wrap break-words">{m.message_text}</p>
                           </div>
                           <span className="text-[9px] text-gray-500 mt-1 flex items-center space-x-1 px-1">
                             <Clock className="w-2.5 h-2.5" />
@@ -248,7 +323,7 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
                 {/* Message Input Footer */}
                 <form
                   onSubmit={handleSendMessage}
-                  className="p-3 bg-white border-t-2 border-[#121214] flex items-center space-x-2"
+                  className="p-2.5 sm:p-3 bg-white border-t-2 border-[#121214] flex items-center space-x-2"
                 >
                   <input
                     type="text"
@@ -260,16 +335,19 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
                   <button
                     type="submit"
                     disabled={sending || !messageInput.trim()}
-                    className="px-4 py-2 rounded-xl border-2 border-[#121214] bg-[#B8C96E] hover:bg-[#a6b85c] disabled:opacity-50 text-[#121214] font-black text-xs shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center space-x-1"
+                    className="px-3.5 sm:px-4 py-2 rounded-xl border-2 border-[#121214] bg-[#B8C96E] hover:bg-[#a6b85c] disabled:opacity-50 text-[#121214] font-black text-xs shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center space-x-1 cursor-pointer shrink-0"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>Kirim</span>
+                    <span className="hidden sm:inline">Kirim</span>
                   </button>
                 </form>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-xs text-gray-500 font-bold">
-                Pilih kontak di sebelah kiri untuk memulai obrolan.
+              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-xs text-gray-500 font-bold space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-gray-100 border-2 border-[#121214] flex items-center justify-center text-gray-400">
+                  <User className="w-6 h-6" />
+                </div>
+                <p>Pilih salah satu kontak untuk memulai percakapan bimbingan.</p>
               </div>
             )}
           </div>

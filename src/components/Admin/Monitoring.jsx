@@ -98,30 +98,30 @@ const Monitoring = () => {
             <p className="text-[10px] text-[#121214]/60 font-medium">Auto-Flagged Security Engine</p>
           </div>
 
-          {/* Card 2: Database Neon Storage (Olive Green) */}
+          {/* Card 2: Kapasitas Basis Data (Olive Green) */}
           <div className="p-5 rounded-2xl bg-[#B8C96E] border-2 border-[#121214] text-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-[#121214]/70 uppercase tracking-wider">Neon Serverless DB</span>
-              <span className="bg-[#121214] text-white text-[10px] font-black px-2 py-0.5 rounded-full">Connected</span>
+              <span className="text-[10px] font-black text-[#121214]/70 uppercase tracking-wider">Kapasitas Basis Data</span>
+              <span className="bg-[#121214] text-white text-[10px] font-black px-2 py-0.5 rounded-full">Optimal</span>
             </div>
             <div>
               <p className="text-3xl font-black text-[#121214]">{systemStatus.storage}%</p>
-              <p className="text-[10px] font-bold text-[#121214]/80 mt-1">AWS Singapore (ap-southeast-1)</p>
+              <p className="text-[10px] font-bold text-[#121214]/80 mt-1">Penyimpanan Arsip Presensi & BPU</p>
             </div>
-            <p className="text-[10px] text-[#121214]/60 font-medium">SSL Connection Pooling Active</p>
+            <p className="text-[10px] text-[#121214]/60 font-medium">Integritas Data Terverifikasi</p>
           </div>
 
-          {/* Card 3: Memory & Runtime (Pastel Yellow) */}
+          {/* Card 3: Ketersediaan Layanan (Pastel Yellow) */}
           <div className="p-5 rounded-2xl bg-[#FCE373] border-2 border-[#121214] text-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-[#121214]/70 uppercase tracking-wider">Vercel Runtime</span>
-              <span className="bg-[#121214] text-white text-[10px] font-black px-2 py-0.5 rounded-full">Healthy</span>
+              <span className="text-[10px] font-black text-[#121214]/70 uppercase tracking-wider">Ketersediaan Layanan</span>
+              <span className="bg-[#121214] text-white text-[10px] font-black px-2 py-0.5 rounded-full">Aktif</span>
             </div>
             <div>
               <p className="text-3xl font-black text-[#121214]">{systemStatus.uptime}</p>
-              <p className="text-[10px] font-bold text-[#121214]/80 mt-1">Edge Micro-services Uptime</p>
+              <p className="text-[10px] font-bold text-[#121214]/80 mt-1">SLA Operasional Jam Kerja</p>
             </div>
-            <p className="text-[10px] text-[#121214]/60 font-medium">Zero Downtime Deployments</p>
+            <p className="text-[10px] text-[#121214]/60 font-medium">Layanan Presensi & Bimbingan Online</p>
           </div>
 
           {/* Card 4: IP Unik Audit (Pastel Blue) */}

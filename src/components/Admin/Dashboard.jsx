@@ -257,16 +257,19 @@ const AdminDashboard = () => {
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum BPJSTK</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Database Cloud</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">Neon DB</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">Serverless Postgres</p>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Penempatan</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">Kantor & Lapangan</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Distribusi Peserta</p>
                 </div>
               </div>
             </div>
 
             <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
-              <span>Status Infrastruktur Server</span>
-              <span className="text-[#121214]/80">Terkoneksi Normal</span>
+              <span>Status Operasional Sistem</span>
+              <span className="text-emerald-800 font-extrabold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Semua Layanan Aktif
+              </span>
             </div>
           </div>
         </div>
@@ -391,11 +394,11 @@ const AdminDashboard = () => {
               </button>
             </div>
 
-            {/* Cloud Infrastructure Card */}
+            {/* Distribusi Penempatan Magang */}
             <div className="bg-[#FAF9F6] rounded-[22px] border border-[#EAE9E4] p-5">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[11px] font-bold text-[#121214] uppercase tracking-wider">
-                  Cloud Infrastructure
+                  Distribusi Penempatan Magang
                 </span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               </div>
@@ -403,18 +406,18 @@ const AdminDashboard = () => {
               <div className="space-y-2.5 text-xs">
                 <div className="p-3 bg-white rounded-[14px] border border-[#EAE9E4]">
                   <div className="flex items-center justify-between font-bold text-[#121214]">
-                    <span>Neon PostgreSQL</span>
-                    <span className="text-[10px] bg-[#BDD4F2] text-[#121214] px-2 py-0.5 rounded-full">Active</span>
+                    <span>Penempatan Kantor</span>
+                    <span className="text-[10px] bg-[#BDD4F2] text-[#121214] px-2 py-0.5 rounded-full font-black">Kantor Cabang</span>
                   </div>
-                  <p className="text-[11px] text-[#6E6D6A] mt-1">SSL Connection Pooling Asia-Southeast</p>
+                  <p className="text-[11px] text-[#6E6D6A] mt-1">Presensi selfie kamera + validasi Geofence GPS kantor cabang</p>
                 </div>
 
                 <div className="p-3 bg-white rounded-[14px] border border-[#EAE9E4]">
                   <div className="flex items-center justify-between font-bold text-[#121214]">
-                    <span>Vercel Serverless</span>
-                    <span className="text-[10px] bg-[#FCE373] text-[#121214] px-2 py-0.5 rounded-full">Hobby</span>
+                    <span>Penempatan Lapangan</span>
+                    <span className="text-[10px] bg-[#FCE373] text-[#121214] px-2 py-0.5 rounded-full font-black">Survey & BPU</span>
                   </div>
-                  <p className="text-[11px] text-[#6E6D6A] mt-1">Single Express Handler Edge Deployment</p>
+                  <p className="text-[11px] text-[#6E6D6A] mt-1">Fokus akuisisi & edukasi kepesertaan Bukan Penerima Upah</p>
                 </div>
               </div>
             </div>

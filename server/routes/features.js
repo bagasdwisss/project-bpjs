@@ -315,28 +315,8 @@ router.get('/messages/contacts', authenticateToken, async (req, res) => {
     let sql = '';
     let params = [];
 
-    if (userRole === 'Peserta') {
-      // Participant talks to Coordinators
-      sql = `
-        SELECT u.user_id, u.full_name, u.unique_id, 
-               COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, 
-               r.role_name,
-               (SELECT message_text FROM direct_messages 
-                WHERE (sender_id = u.user_id AND receiver_id = $1) OR (sender_id = $1 AND receiver_id = u.user_id) 
-                ORDER BY created_at DESC LIMIT 1) as last_message,
-               (SELECT created_at FROM direct_messages 
-                WHERE (sender_id = u.user_id AND receiver_id = $1) OR (sender_id = $1 AND receiver_id = u.user_id) 
-                ORDER BY created_at DESC LIMIT 1) as last_message_time,
-               (SELECT COUNT(*) FROM direct_messages 
-                WHERE sender_id = u.user_id AND receiver_id = $1 AND is_read = FALSE) as unread_count
-        FROM users u
-        JOIN roles r ON u.role_id = r.role_id
-        WHERE r.role_name IN ('Koordinator', 'Administrator') AND u.status = 'Aktif'
-        ORDER BY last_message_time DESC NULLS LAST, u.full_name ASC
-      `;
-      params = [userId];
-    } else {
-      // Coordinator / Admin talks to Participants & Coordinators
+    if (userRole === 'Administrator') {
+      // Administrator can view all active participants and coordinators
       sql = `
         SELECT u.user_id, u.full_name, u.unique_id, 
                COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, 
@@ -352,6 +332,54 @@ router.get('/messages/contacts', authenticateToken, async (req, res) => {
         FROM users u
         JOIN roles r ON u.role_id = r.role_id
         WHERE u.user_id != $1 AND u.status = 'Aktif'
+        ORDER BY last_message_time DESC NULLS LAST, u.full_name ASC
+      `;
+      params = [userId];
+    } else if (userRole === 'Koordinator') {
+      // Coordinator can ONLY view their assigned students (anak didik) or Administrators
+      sql = `
+        SELECT u.user_id, u.full_name, u.unique_id, 
+               COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, 
+               r.role_name,
+               (SELECT message_text FROM direct_messages 
+                WHERE (sender_id = u.user_id AND receiver_id = $1) OR (sender_id = $1 AND receiver_id = u.user_id) 
+                ORDER BY created_at DESC LIMIT 1) as last_message,
+               (SELECT created_at FROM direct_messages 
+                WHERE (sender_id = u.user_id AND receiver_id = $1) OR (sender_id = $1 AND receiver_id = u.user_id) 
+                ORDER BY created_at DESC LIMIT 1) as last_message_time,
+               (SELECT COUNT(*) FROM direct_messages 
+                WHERE sender_id = u.user_id AND receiver_id = $1 AND is_read = FALSE) as unread_count
+        FROM users u
+        JOIN roles r ON u.role_id = r.role_id
+        WHERE u.user_id != $1 AND u.status = 'Aktif'
+          AND (
+            (r.role_name = 'Peserta' AND u.coordinator_id = $1)
+            OR r.role_name = 'Administrator'
+          )
+        ORDER BY last_message_time DESC NULLS LAST, u.full_name ASC
+      `;
+      params = [userId];
+    } else {
+      // Participant can ONLY view their assigned Coordinator or Administrators
+      sql = `
+        SELECT u.user_id, u.full_name, u.unique_id, 
+               COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, 
+               r.role_name,
+               (SELECT message_text FROM direct_messages 
+                WHERE (sender_id = u.user_id AND receiver_id = $1) OR (sender_id = $1 AND receiver_id = u.user_id) 
+                ORDER BY created_at DESC LIMIT 1) as last_message,
+               (SELECT created_at FROM direct_messages 
+                WHERE (sender_id = u.user_id AND receiver_id = $1) OR (sender_id = $1 AND receiver_id = u.user_id) 
+                ORDER BY created_at DESC LIMIT 1) as last_message_time,
+               (SELECT COUNT(*) FROM direct_messages 
+                WHERE sender_id = u.user_id AND receiver_id = $1 AND is_read = FALSE) as unread_count
+        FROM users u
+        JOIN roles r ON u.role_id = r.role_id
+        WHERE u.user_id != $1 AND u.status = 'Aktif'
+          AND (
+            u.user_id = (SELECT coordinator_id FROM users WHERE user_id = $1)
+            OR r.role_name = 'Administrator'
+          )
         ORDER BY last_message_time DESC NULLS LAST, u.full_name ASC
       `;
       params = [userId];
@@ -371,7 +399,48 @@ router.get('/messages/contacts', authenticateToken, async (req, res) => {
 router.get('/messages/:otherUserId', authenticateToken, async (req, res) => {
   try {
     const currentUserId = req.user.user_id;
+    const currentUserRole = req.user.role_name;
     const { otherUserId } = req.params;
+
+    // Check target user relationship
+    const targetUserRes = await query(
+      `SELECT u.user_id, u.coordinator_id, r.role_name 
+       FROM users u 
+       JOIN roles r ON u.role_id = r.role_id 
+       WHERE u.user_id = $1`,
+      [otherUserId]
+    );
+
+    if (targetUserRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pengguna tujuan tidak ditemukan.' });
+    }
+
+    const targetUser = targetUserRes.rows[0];
+
+    // Enforce relationship permissions:
+    // Administrator can access any conversation.
+    // Anyone can chat with Administrator.
+    if (currentUserRole !== 'Administrator' && targetUser.role_name !== 'Administrator') {
+      if (currentUserRole === 'Koordinator') {
+        // Coordinator can only chat with their assigned students
+        if (targetUser.role_name !== 'Peserta' || targetUser.coordinator_id !== currentUserId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Akses ditolak. Koordinator hanya diizinkan berkomunikasi dengan anak didiknya atau Administrator.'
+          });
+        }
+      } else if (currentUserRole === 'Peserta') {
+        // Participant can only chat with their assigned coordinator
+        const myCoordRes = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [currentUserId]);
+        const myCoordId = myCoordRes.rows[0]?.coordinator_id;
+        if (Number(otherUserId) !== Number(myCoordId)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Akses ditolak. Peserta hanya diizinkan berkomunikasi dengan Koordinator pembimbing sendiri atau Administrator.'
+          });
+        }
+      }
+    }
 
     // Mark incoming messages as read
     await query(
@@ -406,10 +475,49 @@ router.get('/messages/:otherUserId', authenticateToken, async (req, res) => {
 router.post('/messages', authenticateToken, async (req, res) => {
   try {
     const senderId = req.user.user_id;
+    const senderRole = req.user.role_name;
     const { receiver_id, message_text } = req.body;
 
     if (!receiver_id || !message_text?.trim()) {
       return res.status(400).json({ success: false, message: 'Penerima dan pesan tidak boleh kosong.' });
+    }
+
+    // Check receiver relationship
+    const receiverRes = await query(
+      `SELECT u.user_id, u.coordinator_id, r.role_name 
+       FROM users u 
+       JOIN roles r ON u.role_id = r.role_id 
+       WHERE u.user_id = $1`,
+      [receiver_id]
+    );
+
+    if (receiverRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pengguna penerima tidak ditemukan.' });
+    }
+
+    const receiver = receiverRes.rows[0];
+
+    // Enforce relationship permissions:
+    // Administrator can chat with anyone.
+    // Anyone can chat with Administrator.
+    if (senderRole !== 'Administrator' && receiver.role_name !== 'Administrator') {
+      if (senderRole === 'Koordinator') {
+        if (receiver.role_name !== 'Peserta' || receiver.coordinator_id !== senderId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Akses ditolak. Koordinator hanya dapat mengirim pesan ke anak didiknya atau Administrator.'
+          });
+        }
+      } else if (senderRole === 'Peserta') {
+        const myCoordRes = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [senderId]);
+        const myCoordId = myCoordRes.rows[0]?.coordinator_id;
+        if (Number(receiver_id) !== Number(myCoordId)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Akses ditolak. Peserta hanya dapat mengirim pesan ke Koordinator pembimbing sendiri atau Administrator.'
+          });
+        }
+      }
     }
 
     const result = await query(
@@ -420,7 +528,7 @@ router.post('/messages', authenticateToken, async (req, res) => {
     );
 
     // Trigger in-app notification in Navbar Bell for receiver
-    const senderName = req.user.full_name || 'Pembimbing/Peserta';
+    const senderName = req.user.full_name || 'Pengguna BPJSTK';
     const previewText = message_text.trim().length > 60 
       ? message_text.trim().substring(0, 60) + '...' 
       : message_text.trim();

@@ -294,7 +294,7 @@ const UserManagement = () => {
         ) : (
           <div className="bg-white rounded-[22px] border border-[#EAE9E4] overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-[#EAE9E4]">
+            <table className="w-full text-left text-xs min-w-[720px] divide-y divide-[#EAE9E4]">
               <thead className="bg-[#FAF9F6]">
                 <tr>
                   <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">ID</th>
