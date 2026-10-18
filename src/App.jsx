@@ -43,6 +43,9 @@ const AdminMonitoring = lazy(() => import('./components/Admin/Monitoring'));
 const AdminBackup = lazy(() => import('./components/Admin/Backup'));
 const AdminBroadcast = lazy(() => import('./components/Admin/Broadcast'));
 const AdminWorkSchedule = lazy(() => import('./components/Admin/WorkSchedule'));
+const AdminOfficeLocation = lazy(() => import('./components/Admin/OfficeLocation'));
+const AdminGradingSettings = lazy(() => import('./components/Admin/GradingSettings'));
+const AdminBpuCalculator = lazy(() => import('./components/Admin/BpuCalculatorSettings'));
 
 
 function App() {
@@ -202,6 +205,21 @@ function App() {
             <Route path="/admin/work-schedule" element={
               <ProtectedRoute allowedRoles={['Administrator']}>
                 <AdminWorkSchedule />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/office-location" element={
+              <ProtectedRoute allowedRoles={['Administrator']}>
+                <AdminOfficeLocation />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/grading-settings" element={
+              <ProtectedRoute allowedRoles={['Administrator']}>
+                <AdminGradingSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/bpu-calculator" element={
+              <ProtectedRoute allowedRoles={['Administrator']}>
+                <AdminBpuCalculator />
               </ProtectedRoute>
             } />
 

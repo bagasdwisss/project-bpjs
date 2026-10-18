@@ -4,7 +4,8 @@ import {
   Home, Calendar, FileText, ClipboardList, TrendingUp, 
   FolderOpen, Bell, Users, Award, 
   BarChart3, Download, Clock,
-  Database, Radio, LogOut, X, ChevronRight, Sparkles, MessageSquare
+  Database, Radio, LogOut, X, ChevronRight, Sparkles, MessageSquare,
+  MapPin, Target, Calculator
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
@@ -31,6 +32,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { path: '/admin/users', icon: Users, label: 'Kelola User' },
           { path: '/admin/batches', icon: Calendar, label: 'Kelola Batch' },
           { path: '/admin/work-schedule', icon: Clock, label: 'Jadwal & Hari Libur' },
+          { path: '/admin/office-location', icon: MapPin, label: 'Lokasi Kantor' },
+          { path: '/admin/grading-settings', icon: Target, label: 'Bobot Nilai' },
+          { path: '/admin/bpu-calculator', icon: Calculator, label: 'Kalkulator BPU' },
           { path: '/admin/reports', icon: FileText, label: 'Laporan' },
           { path: '/admin/monitoring', icon: BarChart3, label: 'Monitoring' },
         ],
