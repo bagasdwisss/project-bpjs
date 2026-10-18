@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, Calendar, FileText, ClipboardList, TrendingUp, 
   FolderOpen, Bell, Users, Award, 
-  BarChart3, Download, 
+  BarChart3, Download, Clock,
   Database, Radio, LogOut, X, ChevronRight, Sparkles, MessageSquare
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
@@ -30,6 +30,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
           { path: '/admin/users', icon: Users, label: 'Kelola User' },
           { path: '/admin/batches', icon: Calendar, label: 'Kelola Batch' },
+          { path: '/admin/work-schedule', icon: Clock, label: 'Jadwal & Hari Libur' },
           { path: '/admin/reports', icon: FileText, label: 'Laporan' },
           { path: '/admin/monitoring', icon: BarChart3, label: 'Monitoring' },
         ],

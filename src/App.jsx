@@ -42,6 +42,7 @@ const AdminImportExport = lazy(() => import('./components/Admin/ImportExport'));
 const AdminMonitoring = lazy(() => import('./components/Admin/Monitoring'));
 const AdminBackup = lazy(() => import('./components/Admin/Backup'));
 const AdminBroadcast = lazy(() => import('./components/Admin/Broadcast'));
+const AdminWorkSchedule = lazy(() => import('./components/Admin/WorkSchedule'));
 
 
 function App() {
@@ -196,6 +197,11 @@ function App() {
             <Route path="/admin/broadcast" element={
               <ProtectedRoute allowedRoles={['Administrator']}>
                 <AdminBroadcast />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/work-schedule" element={
+              <ProtectedRoute allowedRoles={['Administrator']}>
+                <AdminWorkSchedule />
               </ProtectedRoute>
             } />
 

@@ -6,7 +6,7 @@ import {
   Calendar, Clock, MapPin, CheckCircle, 
   XCircle, AlertCircle, RefreshCw, X, ShieldCheck,
   Camera, Upload, FileText, QrCode, Calculator, Navigation,
-  Sparkles, Check, AlertTriangle, Eye, ArrowRight
+  Sparkles, Check, AlertTriangle, Eye, ArrowRight, CalendarOff
 } from 'lucide-react';
 import api from '../../services/api';
 import CalculatorModal from '../Common/CalculatorModal';
@@ -139,6 +139,11 @@ const Attendance = () => {
   const [toast, setToast] = useState(null);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
 
+  // Dynamic Attendance Settings & Schedule State from Server
+  const [dynamicSettings, setDynamicSettings] = useState(null);
+  const [scheduleStatus, setScheduleStatus] = useState(null);
+  const [holidaysList, setHolidaysList] = useState([]);
+
   // Dynamic Office Location from Backend
   const [officeLocation, setOfficeLocation] = useState(DEFAULT_OFFICE_LOCATION);
 
@@ -195,9 +200,40 @@ const Attendance = () => {
     }
   };
 
+  const loadAttendanceSettings = async () => {
+    try {
+      const res = await api.get('/participant/attendance/settings');
+      if (res.data?.success && res.data.data) {
+        setDynamicSettings(res.data.data.settings);
+        setScheduleStatus({
+          isAllowedToday: res.data.data.isAllowedToday,
+          blockReason: res.data.data.blockReason,
+          blockMessage: res.data.data.blockMessage,
+          isWeekend: res.data.data.isWeekend,
+          holiday: res.data.data.holiday
+        });
+      }
+    } catch (err) {
+      console.warn('Could not load attendance settings:', err);
+    }
+  };
+
+  const loadHolidaysList = async () => {
+    try {
+      const res = await api.get('/participant/attendance/holidays');
+      if (res.data?.success) {
+        setHolidaysList(res.data.data || []);
+      }
+    } catch (err) {
+      console.warn('Could not load holidays:', err);
+    }
+  };
+
   const loadInitialData = async () => {
     await Promise.all([
       loadOfficeLocation(),
+      loadAttendanceSettings(),
+      loadHolidaysList(),
       loadAttendanceData(),
       loadLeaveHistory()
     ]);
@@ -379,6 +415,11 @@ const Attendance = () => {
       return;
     }
 
+    if (scheduleStatus && !scheduleStatus.isAllowedToday) {
+      showToast(scheduleStatus.blockMessage || 'Presensi tidak dapat dilakukan saat ini.', 'error');
+      return;
+    }
+
     if (!selfieImage) {
       showToast('Wajib mengambil foto selfie verifikasi wajah.', 'error');
       return;
@@ -387,9 +428,19 @@ const Attendance = () => {
     setLoading(true);
 
     try {
-      const currentHour = currentTime.getHours();
-      const currentMinute = currentTime.getMinutes();
-      const status = (currentHour > 8 || (currentHour === 8 && currentMinute > 0)) ? 'Terlambat' : 'Hadir';
+      let status = 'Hadir';
+      if (dynamicSettings) {
+        const ontimeLimitStr = String(dynamicSettings.work_ontime_limit || '08:00').substring(0, 5);
+        const [oH, oM] = ontimeLimitStr.split(':').map(Number);
+        const limitMinutes = oH * 60 + oM + (parseInt(dynamicSettings.late_tolerance_minutes, 10) || 0);
+
+        const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+        status = nowMinutes > limitMinutes ? 'Terlambat' : 'Hadir';
+      } else {
+        const currentHour = currentTime.getHours();
+        const currentMinute = currentTime.getMinutes();
+        status = (currentHour > 8 || (currentHour === 8 && currentMinute > 0)) ? 'Terlambat' : 'Hadir';
+      }
 
       const payload = {
         status,
@@ -536,20 +587,54 @@ const Attendance = () => {
             
             {/* Left Column: Clock & Check-in Bento (lg:col-span-5) */}
             <div className="lg:col-span-5 rounded-2xl bg-[#FCE373] border-2 border-[#121214] text-[#121214] p-5 sm:p-6 shadow-[5px_5px_0px_#121214] flex flex-col justify-between space-y-5">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-[#121214]/70">
-                    Waktu Server Resmi
+              <div className="space-y-3">
+                {/* Dynamic Schedule Badge */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-white/80 border-2 border-[#121214] text-[11px] font-black text-[#121214] shadow-[2px_2px_0px_#121214]">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#121214]" />
+                    Jam Masuk: {dynamicSettings?.work_start_time?.substring(0, 5) || '07:00'} - {dynamicSettings?.work_ontime_limit?.substring(0, 5) || '08:00'} WIB
                   </span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#121214] animate-ping"></span>
+                  <span className="bg-[#B8C96E] px-2 py-0.5 rounded-md border border-[#121214] text-[10px]">
+                    Senin - Jumat
+                  </span>
                 </div>
 
-                <p className="text-4xl sm:text-5xl font-black tracking-tight text-[#121214]">
-                  {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </p>
-                <p className="text-xs font-bold text-[#121214]/80 mt-1">
-                  {currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                </p>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-[#121214]/70">
+                      Waktu Server Resmi
+                    </span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#121214] animate-ping"></span>
+                  </div>
+
+                  <p className="text-4xl sm:text-5xl font-black tracking-tight text-[#121214]">
+                    {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </p>
+                  <p className="text-xs font-bold text-[#121214]/80 mt-1">
+                    {currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+
+                {/* Holiday or Weekend Lock Alert Banner */}
+                {scheduleStatus && !scheduleStatus.isAllowedToday && (
+                  <div className="bg-[#F5C6EC] p-3.5 rounded-xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] space-y-1">
+                    <div className="flex items-center gap-2">
+                      <CalendarOff className="w-4 h-4 text-[#121214] shrink-0" />
+                      <span className="text-xs font-black uppercase tracking-wider text-[#121214]">
+                        {scheduleStatus.blockReason === 'weekend' 
+                          ? 'Libur Akhir Pekan (Sabtu/Minggu)' 
+                          : scheduleStatus.blockReason === 'holiday' 
+                          ? `Hari Libur: ${scheduleStatus.holiday?.holiday_name}` 
+                          : scheduleStatus.blockReason === 'before_start' 
+                          ? 'Presensi Belum Dibuka' 
+                          : 'Presensi Ditutup'}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-[#121214] leading-snug">
+                      {scheduleStatus.blockMessage}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Status Hari Ini Card */}
@@ -599,7 +684,7 @@ const Attendance = () => {
                     type="button"
                     onClick={handleDetectLocation}
                     disabled={checkingLocation}
-                    className="flex items-center space-x-1 px-3 py-1 rounded-lg border-2 border-[#121214] bg-[#B8C96E] hover:bg-[#a6b85c] font-black text-[11px] shadow-[2px_2px_0px_#121214]"
+                    className="flex items-center space-x-1 px-3 py-1 rounded-lg border-2 border-[#121214] bg-[#B8C96E] hover:bg-[#a6b85c] font-black text-[11px] shadow-[2px_2px_0px_#121214] cursor-pointer"
                   >
                     <RefreshCw className={`w-3 h-3 ${checkingLocation ? 'animate-spin' : ''}`} />
                     <span>{checkingLocation ? 'Mencari...' : 'Deteksi GPS'}</span>
@@ -638,8 +723,8 @@ const Attendance = () => {
               <button
                 type="button"
                 onClick={handleCheckIn}
-                disabled={loading || (attendanceStatus && attendanceStatus.status !== 'pending')}
-                className="w-full py-3.5 px-4 bg-[#121214] hover:bg-neutral-800 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-[4px_4px_0px_#B8C96E] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center space-x-2"
+                disabled={loading || (attendanceStatus && attendanceStatus.status !== 'pending') || (scheduleStatus && !scheduleStatus.isAllowedToday)}
+                className="w-full py-3.5 px-4 bg-[#121214] hover:bg-neutral-800 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-[4px_4px_0px_#B8C96E] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
@@ -649,6 +734,8 @@ const Attendance = () => {
                 <span>
                   {attendanceStatus?.status !== 'pending'
                     ? 'Sudah Melakukan Presensi Hari Ini'
+                    : (scheduleStatus && !scheduleStatus.isAllowedToday)
+                    ? (scheduleStatus.blockReason === 'weekend' ? 'Presensi Tutup (Akhir Pekan)' : scheduleStatus.blockReason === 'holiday' ? `Presensi Tutup (${scheduleStatus.holiday?.holiday_name})` : 'Presensi Tutup (Di Luar Jam Kerja)')
                     : 'Konfirmasi Presensi Selfie & GPS'}
                 </span>
               </button>
@@ -781,6 +868,41 @@ const Attendance = () => {
                   )}
                 </div>
               </div>
+
+              {/* Upcoming National Holidays Card */}
+              {holidaysList && holidaysList.length > 0 && (
+                <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 shadow-[5px_5px_0px_#121214] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#FCE373] border border-[#121214] flex items-center justify-center shrink-0">
+                        <CalendarOff className="w-3.5 h-3.5 text-[#121214]" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-xs uppercase tracking-wider text-[#121214]">
+                          Hari Libur Nasional & Cuti Bersama
+                        </h3>
+                        <p className="text-[10px] text-gray-500 font-medium">Presensi ditutup otomatis pada tanggal-tanggal ini</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black bg-[#BDD4F2] text-[#121214] px-2.5 py-0.5 rounded-full border border-[#121214]">
+                      {holidaysList.length} Terjadwal
+                    </span>
+                  </div>
+                  <div className="divide-y divide-gray-100 max-h-56 overflow-y-auto pr-1">
+                    {holidaysList.map((h) => (
+                      <div key={h.id} className="py-2.5 flex items-center justify-between gap-2 text-xs">
+                        <div className="min-w-0">
+                          <p className="font-black text-[#121214] truncate">{h.holiday_name}</p>
+                          <p className="text-[10px] text-gray-500 font-medium truncate">{h.custom_message || h.description || 'Libur Nasional Resmi'}</p>
+                        </div>
+                        <span className="font-mono text-[11px] font-bold text-[#121214] bg-[#F5F4F0] px-2.5 py-1 rounded-lg border border-[#121214]/20 shrink-0">
+                          {new Date(h.holiday_date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
 

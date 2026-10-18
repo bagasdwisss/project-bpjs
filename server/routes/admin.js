@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = Router();
 
@@ -238,6 +239,230 @@ router.post('/coordinator/certificates/generate', authenticateToken, requireRole
         status: 'issued',
         downloadUrl: `/certificates/${reportName}.pdf`
       }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// PENGATURAN JAM KERJA & HARI LIBUR NASIONAL (DINAMIS)
+// =========================================================================
+
+/**
+ * GET /api/admin/attendance-settings
+ */
+router.get('/attendance-settings', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM attendance_settings WHERE id = 1 LIMIT 1`);
+    if (result.rows.length === 0) {
+      const defaultInsert = await query(`
+        INSERT INTO attendance_settings (id, work_start_time, work_ontime_limit, work_end_time, work_days, allow_weekend, late_tolerance_minutes, weekend_message, before_start_message, after_end_message)
+        VALUES (1, '07:00:00', '08:00:00', '17:00:00', '1,2,3,4,5', FALSE, 0,
+                'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.',
+                'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.',
+                'Presensi hari ini telah ditutup pada pukul {end_time}.')
+        RETURNING *
+      `);
+      return res.json({ success: true, data: defaultInsert.rows[0] });
+    }
+    return res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/attendance-settings
+ */
+router.put('/attendance-settings', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const {
+      work_start_time,
+      work_ontime_limit,
+      work_end_time,
+      work_days,
+      allow_weekend,
+      late_tolerance_minutes,
+      weekend_message,
+      before_start_message,
+      after_end_message
+    } = req.body;
+
+    const result = await query(
+      `UPDATE attendance_settings
+       SET work_start_time = COALESCE($1, work_start_time),
+           work_ontime_limit = COALESCE($2, work_ontime_limit),
+           work_end_time = COALESCE($3, work_end_time),
+           work_days = COALESCE($4, work_days),
+           allow_weekend = COALESCE($5, allow_weekend),
+           late_tolerance_minutes = COALESCE($6, late_tolerance_minutes),
+           weekend_message = COALESCE($7, weekend_message),
+           before_start_message = COALESCE($8, before_start_message),
+           after_end_message = COALESCE($9, after_end_message),
+           updated_at = CURRENT_TIMESTAMP,
+           updated_by = $10
+       WHERE id = 1
+       RETURNING *`,
+      [
+        work_start_time,
+        work_ontime_limit,
+        work_end_time,
+        work_days,
+        allow_weekend,
+        late_tolerance_minutes,
+        weekend_message,
+        before_start_message,
+        after_end_message,
+        req.user.user_id
+      ]
+    );
+
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'ATTENDANCE_SETTINGS_UPDATED',
+      details: `Admin memperbarui jam kerja dan aturan presensi: Masuk ${work_start_time || '07:00'}, Tepat Waktu s.d. ${work_ontime_limit || '08:00'}, Pulang ${work_end_time || '17:00'}`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
+    return res.json({
+      success: true,
+      message: 'Pengaturan jam kerja dan presensi berhasil diperbarui.',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/holidays
+ */
+router.get('/holidays', authenticateToken, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT h.*, u.full_name as created_by_name
+       FROM holidays h
+       LEFT JOIN users u ON h.created_by = u.user_id
+       ORDER BY h.holiday_date ASC`
+    );
+    return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/holidays
+ */
+router.post('/holidays', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { holiday_date, holiday_name, description, custom_message } = req.body;
+
+    if (!holiday_date || !holiday_name?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tanggal libur dan nama hari libur wajib diisi.'
+      });
+    }
+
+    const defaultMsg = custom_message?.trim() || `Hari ini kantor libur memperingati ${holiday_name.trim()}. Presensi tidak dapat dilakukan.`;
+
+    const result = await query(
+      `INSERT INTO holidays (holiday_date, holiday_name, description, custom_message, created_by, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ON CONFLICT (holiday_date) DO UPDATE SET
+         holiday_name = EXCLUDED.holiday_name,
+         description = EXCLUDED.description,
+         custom_message = EXCLUDED.custom_message,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [holiday_date, holiday_name.trim(), description?.trim() || null, defaultMsg, req.user.user_id]
+    );
+
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'HOLIDAY_ADDED',
+      details: `Admin menambahkan hari libur nasional: ${holiday_name} (${holiday_date})`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Hari libur berhasil disimpan.',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/holidays/:id
+ */
+router.put('/holidays/:id', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { holiday_date, holiday_name, description, custom_message } = req.body;
+
+    const result = await query(
+      `UPDATE holidays
+       SET holiday_date = COALESCE($1, holiday_date),
+           holiday_name = COALESCE($2, holiday_name),
+           description = COALESCE($3, description),
+           custom_message = COALESCE($4, custom_message),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE holiday_id = $5
+       RETURNING *`,
+      [holiday_date, holiday_name?.trim(), description?.trim() || null, custom_message?.trim() || null, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Hari libur tidak ditemukan.' });
+    }
+
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'HOLIDAY_UPDATED',
+      details: `Admin memperbarui hari libur ID ${id}: ${holiday_name || ''}`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
+    return res.json({
+      success: true,
+      message: 'Hari libur berhasil diperbarui.',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * DELETE /api/admin/holidays/:id
+ */
+router.delete('/holidays/:id', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await query(`SELECT holiday_name, holiday_date FROM holidays WHERE holiday_id = $1`, [id]);
+    const hName = existing.rows[0]?.holiday_name || id;
+
+    await query(`DELETE FROM holidays WHERE holiday_id = $1`, [id]);
+
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'HOLIDAY_DELETED',
+      details: `Admin menghapus hari libur: ${hName}`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
+    return res.json({
+      success: true,
+      message: 'Hari libur berhasil dihapus.'
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

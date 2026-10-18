@@ -213,6 +213,34 @@ CREATE TABLE IF NOT EXISTS backup_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 19. ATTENDANCE_SETTINGS TABLE (DYNAMIC WORK HOURS & TOLERANCE)
+CREATE TABLE IF NOT EXISTS attendance_settings (
+    id SERIAL PRIMARY KEY,
+    work_start_time TIME NOT NULL DEFAULT '07:00:00',
+    work_ontime_limit TIME NOT NULL DEFAULT '08:00:00',
+    work_end_time TIME NOT NULL DEFAULT '17:00:00',
+    work_days VARCHAR(100) NOT NULL DEFAULT '1,2,3,4,5',
+    allow_weekend BOOLEAN NOT NULL DEFAULT FALSE,
+    late_tolerance_minutes INT NOT NULL DEFAULT 0,
+    weekend_message TEXT NOT NULL DEFAULT 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.',
+    before_start_message TEXT NOT NULL DEFAULT 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.',
+    after_end_message TEXT NOT NULL DEFAULT 'Presensi hari ini telah ditutup pada pukul {end_time}.',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- 20. HOLIDAYS TABLE (NATIONAL HOLIDAYS & RED DATES)
+CREATE TABLE IF NOT EXISTS holidays (
+    holiday_id SERIAL PRIMARY KEY,
+    holiday_date DATE NOT NULL UNIQUE,
+    holiday_name VARCHAR(150) NOT NULL,
+    description TEXT,
+    custom_message TEXT,
+    created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ========================================================
 -- POSTGRESQL VIEWS
 -- ========================================================

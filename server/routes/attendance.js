@@ -89,6 +89,95 @@ router.get('/office', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/participant/attendance/settings
+ * Returns dynamic work hours, lateness threshold, weekend status, and today's holiday
+ */
+router.get('/settings', authenticateToken, async (req, res) => {
+  try {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+    const nowTime = new Intl.DateTimeFormat('en-GB', { 
+      timeZone: 'Asia/Jakarta', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    }).format(new Date());
+
+    const jakartaDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    const dayOfWeek = jakartaDate.getDay(); // 0 = Minggu, 6 = Sabtu
+
+    const settingsRes = await query(`SELECT * FROM attendance_settings WHERE id = 1 LIMIT 1`);
+    const settings = settingsRes.rows[0] || {
+      work_start_time: '07:00:00',
+      work_ontime_limit: '08:00:00',
+      work_end_time: '17:00:00',
+      work_days: '1,2,3,4,5',
+      allow_weekend: false,
+      late_tolerance_minutes: 0,
+      weekend_message: 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.',
+      before_start_message: 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.',
+      after_end_message: 'Presensi hari ini telah ditutup pada pukul {end_time}.'
+    };
+
+    const holidayRes = await query(`SELECT * FROM holidays WHERE holiday_date = $1 LIMIT 1`, [today]);
+    const todayHoliday = holidayRes.rows[0] || null;
+
+    let isAllowedToday = true;
+    let blockReason = null;
+    let blockMessage = null;
+
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    if (isWeekend && !settings.allow_weekend) {
+      isAllowedToday = false;
+      blockReason = 'weekend';
+      blockMessage = settings.weekend_message || 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.';
+    } else if (todayHoliday) {
+      isAllowedToday = false;
+      blockReason = 'holiday';
+      blockMessage = todayHoliday.custom_message || `Hari ini adalah hari libur nasional (${todayHoliday.holiday_name}). Presensi tidak dapat dilakukan.`;
+    } else if (nowTime < String(settings.work_start_time).substring(0, 8)) {
+      isAllowedToday = false;
+      blockReason = 'before_start';
+      blockMessage = (settings.before_start_message || 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.')
+        .replace('{start_time}', String(settings.work_start_time).substring(0, 5) + ' WIB');
+    } else if (nowTime > String(settings.work_end_time).substring(0, 8)) {
+      isAllowedToday = false;
+      blockReason = 'after_end';
+      blockMessage = (settings.after_end_message || 'Presensi hari ini telah ditutup pada pukul {end_time}.')
+        .replace('{end_time}', String(settings.work_end_time).substring(0, 5) + ' WIB');
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        settings,
+        todayDate: today,
+        currentTime: nowTime,
+        dayOfWeek,
+        isWeekend,
+        holiday: todayHoliday,
+        isAllowedToday,
+        blockReason,
+        blockMessage
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/participant/attendance/holidays
+ */
+router.get('/holidays', authenticateToken, async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM holidays ORDER BY holiday_date ASC`);
+    return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * POST /api/participant/attendance/check-in
  */
 router.post('/check-in', authenticateToken, async (req, res) => {
@@ -115,18 +204,64 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       second: '2-digit' 
     }).format(new Date());
 
-    // Normalize status to strictly match check constraint: 'Hadir', 'Terlambat', 'Izin', 'Sakit', 'Alfa'
-    let normalizedStatus = 'Hadir';
-    if (status) {
-      const s = String(status).trim().toLowerCase();
-      if (s === 'terlambat') normalizedStatus = 'Terlambat';
-      else if (s === 'izin') normalizedStatus = 'Izin';
-      else if (s === 'sakit') normalizedStatus = 'Sakit';
-      else if (s === 'alfa') normalizedStatus = 'Alfa';
-      else normalizedStatus = 'Hadir';
+    // 1. Fetch Dynamic Attendance Settings
+    const settingsRes = await query(`SELECT * FROM attendance_settings WHERE id = 1 LIMIT 1`);
+    const settings = settingsRes.rows[0] || {
+      work_start_time: '07:00:00',
+      work_ontime_limit: '08:00:00',
+      work_end_time: '17:00:00',
+      work_days: '1,2,3,4,5',
+      allow_weekend: false,
+      late_tolerance_minutes: 0,
+      weekend_message: 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.',
+      before_start_message: 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.',
+      after_end_message: 'Presensi hari ini telah ditutup pada pukul {end_time}.'
+    };
+
+    // 2. Check Weekend Rule (Senin - Jumat kerja, Sabtu & Minggu libur)
+    const jakartaDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    const dayOfWeek = jakartaDate.getDay(); // 0 = Minggu, 6 = Sabtu
+    if ((dayOfWeek === 0 || dayOfWeek === 6) && !settings.allow_weekend) {
+      return res.status(400).json({
+        success: false,
+        message: settings.weekend_message || 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.'
+      });
     }
 
-    // Check if already checked in today
+    // 3. Check National Holiday Rule
+    const holidayRes = await query(`SELECT * FROM holidays WHERE holiday_date = $1 LIMIT 1`, [today]);
+    if (holidayRes.rows.length > 0) {
+      const hol = holidayRes.rows[0];
+      return res.status(400).json({
+        success: false,
+        message: hol.custom_message || `Hari ini adalah hari libur nasional (${hol.holiday_name}). Presensi tidak dapat dilakukan.`
+      });
+    }
+
+    // 4. Check Work Hour Boundaries
+    const startTimeStr = String(settings.work_start_time).substring(0, 8);
+    const endTimeStr = String(settings.work_end_time).substring(0, 8);
+    const ontimeLimitStr = String(settings.work_ontime_limit).substring(0, 8);
+
+    if (nowTime < startTimeStr) {
+      const startMsg = (settings.before_start_message || 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.')
+        .replace('{start_time}', startTimeStr.substring(0, 5) + ' WIB');
+      return res.status(400).json({
+        success: false,
+        message: startMsg
+      });
+    }
+
+    if (nowTime > endTimeStr) {
+      const endMsg = (settings.after_end_message || 'Presensi hari ini telah ditutup pada pukul {end_time}.')
+        .replace('{end_time}', endTimeStr.substring(0, 5) + ' WIB');
+      return res.status(400).json({
+        success: false,
+        message: endMsg
+      });
+    }
+
+    // 5. Check if already checked in today
     const existing = await query(
       `SELECT * FROM attendance_records WHERE user_id = $1 AND attendance_date = $2`,
       [userId, today]
@@ -137,6 +272,27 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         success: false,
         message: 'Anda sudah melakukan absensi untuk hari ini.'
       });
+    }
+
+    // 6. Dynamic Lateness Calculation based on Database Configuration
+    let normalizedStatus = 'Hadir';
+    const s = String(status || '').trim().toLowerCase();
+    if (s === 'izin') {
+      normalizedStatus = 'Izin';
+    } else if (s === 'sakit') {
+      normalizedStatus = 'Sakit';
+    } else {
+      const [oH, oM] = ontimeLimitStr.split(':').map(Number);
+      const limitMinutes = oH * 60 + oM + (parseInt(settings.late_tolerance_minutes, 10) || 0);
+
+      const [nH, nM] = nowTime.split(':').map(Number);
+      const nowMinutes = nH * 60 + nM;
+
+      if (nowMinutes > limitMinutes) {
+        normalizedStatus = 'Terlambat';
+      } else {
+        normalizedStatus = 'Hadir';
+      }
     }
 
     // Dynamically retrieve active office geofence from database
