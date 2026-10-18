@@ -21,17 +21,18 @@ api.interceptors.request.use(
     // Attach Device Fingerprint Header (Feature 5)
     config.headers['x-device-fingerprint'] = getDeviceFingerprint();
 
-    // Cek batas inaktivitas 5 menit sebelum request dikirim
+    // Cek batas inaktivitas 15 menit sebelum request dikirim
     if (token && !isAuthRoute) {
       const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
-      const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+      const configuredMinutes = parseInt(localStorage.getItem('sys_inactivity_minutes') || '15', 10);
+      const INACTIVITY_TIMEOUT_MS = (configuredMinutes > 0 ? configuredMinutes : 15) * 60 * 1000;
       if (storedLastActive && Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS) {
-        console.warn('API call blocked: Inactivity timeout > 5 minutes');
+        console.warn(`API call blocked: Inactivity timeout > ${configuredMinutes} minutes`);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('last_active_time');
         window.location.href = '/login?reason=idle_timeout';
-        return Promise.reject(new Error('Sesi berakhir karena tidak ada interaksi selama 5 menit.'));
+        return Promise.reject(new Error(`Sesi berakhir karena tidak ada interaksi selama ${configuredMinutes} menit.`));
       }
       config.headers.Authorization = `Bearer ${token}`;
     }

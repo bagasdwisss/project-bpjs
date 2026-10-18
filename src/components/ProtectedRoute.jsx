@@ -15,7 +15,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   // Inactivity check on protected route access
   const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
-  const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+  const configuredMinutes = parseInt(localStorage.getItem('sys_inactivity_minutes') || '15', 10);
+  const INACTIVITY_TIMEOUT_MS = (configuredMinutes > 0 ? configuredMinutes : 15) * 60 * 1000;
   if (storedLastActive && (Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
     authService.clearAuth();
     return <Navigate to="/login?reason=idle_timeout" replace />;

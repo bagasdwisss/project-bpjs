@@ -43,10 +43,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Dynamic Inactivity Timeout helper (defaults to 5 minutes if not configured)
+  // Dynamic Inactivity Timeout helper (defaults to 15 minutes if not configured)
   const getInactivityTimeoutMs = () => {
-    const configuredMinutes = parseInt(localStorage.getItem('sys_inactivity_minutes') || '5', 10);
-    return (configuredMinutes > 0 ? configuredMinutes : 5) * 60 * 1000;
+    const configuredMinutes = parseInt(localStorage.getItem('sys_inactivity_minutes') || '15', 10);
+    return (configuredMinutes > 0 ? configuredMinutes : 15) * 60 * 1000;
   };
 
   // Initialize auth state
@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
               localStorage.setItem('sys_inactivity_minutes', setRes.data.data.settings.inactivity_timeout_minutes.toString());
             }
           } catch (e) {
-            // Silently fallback to existing or default 5 mins
+            // Silently fallback to existing or default 15 mins
           }
 
           // Load coordinator data hanya jika user adalah peserta
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     const triggerIdleLogout = () => {
-      const timeoutMinutes = parseInt(localStorage.getItem('sys_inactivity_minutes') || '5', 10);
+      const timeoutMinutes = parseInt(localStorage.getItem('sys_inactivity_minutes') || '15', 10);
       console.warn(`Session expired due to ${timeoutMinutes}-minute inactivity. Logging out...`);
       authService.logout('idle_timeout');
       setUser(null);
@@ -133,11 +133,12 @@ export const AuthProvider = ({ children }) => {
 
       const now = Date.now();
       const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
+      const timeoutMs = getInactivityTimeoutMs();
 
-      // CRITICAL GUARD: If already idle for > 5 minutes, DO NOT refresh last_active_time!
-      // The user returned after > 5 minutes of inactivity; trigger logout immediately!
-      if (storedLastActive && (now - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
-        console.warn('Activity detected after > 5 minutes of idle. Triggering logout...');
+      // CRITICAL GUARD: If already idle for > 15 minutes, DO NOT refresh last_active_time!
+      // The user returned after > 15 minutes of inactivity; trigger logout immediately!
+      if (storedLastActive && (now - storedLastActive > timeoutMs)) {
+        console.warn('Activity detected after > 15 minutes of idle. Triggering logout...');
         triggerIdleLogout();
         return;
       }

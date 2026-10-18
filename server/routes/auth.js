@@ -198,7 +198,7 @@ router.post('/logout', authenticateToken, async (req, res) => {
   try {
     const reason = req.body?.reason;
     const detail = reason === 'idle_timeout'
-      ? 'Sesi ditutup otomatis: Inaktivitas pengguna melebihi 5 menit'
+      ? 'Sesi ditutup otomatis: Inaktivitas pengguna melebihi 15 menit'
       : 'Sesi pengguna diakhiri / logout manual';
 
     if (req.user?.user_id) {

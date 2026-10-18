@@ -405,8 +405,7 @@ router.get('/broadcasts/active', authenticateToken, async (req, res) => {
       ORDER BY 
         CASE 
           WHEN b.priority = 'Sangat Penting' THEN 1
-          WHEN b.priority = 'Penting' THEN 2
-          ELSE 3
+          ELSE 2
         END,
         b.sent_at DESC
       LIMIT 5

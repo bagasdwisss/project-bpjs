@@ -149,7 +149,7 @@ const Login = () => {
               <div>
                 <p className="text-xs font-black text-[#121214]">Sesi Berakhir (Inaktivitas)</p>
                 <p className="text-[11px] text-[#121214]/80 font-medium leading-relaxed mt-0.5">
-                  Tidak ada aktivitas terdeteksi selama lebih dari 5 menit. Demi melindungi data Anda, silakan masuk kembali.
+                  Tidak ada aktivitas terdeteksi selama lebih dari 15 menit. Demi melindungi data Anda, silakan masuk kembali.
                 </p>
               </div>
             </div>

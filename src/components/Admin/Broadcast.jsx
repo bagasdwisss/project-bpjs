@@ -153,20 +153,13 @@ const Broadcast = () => {
   const getPriorityBadge = (p) => {
     if (p === 'Sangat Penting') {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#F5C6EC] text-[#8B2471] border border-[#121214] shadow-[1px_1px_0px_#121214]">
-          Sangat Penting (Tengah)
-        </span>
-      );
-    }
-    if (p === 'Penting') {
-      return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FCE373] text-[#856B12] border border-[#121214] shadow-[1px_1px_0px_#121214]">
-          Penting (Tengah)
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#F5C6EC] text-[#BE185D] border border-[#121214] shadow-[1px_1px_0px_#121214]">
+          Sangat Penting (Tengah 3s)
         </span>
       );
     }
     return (
-      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#B8C96E] text-[#3C4A11] border border-[#121214] shadow-[1px_1px_0px_#121214]">
+      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#BDD4F2] text-[#1E3A8A] border border-[#121214] shadow-[1px_1px_0px_#121214]">
         Biasa (Pojok Kanan)
       </span>
     );
@@ -258,7 +251,7 @@ const Broadcast = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <NeoSelect
                   label="Target Penerima"
                   value={target}
@@ -271,24 +264,15 @@ const Broadcast = () => {
                 />
 
                 <NeoSelect
-                  label="Tingkat Prioritas"
+                  label="Tingkat Prioritas Siaran"
                   value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
+                  onChange={(e) => {
+                    setPriority(e.target.value);
+                    setDisplayMode(e.target.value === 'Sangat Penting' ? 'modal' : 'toast');
+                  }}
                   options={[
-                    { value: 'Biasa', label: 'Biasa (Informasi Rutin)' },
-                    { value: 'Penting', label: 'Penting (Peringatan Khusus)' },
-                    { value: 'Sangat Penting', label: 'Sangat Penting (Darurat / Mendesak)' }
-                  ]}
-                />
-
-                <NeoSelect
-                  label="Format Tampilan"
-                  value={displayMode}
-                  onChange={(e) => setDisplayMode(e.target.value)}
-                  options={[
-                    { value: 'toast', label: 'Toast (Pojok Kanan Atas)' },
-                    { value: 'modal', label: 'Dialog Modal (Tengah Layar)' },
-                    { value: 'both', label: 'Keduanya (Modal & Toast)' }
+                    { value: 'Biasa', label: 'Biasa (Toast Standar Pojok Kanan)' },
+                    { value: 'Sangat Penting', label: 'Sangat Penting (Toast Besar Tengah Layar - Auto Tutup 3 Detik)' }
                   ]}
                 />
               </div>
@@ -431,10 +415,10 @@ const Broadcast = () => {
                       new CustomEvent('preview-broadcast', {
                         detail: {
                           broadcast_id: 'preview-' + Date.now(),
-                          title: title || 'Contoh Judul Pengumuman',
-                          content: message || 'Ini adalah contoh preview tampilan isi pengumuman broadcast sistem BPJSTK.',
+                          title: title || 'Pengumuman Operasional BPJSTK',
+                          content: message || 'Ini adalah contoh preview tampilan siaran broadcast sistem BPJSTK.',
                           priority,
-                          display_mode: displayMode,
+                          display_mode: priority === 'Sangat Penting' ? 'center_toast' : 'toast',
                           sent_at: new Date().toISOString()
                         }
                       })
@@ -443,7 +427,7 @@ const Broadcast = () => {
                   className="w-full sm:w-auto px-5 py-3 bg-[#FAF9F6] hover:bg-white border-2 border-[#121214] text-[#121214] rounded-full text-xs font-bold transition-all shadow-[2px_2px_0px_#121214] active:scale-95 inline-flex items-center justify-center gap-2"
                 >
                   <Eye className="w-3.5 h-3.5 text-[#121214]" />
-                  <span>Preview ({priority} • {displayMode === 'toast' ? 'Toast' : displayMode === 'modal' ? 'Modal' : 'Keduanya'})</span>
+                  <span>Preview ({priority === 'Sangat Penting' ? 'Toast Besar Tengah (Auto Tutup 3s)' : 'Toast Pojok Kanan'})</span>
                 </button>
               </div>
             </form>

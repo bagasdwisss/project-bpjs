@@ -1,23 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Megaphone, 
-  AlertTriangle, 
-  AlertCircle, 
   X, 
-  CheckCircle2, 
   Clock, 
   ShieldAlert, 
-  Calendar 
+  Calendar,
+  Sparkles
 } from 'lucide-react';
+
+const AUTO_CLOSE_MS = 3000; // 3 seconds strictly
 
 const BroadcastPopup = () => {
   const { user } = useAuth();
 
-  const [broadcasts, setBroadcasts] = useState([]);
-  const [activeModalBroadcast, setActiveModalBroadcast] = useState(null);
+  const [urgentBroadcast, setUrgentBroadcast] = useState(null);
+  const [urgentQueue, setUrgentQueue] = useState([]);
+  const [timeLeftMs, setTimeLeftMs] = useState(AUTO_CLOSE_MS);
   const [activeToastBroadcasts, setActiveToastBroadcasts] = useState([]);
+
+  // Ref to track current urgentBroadcast to avoid stale state in timer
+  const urgentRef = useRef(null);
+  urgentRef.current = urgentBroadcast;
 
   const fetchActiveBroadcasts = async () => {
     if (!user) return;
@@ -30,20 +35,24 @@ const BroadcastPopup = () => {
         const sessionDismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
         const visibleBroadcasts = list.filter(b => !sessionDismissed.includes(b.broadcast_id));
         
-        setBroadcasts(visibleBroadcasts);
+        // 1. Separate "Sangat Penting" vs "Biasa"
+        const urgentItems = visibleBroadcasts.filter(b => b.priority === 'Sangat Penting');
+        const biasaItems = visibleBroadcasts.filter(b => b.priority !== 'Sangat Penting');
 
-        // Find modal broadcasts (Penting or Sangat Penting)
-        const modalItem = visibleBroadcasts.find(
-          b => (b.priority === 'Sangat Penting' || b.priority === 'Penting') && b.display_mode !== 'toast'
-        );
-        setActiveModalBroadcast(modalItem || null);
+        // Manage urgent queue
+        if (urgentItems.length > 0) {
+          if (!urgentRef.current) {
+            setUrgentBroadcast(urgentItems[0]);
+            setTimeLeftMs(AUTO_CLOSE_MS);
+            setUrgentQueue(urgentItems.slice(1));
+          } else {
+            // Keep queue updated
+            setUrgentQueue(urgentItems.filter(b => b.broadcast_id !== urgentRef.current.broadcast_id));
+          }
+        }
 
-        // Toast broadcasts (all 'Biasa' or any marked display_mode === 'toast' or 'both')
-        const toastItems = visibleBroadcasts.filter(
-          b => (b.priority === 'Biasa' || b.display_mode === 'toast' || b.display_mode === 'both') &&
-               (!modalItem || b.broadcast_id !== modalItem.broadcast_id)
-        );
-        setActiveToastBroadcasts(toastItems);
+        // Manage standard top-right toast list for "Biasa"
+        setActiveToastBroadcasts(biasaItems);
       }
     } catch (err) {
       console.warn('Could not fetch active broadcasts:', err.message);
@@ -54,7 +63,6 @@ const BroadcastPopup = () => {
     if (user) {
       fetchActiveBroadcasts();
 
-      // Listen for immediate broadcast sent by admin in the same window
       const handleBroadcastEvent = () => {
         sessionStorage.removeItem('dismissed_broadcasts');
         fetchActiveBroadcasts();
@@ -64,14 +72,11 @@ const BroadcastPopup = () => {
         const item = e.detail;
         if (!item) return;
 
-        // If explicitly requested as toast or priority is Biasa
-        if (item.display_mode === 'toast' || item.priority === 'Biasa') {
-          setActiveToastBroadcasts(prev => [item, ...prev.filter(t => t.broadcast_id !== item.broadcast_id)]);
-        } else if (item.display_mode === 'both') {
-          setActiveModalBroadcast(item);
-          setActiveToastBroadcasts(prev => [item, ...prev.filter(t => t.broadcast_id !== item.broadcast_id)]);
+        if (item.priority === 'Sangat Penting') {
+          setUrgentBroadcast(item);
+          setTimeLeftMs(AUTO_CLOSE_MS);
         } else {
-          setActiveModalBroadcast(item);
+          setActiveToastBroadcasts(prev => [item, ...prev.filter(t => t.broadcast_id !== item.broadcast_id)]);
         }
       };
 
@@ -89,30 +94,69 @@ const BroadcastPopup = () => {
     }
   }, [user]);
 
-  const handleDismiss = async (broadcast) => {
+  // Handle strictly 3-second auto-close countdown for "Sangat Penting"
+  useEffect(() => {
+    if (!urgentBroadcast) return;
+
+    setTimeLeftMs(AUTO_CLOSE_MS);
+    const step = 50; // update every 50ms for smooth progress bar
+
+    const timer = setInterval(() => {
+      setTimeLeftMs(prev => {
+        if (prev <= step) {
+          clearInterval(timer);
+          // Dismiss the urgent broadcast once 3 seconds have passed
+          handleDismissUrgent(urgentBroadcast);
+          return 0;
+        }
+        return prev - step;
+      });
+    }, step);
+
+    return () => clearInterval(timer);
+  }, [urgentBroadcast?.broadcast_id]);
+
+  const handleDismissUrgent = async (broadcast) => {
     if (!broadcast) return;
 
-    // 1. Record dismissal in sessionStorage for this session
+    // Record dismissal in sessionStorage
     const sessionDismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
     if (!sessionDismissed.includes(broadcast.broadcast_id)) {
       sessionDismissed.push(broadcast.broadcast_id);
       sessionStorage.setItem('dismissed_broadcasts', JSON.stringify(sessionDismissed));
     }
 
-    // 2. Remove from active state immediately
-    if (activeModalBroadcast?.broadcast_id === broadcast.broadcast_id) {
-      const remainingModals = broadcasts.filter(
-        b => (b.priority === 'Sangat Penting' || b.priority === 'Penting') && 
-             b.broadcast_id !== broadcast.broadcast_id &&
-             !sessionDismissed.includes(b.broadcast_id)
-      );
-      setActiveModalBroadcast(remainingModals[0] || null);
+    // Advance queue
+    if (urgentQueue.length > 0) {
+      const nextUrgent = urgentQueue[0];
+      setUrgentBroadcast(nextUrgent);
+      setTimeLeftMs(AUTO_CLOSE_MS);
+      setUrgentQueue(prev => prev.slice(1));
+    } else {
+      setUrgentBroadcast(null);
+    }
+
+    // Backend dismissal recording
+    try {
+      if (broadcast.broadcast_id && !String(broadcast.broadcast_id).startsWith('preview-')) {
+        await api.post(`/notifications/broadcasts/${broadcast.broadcast_id}/dismiss`);
+      }
+    } catch (err) {
+      console.error('Error logging broadcast dismissal:', err);
+    }
+  };
+
+  const handleDismissBiasa = async (broadcast) => {
+    if (!broadcast) return;
+
+    const sessionDismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
+    if (!sessionDismissed.includes(broadcast.broadcast_id)) {
+      sessionDismissed.push(broadcast.broadcast_id);
+      sessionStorage.setItem('dismissed_broadcasts', JSON.stringify(sessionDismissed));
     }
 
     setActiveToastBroadcasts(prev => prev.filter(t => t.broadcast_id !== broadcast.broadcast_id));
-    setBroadcasts(prev => prev.filter(b => b.broadcast_id !== broadcast.broadcast_id));
 
-    // 3. Inform backend
     try {
       if (broadcast.broadcast_id && !String(broadcast.broadcast_id).startsWith('preview-')) {
         await api.post(`/notifications/broadcasts/${broadcast.broadcast_id}/dismiss`);
@@ -133,193 +177,147 @@ const BroadcastPopup = () => {
     });
   };
 
-  const getToastStyling = (priority) => {
-    if (priority === 'Sangat Penting') {
-      return {
-        topStrip: 'bg-[#BE185D]',
-        badgeBg: 'bg-[#BE185D] text-white',
-        badgeText: 'MENDESAK / SANGAT PENTING',
-        iconBg: 'bg-[#F5C6EC] text-[#BE185D]',
-        Icon: ShieldAlert,
-        shadow: 'shadow-[6px_6px_0px_#121214]',
-        hasPulseDot: true,
-        bgGlow: 'bg-[#FAF9F6]'
-      };
-    }
-    if (priority === 'Penting') {
-      return {
-        topStrip: 'bg-[#FCE373]',
-        badgeBg: 'bg-[#121214] text-[#FCE373]',
-        badgeText: 'PERINGATAN PENTING',
-        iconBg: 'bg-[#FCE373] text-[#856B12]',
-        Icon: AlertTriangle,
-        shadow: 'shadow-[5px_5px_0px_#121214]',
-        hasPulseDot: false,
-        bgGlow: 'bg-[#FAF9F6]'
-      };
-    }
-    // Biasa (Default)
-    return {
-      topStrip: 'bg-[#BDD4F2]',
-      badgeBg: 'bg-[#BDD4F2] text-[#1E3A8A]',
-      badgeText: 'INFORMASI BIASA',
-      iconBg: 'bg-[#BDD4F2] text-[#1E3A8A]',
-      Icon: Megaphone,
-      shadow: 'shadow-[4px_4px_0px_#121214]',
-      hasPulseDot: false,
-      bgGlow: 'bg-white'
-    };
-  };
-
   return (
     <>
-      {/* ======================================================== */}
-      {/* 1. HIGH-PRIORITY CENTER MODAL (PENTING & SANGAT PENTING) */}
-      {/* ======================================================== */}
-      {activeModalBroadcast && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-[#121214]/65 backdrop-blur-xs animate-in fade-in duration-200">
-          <div 
-            className="w-full max-w-lg bg-white rounded-[26px] border-2 border-[#121214] shadow-[8px_8px_0px_#121214] overflow-hidden transform animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
-            role="alertdialog"
-            aria-modal="true"
-          >
-            {/* Header Banner */}
-            <div className={`p-4 sm:p-6 border-b-2 border-[#121214] ${
-              activeModalBroadcast.priority === 'Sangat Penting'
-                ? 'bg-[#F5C6EC] text-[#121214]'
-                : 'bg-[#FCE373] text-[#121214]'
-            }`}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-[#121214] text-white border-2 border-[#121214] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#121214]">
-                    {activeModalBroadcast.priority === 'Sangat Penting' ? (
-                      <ShieldAlert className="w-5 h-5 text-[#F5C6EC] animate-pulse" />
-                    ) : (
-                      <AlertTriangle className="w-5 h-5 text-[#FCE373]" />
-                    )}
+      {/* ========================================================================= */}
+      {/* 1. SANGAT PENTING: TOAST BESAR BENAR-BENAR DI TENGAH HALAMAN              */}
+      {/*    HANYA BISA TERTUTUP OTOMATIS SETELAH 3 DETIK (TIDAK ADA TOMBOL TUTUP)  */}
+      {/* ========================================================================= */}
+      {urgentBroadcast && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-xs pointer-events-none animate-in fade-in duration-150"
+          role="alertdialog"
+          aria-modal="true"
+        >
+          <div className="pointer-events-auto w-full max-w-lg bg-white rounded-[28px] border-3 border-[#121214] shadow-[10px_10px_0px_#121214] overflow-hidden p-6 sm:p-7 text-center transform animate-in zoom-in-95 duration-200 relative select-none">
+            
+            {/* Top Accent Strip */}
+            <div className="absolute top-0 left-0 right-0 h-3 bg-[#BE185D] border-b-2 border-[#121214]"></div>
+
+            {/* Smooth 3-Second Shrinking Progress Bar */}
+            <div className="w-full h-2 bg-gray-100 rounded-full border border-[#121214] overflow-hidden mt-2 mb-4">
+              <div 
+                className="h-full bg-gradient-to-r from-[#BE185D] via-[#F5C6EC] to-[#BE185D] transition-all duration-75 ease-linear"
+                style={{ width: `${Math.max(0, (timeLeftMs / AUTO_CLOSE_MS) * 100)}%` }}
+              />
+            </div>
+
+            {/* Warning Shield & Pulsing Indicator */}
+            <div className="relative inline-block mx-auto mb-2.5">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#F5C6EC] border-3 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-center justify-center text-[#BE185D] mx-auto">
+                <ShieldAlert className="w-9 h-9 sm:w-11 sm:h-11 animate-pulse" />
+              </div>
+              <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border border-white"></span>
+              </span>
+            </div>
+
+            {/* Badge Priority */}
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-[#BE185D] text-white border-2 border-[#121214] shadow-[2px_2px_0px_#121214]">
+                <Sparkles className="w-3.5 h-3.5" />
+                PENGUMUMAN SANGAT PENTING
+              </span>
+            </div>
+
+            {/* Broadcast Title */}
+            <h2 className="text-xl sm:text-2xl font-black text-[#121214] tracking-tight leading-snug mt-3">
+              {urgentBroadcast.title}
+            </h2>
+
+            {/* Broadcast Content Body */}
+            <div className="mt-3.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl p-4 sm:p-5 text-xs sm:text-sm font-bold text-[#121214] text-left leading-relaxed shadow-[2px_2px_0px_#121214] max-h-56 overflow-y-auto whitespace-pre-line">
+              {urgentBroadcast.content}
+            </div>
+
+            {/* Meta Timestamp if available */}
+            {(urgentBroadcast.start_at || urgentBroadcast.end_at) && (
+              <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] text-[#121214]/70 font-black mt-3">
+                {urgentBroadcast.start_at && (
+                  <span className="inline-flex items-center gap-1 bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#121214]">
+                    <Clock className="w-3 h-3 text-[#121214]" />
+                    Mulai: {formatDate(urgentBroadcast.start_at)}
+                  </span>
+                )}
+                {urgentBroadcast.end_at && (
+                  <span className="inline-flex items-center gap-1 bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#121214]">
+                    <Calendar className="w-3 h-3 text-rose-600" />
+                    Batas: {formatDate(urgentBroadcast.end_at)}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Auto-Close Status Indicator (NO MANUAL CLOSE BUTTON) */}
+            <div className="mt-4 pt-3.5 border-t-2 border-[#121214]/15 flex items-center justify-between">
+              <span className="text-[11px] font-bold text-gray-500 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#BE185D]" />
+                Hanya tertutup otomatis setelah 3 detik
+              </span>
+
+              <span className="px-3.5 py-1 rounded-full text-xs font-black bg-[#121214] text-[#FCE373] border-2 border-[#121214] shadow-[2px_2px_0px_#8A8985] inline-flex items-center gap-1">
+                ⏱ {Math.max(1, Math.ceil(timeLeftMs / 1000))}s
+              </span>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. BIASA: TOAST STANDAR POJOK KANAN ATAS                                  */}
+      {/*    TETAP SEPERTI BIASA DENGAN TOMBOL TUTUP DAN MENGERTI                   */}
+      {/* ========================================================================= */}
+      {activeToastBroadcasts.length > 0 && (
+        <div className="fixed top-4 right-3 sm:right-5 sm:top-5 z-[9990] flex flex-col gap-3 sm:max-w-md w-auto sm:w-full pointer-events-none">
+          {activeToastBroadcasts.map((toast) => (
+            <div
+              key={toast.broadcast_id}
+              className="pointer-events-auto bg-white rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] p-4 transition-all duration-300 animate-in slide-in-from-top-4 relative overflow-hidden"
+            >
+              {/* Top Accent Strip for Biasa */}
+              <div className="absolute top-0 left-0 right-0 h-2 bg-[#BDD4F2] border-b-2 border-[#121214]"></div>
+
+              <div className="flex items-start justify-between gap-3 pt-1.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#BDD4F2] border-2 border-[#121214] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#121214] text-[#1E3A8A]">
+                    <Megaphone className="w-4 h-4" />
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-[#121214] text-white px-2.5 py-0.5 rounded-full inline-block">
-                      {activeModalBroadcast.priority === 'Sangat Penting' ? 'Darurat / Sangat Penting' : 'Pemberitahuan Penting'}
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full inline-block border border-[#121214] bg-[#BDD4F2] text-[#1E3A8A] mb-0.5">
+                      INFORMASI BIASA
                     </span>
-                    <h2 className="text-xs font-bold text-[#121214]/80 mt-0.5">BPJSTK</h2>
+                    <h3 className="text-xs sm:text-sm font-black text-[#121214] line-clamp-1">
+                      {toast.title}
+                    </h3>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => handleDismiss(activeModalBroadcast)}
-                  className="w-8 h-8 rounded-xl bg-white text-[#121214] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] active:scale-95 transition"
-                  aria-label="Tutup"
+                  onClick={() => handleDismissBiasa(toast)}
+                  className="p-1 rounded-lg text-[#121214] hover:bg-black/10 transition shrink-0"
+                  aria-label="Tutup notifikasi"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <h1 className="text-lg sm:text-2xl font-black text-[#121214] mt-3.5 tracking-tight leading-snug">
-                {activeModalBroadcast.title}
-              </h1>
-            </div>
+              <p className="text-xs text-[#121214]/85 mt-2.5 font-medium line-clamp-3 leading-relaxed">
+                {toast.content}
+              </p>
 
-            {/* Content Body */}
-            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
-              <div className="bg-[#FAF9F6] p-4 rounded-2xl border-2 border-[#121214] text-[#121214] text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-line shadow-[2px_2px_0px_#121214]">
-                {activeModalBroadcast.content}
-              </div>
-
-              {/* Meta details */}
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#121214]/70 font-bold pt-1">
-                {activeModalBroadcast.start_at && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#121214]">
-                    <Clock className="w-3.5 h-3.5 text-[#121214]" />
-                    Mulai: {formatDate(activeModalBroadcast.start_at)}
-                  </span>
-                )}
-                {activeModalBroadcast.end_at && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#121214]">
-                    <Calendar className="w-3.5 h-3.5 text-rose-600" />
-                    Berakhir: {formatDate(activeModalBroadcast.end_at)}
-                  </span>
-                )}
+              <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#121214]/20 text-[10px] text-[#121214]/60 font-bold">
+                <span>{new Date(toast.sent_at || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</span>
+                <button
+                  onClick={() => handleDismissBiasa(toast)}
+                  className="text-[#121214] font-black hover:underline px-2.5 py-0.5 bg-white border border-[#121214] rounded-lg shadow-[1px_1px_0px_#121214] active:scale-95 transition"
+                >
+                  Mengerti
+                </button>
               </div>
             </div>
-
-            {/* Footer Action */}
-            <div className="p-4 sm:p-6 bg-[#FAF9F6] border-t-2 border-[#121214] flex flex-col sm:flex-row items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => handleDismiss(activeModalBroadcast)}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#121214] hover:bg-black text-white font-bold text-xs sm:text-sm transition-all shadow-[3px_3px_0px_#8A8985] active:scale-95 inline-flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4 text-[#B8C96E]" />
-                Saya Mengerti
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* 2. DIVERSIFIED TOAST POPUPS - FULLY DISTINCT PER PRIORITY */}
-      {/* ======================================================== */}
-      {activeToastBroadcasts.length > 0 && (
-        <div className="fixed top-4 left-3 right-3 sm:left-auto sm:right-5 sm:top-5 z-[9990] flex flex-col gap-3 sm:max-w-md w-auto sm:w-full pointer-events-none">
-          {activeToastBroadcasts.map((toast) => {
-            const style = getToastStyling(toast.priority);
-            const ToastIcon = style.Icon;
-
-            return (
-              <div
-                key={toast.broadcast_id}
-                className={`pointer-events-auto ${style.bgGlow} rounded-2xl border-2 border-[#121214] ${style.shadow} p-4 transition-all duration-300 animate-in slide-in-from-top-4 relative overflow-hidden`}
-              >
-                {/* Top Accent Strip with Distinct Color */}
-                <div className={`absolute top-0 left-0 right-0 h-2 ${style.topStrip} border-b-2 border-[#121214]`}></div>
-
-                <div className="flex items-start justify-between gap-3 pt-1.5">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-8 h-8 rounded-xl ${style.iconBg} border-2 border-[#121214] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#121214]`}>
-                      <ToastIcon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        {style.hasPulseDot && (
-                          <span className="w-2 h-2 rounded-full bg-red-600 animate-ping inline-block"></span>
-                        )}
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full inline-block border border-[#121214] ${style.badgeBg}`}>
-                          {style.badgeText}
-                        </span>
-                      </div>
-                      <h3 className="text-xs sm:text-sm font-black text-[#121214] line-clamp-1">
-                        {toast.title}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleDismiss(toast)}
-                    className="p-1 rounded-lg text-[#121214] hover:bg-black/10 transition shrink-0"
-                    aria-label="Tutup notifikasi"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <p className="text-xs text-[#121214]/85 mt-2.5 font-medium line-clamp-3 leading-relaxed">
-                  {toast.content}
-                </p>
-
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#121214]/20 text-[10px] text-[#121214]/60 font-bold">
-                  <span>{new Date(toast.sent_at || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</span>
-                  <button
-                    onClick={() => handleDismiss(toast)}
-                    className="text-[#121214] font-black hover:underline px-2.5 py-0.5 bg-white border border-[#121214] rounded-lg shadow-[1px_1px_0px_#121214] active:scale-95 transition"
-                  >
-                    Mengerti
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          ))}
         </div>
       )}
     </>

@@ -36,7 +36,7 @@ const WorkSchedule = () => {
     work_end_time: '17:00',
     allow_weekend: false,
     late_tolerance_minutes: 0,
-    inactivity_timeout_minutes: 5,
+    inactivity_timeout_minutes: 15,
     weekend_message: 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.',
     before_start_message: 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.',
     after_end_message: 'Presensi hari ini telah ditutup pada pukul {end_time}.'
@@ -72,7 +72,7 @@ const WorkSchedule = () => {
           work_end_time: (d.work_end_time || '17:00').substring(0, 5),
           allow_weekend: Boolean(d.allow_weekend),
           late_tolerance_minutes: parseInt(d.late_tolerance_minutes, 10) || 0,
-          inactivity_timeout_minutes: parseInt(d.inactivity_timeout_minutes, 10) || 5,
+          inactivity_timeout_minutes: parseInt(d.inactivity_timeout_minutes, 10) || 15,
           weekend_message: d.weekend_message || 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.',
           before_start_message: d.before_start_message || 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.',
           after_end_message: d.after_end_message || 'Presensi hari ini telah ditutup pada pukul {end_time}.'
@@ -118,7 +118,7 @@ const WorkSchedule = () => {
         work_end_time: settings.work_end_time + ':00',
         allow_weekend: settings.allow_weekend,
         late_tolerance_minutes: parseInt(settings.late_tolerance_minutes, 10) || 0,
-        inactivity_timeout_minutes: parseInt(settings.inactivity_timeout_minutes, 10) || 5,
+        inactivity_timeout_minutes: parseInt(settings.inactivity_timeout_minutes, 10) || 15,
         weekend_message: settings.weekend_message.trim(),
         before_start_message: settings.before_start_message.trim(),
         after_end_message: settings.after_end_message.trim()
@@ -126,7 +126,7 @@ const WorkSchedule = () => {
 
       const res = await api.put('/admin/attendance-settings', payload);
       if (res.data?.success) {
-        localStorage.setItem('sys_inactivity_minutes', (settings.inactivity_timeout_minutes || 5).toString());
+        localStorage.setItem('sys_inactivity_minutes', (settings.inactivity_timeout_minutes || 15).toString());
         toast.success('Pengaturan jam kerja dan aturan presensi berhasil disimpan secara dinamis!');
       }
     } catch (err) {
@@ -399,8 +399,8 @@ const WorkSchedule = () => {
                           type="number"
                           min="1"
                           max="60"
-                          value={settings.inactivity_timeout_minutes || 5}
-                          onChange={(e) => setSettings({ ...settings, inactivity_timeout_minutes: Math.max(1, parseInt(e.target.value, 10) || 5) })}
+                          value={settings.inactivity_timeout_minutes || 15}
+                          onChange={(e) => setSettings({ ...settings, inactivity_timeout_minutes: Math.max(1, parseInt(e.target.value, 10) || 15) })}
                           className="w-full px-3.5 py-2.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-sm font-black text-[#121214] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FCE373] shadow-[2px_2px_0px_#121214]"
                         />
                         <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400">
@@ -408,7 +408,7 @@ const WorkSchedule = () => {
                         </span>
                       </div>
                       <p className="text-[11px] text-gray-500 font-semibold">
-                        Sesi akun otomatis dikeluarkan demi keamanan jika tidak ada interaksi pengguna selama batas waktu ini (Default: 5 menit).
+                        Sesi akun otomatis dikeluarkan demi keamanan jika tidak ada interaksi pengguna selama batas waktu ini (Default: 15 menit).
                       </p>
                     </div>
                   </div>
