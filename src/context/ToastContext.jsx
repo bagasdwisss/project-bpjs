@@ -99,28 +99,32 @@ export const ToastProvider = ({ children }) => {
       {/* Toast Container - Mobile friendly responsive placement */}
       <div className="fixed top-4 left-3 right-3 sm:left-auto sm:right-5 sm:top-5 z-[99999] flex flex-col gap-2.5 sm:max-w-md pointer-events-none">
         {toasts.map((item) => {
-          let bgClass = 'bg-[#BDD4F2] text-[#121214]'; // info
+          let bgClass = 'bg-[#BDD4F2] text-[#121214] shadow-[3px_3px_0px_#121214]';
           let IconComp = Info;
-          let badgeText = 'Informasi';
+          let badgeText = 'Informasi Sistem';
+          let badgeClass = 'bg-white/80 text-[#1E3A8A] border border-[#121214]';
 
           if (item.type === 'success') {
-            bgClass = 'bg-[#B8C96E] text-[#121214]';
+            bgClass = 'bg-[#B8C96E] text-[#121214] shadow-[4px_4px_0px_#121214]';
             IconComp = CheckCircle2;
             badgeText = 'Berhasil';
-          } else if (item.type === 'error') {
-            bgClass = 'bg-[#F5C6EC] text-[#121214]';
+            badgeClass = 'bg-white/80 text-[#3C4A11] border border-[#121214]';
+          } else if (item.type === 'error' || item.type === 'danger') {
+            bgClass = 'bg-[#F5C6EC] text-[#121214] shadow-[5px_5px_0px_#121214]';
             IconComp = XCircle;
-            badgeText = 'Pemberitahuan';
+            badgeText = 'Peringatan / Gagal';
+            badgeClass = 'bg-[#BE185D] text-white border border-[#121214]';
           } else if (item.type === 'warning') {
-            bgClass = 'bg-[#FCE373] text-[#121214]';
+            bgClass = 'bg-[#FCE373] text-[#121214] shadow-[4px_4px_0px_#121214]';
             IconComp = AlertTriangle;
-            badgeText = 'Perhatian';
+            badgeText = 'Perhatian Khusus';
+            badgeClass = 'bg-[#121214] text-[#FCE373] border border-[#121214]';
           }
 
           return (
             <div
               key={item.id}
-              className={`pointer-events-auto rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] p-3.5 flex items-start justify-between gap-3 transition-all duration-200 animate-in slide-in-from-top-3 ${bgClass}`}
+              className={`pointer-events-auto rounded-2xl border-2 border-[#121214] p-3.5 flex items-start justify-between gap-3 transition-all duration-200 animate-in slide-in-from-top-3 ${bgClass}`}
               role="alert"
             >
               <div className="flex items-start gap-2.5 min-w-0">
@@ -128,7 +132,7 @@ export const ToastProvider = ({ children }) => {
                   <IconComp className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/70 block">
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full inline-block mb-1 ${badgeClass}`}>
                     {badgeText}
                   </span>
                   <p className="text-xs font-black text-[#121214] leading-snug break-words">

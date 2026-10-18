@@ -117,12 +117,12 @@ const DigitalBrochureCatalog = () => {
           </div>
 
           {/* Categories */}
-          <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap w-full md:w-auto no-scrollbar">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all ${
+                className={`whitespace-nowrap px-3 py-1.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all shrink-0 ${
                   selectedCategory === cat 
                     ? 'bg-[#FCE373] text-[#121214] shadow-[2px_2px_0px_#121214]' 
                     : 'bg-white text-gray-600 hover:bg-[#F5F4F0]'

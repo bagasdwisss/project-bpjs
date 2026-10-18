@@ -2,17 +2,81 @@
 import { query } from '../db.js';
 import crypto from 'crypto';
 
-// In-memory session fingerprint cache: userId -> { fingerprint, userAgent, ip }
+// In-memory session fingerprint cache: userId -> { fingerprint, userAgent, ip, recordedAt, sessionToken }
 const activeSessionFingerprints = new Map();
 
-export const registerSessionFingerprint = (userId, fingerprint, userAgent, ip) => {
+// In-memory SSE connections for zero-latency instant kickout: userId -> Map(streamId, { res, fingerprint, token, ip })
+const activeSessionStreams = new Map();
+
+export const registerSessionFingerprint = (userId, fingerprint, userAgent, ip, sessionToken = null) => {
   if (!userId || !fingerprint) return;
   activeSessionFingerprints.set(String(userId), {
     fingerprint,
     userAgent: userAgent || 'Unknown',
     ip: ip || '127.0.0.1',
+    sessionToken,
     recordedAt: Date.now()
   });
+};
+
+export const getActiveSessionFingerprint = (userId) => {
+  return activeSessionFingerprints.get(String(userId));
+};
+
+export const addSessionStream = (userId, streamId, data) => {
+  const uid = String(userId);
+  if (!activeSessionStreams.has(uid)) {
+    activeSessionStreams.set(uid, new Map());
+  }
+  activeSessionStreams.get(uid).set(streamId, data);
+};
+
+export const removeSessionStream = (userId, streamId) => {
+  const uid = String(userId);
+  const userMap = activeSessionStreams.get(uid);
+  if (userMap) {
+    userMap.delete(streamId);
+    if (userMap.size === 0) {
+      activeSessionStreams.delete(uid);
+    }
+  }
+};
+
+/**
+ * Broadcasts an immediate kickout event to all other open sessions/tabs of this user
+ * that are running on a different device fingerprint.
+ */
+export const broadcastInstantKickout = (userId, newFingerprint, newIp = '127.0.0.1') => {
+  const uid = String(userId);
+  const userStreams = activeSessionStreams.get(uid);
+  if (!userStreams || userStreams.size === 0) return;
+
+  const toDelete = [];
+  for (const [streamId, stream] of userStreams.entries()) {
+    // If stream is from a different device fingerprint or missing fingerprint, kick out immediately
+    if (stream.fingerprint !== newFingerprint) {
+      try {
+        stream.res.write(`data: ${JSON.stringify({
+          type: 'CONCURRENT_DEVICE_KICKOUT',
+          reason: 'ACCOUNT_LOGGED_IN_NEW_DEVICE',
+          message: 'Akun Anda baru saja masuk dari perangkat lain. Sesi pada perangkat ini telah ditutup secara otomatis demi keamanan.',
+          newDeviceIp: newIp,
+          timestamp: new Date().toISOString()
+        })}\n\n`);
+        stream.res.end();
+      } catch (err) {
+        // Stream already closed or dead
+      }
+      toDelete.push(streamId);
+    }
+  }
+
+  for (const id of toDelete) {
+    userStreams.delete(id);
+  }
+  if (userStreams.size === 0) {
+    activeSessionStreams.delete(uid);
+  }
 };
 
 export const deviceGuardMiddleware = async (req, res, next) => {

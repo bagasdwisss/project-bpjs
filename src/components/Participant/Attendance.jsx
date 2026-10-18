@@ -663,7 +663,7 @@ const Attendance = () => {
                   }
                 }}
                 disabled={syncingOffline}
-                className="px-4 py-2 bg-[#B8C96E] hover:bg-[#a5b85a] border-2 border-[#121214] rounded-xl font-black text-xs text-[#121214] shadow-[2px_2px_0px_#121214] flex items-center gap-2"
+                className="w-full sm:w-auto px-4 py-2 bg-[#B8C96E] hover:bg-[#a5b85a] border-2 border-[#121214] rounded-xl font-black text-xs text-[#121214] shadow-[2px_2px_0px_#121214] flex items-center justify-center gap-2 active:scale-95 transition"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${syncingOffline ? 'animate-spin' : ''}`} />
                 <span>{syncingOffline ? 'Menyinkronkan...' : 'Sinkronkan Sekarang'}</span>
@@ -672,11 +672,11 @@ const Attendance = () => {
           </div>
         )}
 
-        {/* Tab Switcher */}
-        <div className="flex space-x-2 border-b-2 border-[#121214] pb-1">
+        {/* Tab Switcher - Fully Responsive on Mobile */}
+        <div className="flex flex-col sm:flex-row gap-2 border-b-2 border-[#121214] pb-1.5">
           <button
             onClick={() => setActiveTab('presensi')}
-            className={`px-4 py-2 rounded-xl border-2 border-[#121214] font-black text-xs transition-all ${
+            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-[#121214] font-black text-xs transition-all text-center ${
               activeTab === 'presensi'
                 ? 'bg-[#B8C96E] text-[#121214] shadow-[3px_3px_0px_#121214]'
                 : 'bg-white text-gray-600 hover:bg-[#F5F4F0]'
@@ -686,7 +686,7 @@ const Attendance = () => {
           </button>
           <button
             onClick={() => setActiveTab('izin')}
-            className={`px-4 py-2 rounded-xl border-2 border-[#121214] font-black text-xs transition-all ${
+            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-[#121214] font-black text-xs transition-all text-center ${
               activeTab === 'izin'
                 ? 'bg-[#F5C6EC] text-[#121214] shadow-[3px_3px_0px_#121214]'
                 : 'bg-white text-gray-600 hover:bg-[#F5F4F0]'

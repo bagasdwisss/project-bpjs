@@ -267,7 +267,7 @@ router.post('/coordinator/reminders/settings', authenticateToken, requireRole('K
  */
 router.post('/admin/broadcast/send', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
-    const { title, message, content, priority, target, start_at, end_at, show_on_login } = req.body;
+    const { title, message, content, priority, target, start_at, end_at, show_on_login, display_mode } = req.body;
     const msgTitle = title || 'Pengumuman Penting';
     const msgContent = message || content || '';
     const targetGroup = target || 'all';
@@ -289,13 +289,13 @@ router.post('/admin/broadcast/send', authenticateToken, requireRole('Administrat
       );
     }
 
-    // Record in broadcast_messages table with duration and persistent login settings
+    // Record in broadcast_messages table with duration, display_mode, and persistent login settings
     const broadcastResult = await query(
       `INSERT INTO broadcast_messages (
         sender_id, title, content, priority, target_role,
-        start_at, end_at, show_on_login, is_active, sent_at
+        start_at, end_at, show_on_login, is_active, display_mode, sent_at
       )
-      VALUES ($1, $2, $3, COALESCE($4, 'Biasa'), $5, COALESCE($6, CURRENT_TIMESTAMP), $7, COALESCE($8, TRUE), TRUE, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, COALESCE($4, 'Biasa'), $5, COALESCE($6, CURRENT_TIMESTAMP), $7, COALESCE($8, TRUE), TRUE, COALESCE($9, 'toast'), CURRENT_TIMESTAMP)
       RETURNING *`,
       [
         req.user.user_id, 
@@ -305,7 +305,8 @@ router.post('/admin/broadcast/send', authenticateToken, requireRole('Administrat
         targetGroup,
         start_at || null,
         end_at || null,
-        show_on_login !== undefined ? Boolean(show_on_login) : true
+        show_on_login !== undefined ? Boolean(show_on_login) : true,
+        display_mode || (priority === 'Biasa' ? 'toast' : 'modal')
       ]
     );
 
@@ -374,14 +375,10 @@ router.get('/broadcasts/active', authenticateToken, async (req, res) => {
     const roleName = (req.user.role_name || req.user.role || '').toLowerCase();
     const userId = req.user.user_id;
 
-    // Admin should not see broadcast popup modal
-    if (roleId === 3 || roleName.includes('admin')) {
-      return res.json({ success: true, data: [] });
-    }
-
     // Target role matching:
     // Peserta gets 'all' and 'participants'
     // Koordinator gets 'all' and 'coordinators'
+    // Admin gets 'all'
     let targetFilter = `(b.target_role = 'all'`;
     if (roleId === 1 || roleName.includes('peserta')) {
       targetFilter += ` OR b.target_role = 'participants')`;

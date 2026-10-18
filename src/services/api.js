@@ -65,7 +65,7 @@ api.interceptors.response.use(
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('last_active_time');
-        if (errorCode === 'CONCURRENT_LOGIN_DETECTED') {
+        if (errorCode === 'CONCURRENT_LOGIN_DETECTED' || errorCode === 'SESSION_HIJACK_DETECTED') {
           window.location.href = '/login?reason=concurrent_session';
         } else {
           window.location.href = '/login?reason=session_expired';

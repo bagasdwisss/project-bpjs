@@ -13,11 +13,8 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
   });
 
   const [placementOptions, setPlacementOptions] = useState([
-    { code: 'kantor', name: 'Kantor (WFO)', description: 'Penugasan di Kantor Cabang' },
-    { code: 'lapangan', name: 'Lapangan (Survey)', description: 'Penugasan Luar / Lapangan' },
-    { code: 'kepesertaan', name: 'Bidang Kepesertaan BPU', description: 'Akuisisi & Edukasi' },
-    { code: 'pelayanan', name: 'Bidang Pelayanan', description: 'Pelayanan Klaim & Front Office' },
-    { code: 'keuangan_ti', name: 'Bidang Keuangan & TI', description: 'Administrasi & TI' }
+    { code: 'kantor', name: 'Kantor', description: 'Penugasan di Kantor Cabang BPJSTK' },
+    { code: 'lapangan', name: 'Lapangan', description: 'Penugasan Edukasi & Akuisisi Lapangan BPU' }
   ]);
 
   useEffect(() => {
@@ -25,7 +22,10 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
       try {
         const res = await api.get('/placements');
         if (res.data?.success && res.data.data?.length > 0) {
-          setPlacementOptions(res.data.data);
+          const validOnly = res.data.data.filter(p => ['kantor', 'lapangan'].includes(p.code?.toLowerCase()));
+          if (validOnly.length > 0) {
+            setPlacementOptions(validOnly);
+          }
         }
       } catch (err) {
         console.warn('Using default placement options:', err);
@@ -169,7 +169,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
             <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
               Penempatan Kerja
             </label>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {placementOptions.map(p => {
                 const isSelected = formData.penempatan === p.code;
                 return (

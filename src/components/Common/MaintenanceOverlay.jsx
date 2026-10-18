@@ -20,8 +20,8 @@ const MaintenanceOverlay = () => {
   if (!maintenanceData) return null;
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-[#FAF9F6] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl border-2 border-[#121214] shadow-[8px_8px_0px_#121214] p-6 sm:p-8 text-center space-y-5 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[99999] bg-[#FAF9F6] flex items-center justify-center p-3 sm:p-4">
+      <div className="max-w-sm sm:max-w-md w-full bg-white rounded-3xl border-2 border-[#121214] shadow-[6px_6px_0px_#121214] p-5 sm:p-8 text-center space-y-5 animate-in zoom-in-95 duration-200">
         
         <div className="w-16 h-16 rounded-2xl bg-[#FCE373] border-2 border-[#121214] flex items-center justify-center mx-auto shadow-[3px_3px_0px_#121214]">
           <Wrench className="w-8 h-8 text-[#121214] animate-bounce" />

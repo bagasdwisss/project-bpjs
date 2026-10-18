@@ -3,6 +3,8 @@
 import React, { createContext, useState, useEffect, useContext } from 'react'; // TAMBAHKIN useContext
 import authService from '../services/authService.js';
 import userService from '../services/userService.js';
+import api from '../services/api.js';
+import { getDeviceFingerprint } from '../utils/deviceFingerprint.js';
 import PageLoader from '../components/Common/PageLoader';
 
 export const AuthContext = createContext();
@@ -175,43 +177,96 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user]);
 
-  // Real-time Concurrent Session Sync (Pure local cross-tab sync, NO periodic network heartbeat)
+  // Real-time Instant Cross-Device Session Sync via SSE + BroadcastChannel
   useEffect(() => {
     if (!user) return;
 
-    // Cross-tab broadcast detection for instant same-browser kickout
+    const performKickout = (customReason = 'concurrent_session') => {
+      console.warn('🚨 Real-Time Instant Kickout triggered: Account logged in on another device/browser!');
+      try {
+        authService.logout();
+      } catch {}
+      setUser(null);
+      setCoordinator(null);
+      localStorage.removeItem('last_active_time');
+      window.location.href = `/login?reason=${customReason}`;
+    };
+
+    // 1. Cross-Device Real-Time Server-Sent Events (SSE) Stream
+    let eventSource = null;
+    const token = localStorage.getItem('token');
+    const deviceFp = getDeviceFingerprint();
+
+    if (token && typeof window.EventSource !== 'undefined') {
+      try {
+        const streamUrl = `/api/auth/session-stream?token=${encodeURIComponent(token)}&fp=${encodeURIComponent(deviceFp)}`;
+        eventSource = new EventSource(streamUrl);
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data?.type === 'CONCURRENT_DEVICE_KICKOUT') {
+              if (eventSource) eventSource.close();
+              performKickout('concurrent_session');
+            }
+          } catch (err) {}
+        };
+
+        eventSource.onerror = () => {
+          // Keep browser reconnect logic intact
+        };
+      } catch (e) {
+        console.warn('SSE Session Stream initialization error:', e);
+      }
+    }
+
+    // 2. Active Fallback Polling Heartbeat (every 10s & on tab focus)
+    const checkLiveSession = async () => {
+      try {
+        const res = await api.get('/auth/session-check');
+        if (res.data?.valid === false) {
+          if (eventSource) eventSource.close();
+          performKickout('concurrent_session');
+        }
+      } catch (err) {
+        // If 401 or session hijack detected
+        if (err.response?.status === 401 && err.response?.data?.code === 'SESSION_HIJACK_DETECTED') {
+          if (eventSource) eventSource.close();
+          performKickout('concurrent_session');
+        }
+      }
+    };
+    const heartbeatInterval = setInterval(checkLiveSession, 10000);
+    window.addEventListener('focus', checkLiveSession);
+
+    // 3. Same-Browser Cross-Tab BroadcastChannel
     let channel;
     try {
       channel = new BroadcastChannel('bpjs_session_channel');
       channel.onmessage = (event) => {
         if (event.data?.type === 'CONCURRENT_LOGIN') {
-          authService.logout();
-          setUser(null);
-          setCoordinator(null);
-          localStorage.removeItem('last_active_time');
-          window.location.href = '/login?reason=concurrent_session';
+          if (eventSource) eventSource.close();
+          performKickout('concurrent_session');
         }
       };
-    } catch {
-      // Fallback
-    }
+    } catch {}
 
-    // Storage event for instant same-browser cross-tab displacement
+    // 4. Same-Browser Storage change detection
     const handleStorageChange = (e) => {
       if (e.key === 'token') {
         const currentToken = localStorage.getItem('token');
         if (!currentToken) {
-          authService.logout();
-          setUser(null);
-          setCoordinator(null);
-          localStorage.removeItem('last_active_time');
-          window.location.href = '/login?reason=concurrent_session';
+          if (eventSource) eventSource.close();
+          performKickout('concurrent_session');
         }
       }
     };
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
+      if (eventSource) eventSource.close();
+      clearInterval(heartbeatInterval);
+      window.removeEventListener('focus', checkLiveSession);
       if (channel) channel.close();
       window.removeEventListener('storage', handleStorageChange);
     };

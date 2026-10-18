@@ -1273,7 +1273,9 @@ router.put('/bpu/rates', authenticateToken, requireRole('Administrator'), async 
 router.get('/placements', authenticateToken, async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, name, code, description, is_active FROM placement_options WHERE is_active = TRUE ORDER BY id ASC`
+      `SELECT id, name, code, description, is_active FROM placement_options 
+       WHERE is_active = TRUE AND LOWER(code) IN ('kantor', 'lapangan') 
+       ORDER BY id ASC`
     );
     return res.json({ success: true, data: result.rows });
   } catch (error) {

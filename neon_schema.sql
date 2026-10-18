@@ -180,6 +180,7 @@ CREATE TABLE IF NOT EXISTS broadcast_messages (
     content TEXT NOT NULL,
     priority VARCHAR(20) DEFAULT 'Biasa',
     target_role VARCHAR(50) DEFAULT 'all',
+    display_mode VARCHAR(20) DEFAULT 'toast',
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

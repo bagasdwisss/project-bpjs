@@ -5,7 +5,13 @@ import crypto from 'crypto';
 import { query } from '../db.js';
 import { authenticateToken, JWT_SECRET } from '../middleware/auth.js';
 import { recordFailedAuth, recordSuccessAuth } from '../middleware/rateLimiter.js';
-import { registerSessionFingerprint } from '../middleware/deviceGuard.js';
+import { 
+  registerSessionFingerprint, 
+  addSessionStream, 
+  removeSessionStream, 
+  broadcastInstantKickout, 
+  getActiveSessionFingerprint 
+} from '../middleware/deviceGuard.js';
 import { logActivity } from '../utils/logger.js';
 
 const router = Router();
@@ -116,13 +122,15 @@ router.post('/login', async (req, res) => {
     loginAttempts.delete(rateKey);
     recordSuccessAuth(clientIp);
 
-    // Register Device Fingerprint
+    // 1. Zero-Latency Instant Kickout: Terminate old sessions on other devices in real-time
     const deviceFp = req.headers['x-device-fingerprint'];
+    const sessionToken = crypto.randomUUID();
+
     if (deviceFp) {
-      registerSessionFingerprint(user.user_id, deviceFp, req.headers['user-agent'], clientIp);
+      broadcastInstantKickout(user.user_id, deviceFp, clientIp);
+      registerSessionFingerprint(user.user_id, deviceFp, req.headers['user-agent'], clientIp, sessionToken);
     }
 
-    const sessionToken = crypto.randomUUID();
     await query(
       `UPDATE users 
        SET current_session_token = $1, last_login_at = CURRENT_TIMESTAMP, last_login_ip = $2
@@ -325,16 +333,90 @@ router.put('/profile', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /session-stream
+ * Server-Sent Events (SSE) stream for real-time instant logout on concurrent device login
+ */
+router.get('/session-stream', async (req, res) => {
+  try {
+    const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).end();
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).end();
+    }
+
+    const userId = decoded.user_id;
+    const clientFp = req.query.fp || req.headers['x-device-fingerprint'] || 'unknown';
+    const streamId = crypto.randomUUID();
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
+
+    // Register active SSE stream
+    addSessionStream(userId, streamId, {
+      res,
+      fingerprint: clientFp,
+      token,
+      ip: req.ip || '127.0.0.1'
+    });
+
+    // Send connection established event
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', streamId, timestamp: new Date().toISOString() })}\n\n`);
+
+    // Keepalive ping every 20 seconds
+    const keepAlive = setInterval(() => {
+      try {
+        res.write(': keepalive\n\n');
+      } catch {
+        clearInterval(keepAlive);
+      }
+    }, 20000);
+
+    req.on('close', () => {
+      clearInterval(keepAlive);
+      removeSessionStream(userId, streamId);
+    });
+  } catch (err) {
+    res.status(500).end();
+  }
+});
+
+/**
  * GET /session-check
  * Live heartbeat endpoint to verify session validity and detect concurrent logins immediately
  */
-router.get('/session-check', authenticateToken, (req, res) => {
-  return res.json({
-    success: true,
-    valid: true,
-    user_id: req.user.user_id,
-    session_token: req.user.current_session_token
-  });
+router.get('/session-check', authenticateToken, async (req, res) => {
+  try {
+    const clientFp = req.headers['x-device-fingerprint'] || req.query.fp;
+    const activeSession = getActiveSessionFingerprint(req.user.user_id);
+
+    // If session has been overtaken by a different device fingerprint
+    if (activeSession && clientFp && activeSession.fingerprint !== clientFp) {
+      return res.json({
+        success: false,
+        valid: false,
+        reason: 'CONCURRENT_DEVICE_LOGIN',
+        message: 'Akun Anda baru saja masuk dari perangkat lain.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      valid: true,
+      user_id: req.user.user_id,
+      session_token: req.user.current_session_token
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, valid: true });
+  }
 });
 
 export default router;

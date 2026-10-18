@@ -14,9 +14,6 @@ import {
 
 const BroadcastPopup = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role_id === 3 || user?.role === 'Administrator' || (user?.role_name || '').toLowerCase().includes('admin');
-
-  if (isAdmin) return null;
 
   const [broadcasts, setBroadcasts] = useState([]);
   const [activeModalBroadcast, setActiveModalBroadcast] = useState(null);
@@ -37,13 +34,14 @@ const BroadcastPopup = () => {
 
         // Find modal broadcasts (Penting or Sangat Penting)
         const modalItem = visibleBroadcasts.find(
-          b => b.priority === 'Sangat Penting' || b.priority === 'Penting'
+          b => (b.priority === 'Sangat Penting' || b.priority === 'Penting') && b.display_mode !== 'toast'
         );
         setActiveModalBroadcast(modalItem || null);
 
-        // Normal (Biasa) broadcasts shown as toasts
+        // Toast broadcasts (all 'Biasa' or any marked display_mode === 'toast' or 'both')
         const toastItems = visibleBroadcasts.filter(
-          b => b.priority === 'Biasa' && (!modalItem || b.broadcast_id !== modalItem.broadcast_id)
+          b => (b.priority === 'Biasa' || b.display_mode === 'toast' || b.display_mode === 'both') &&
+               (!modalItem || b.broadcast_id !== modalItem.broadcast_id)
         );
         setActiveToastBroadcasts(toastItems);
       }
@@ -65,8 +63,13 @@ const BroadcastPopup = () => {
       const handlePreviewBroadcast = (e) => {
         const item = e.detail;
         if (!item) return;
-        if (item.priority === 'Biasa') {
-          setActiveToastBroadcasts(prev => [item, ...prev]);
+
+        // If explicitly requested as toast or priority is Biasa
+        if (item.display_mode === 'toast' || item.priority === 'Biasa') {
+          setActiveToastBroadcasts(prev => [item, ...prev.filter(t => t.broadcast_id !== item.broadcast_id)]);
+        } else if (item.display_mode === 'both') {
+          setActiveModalBroadcast(item);
+          setActiveToastBroadcasts(prev => [item, ...prev.filter(t => t.broadcast_id !== item.broadcast_id)]);
         } else {
           setActiveModalBroadcast(item);
         }
@@ -87,6 +90,8 @@ const BroadcastPopup = () => {
   }, [user]);
 
   const handleDismiss = async (broadcast) => {
+    if (!broadcast) return;
+
     // 1. Record dismissal in sessionStorage for this session
     const sessionDismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
     if (!sessionDismissed.includes(broadcast.broadcast_id)) {
@@ -96,7 +101,6 @@ const BroadcastPopup = () => {
 
     // 2. Remove from active state immediately
     if (activeModalBroadcast?.broadcast_id === broadcast.broadcast_id) {
-      // If there was another modal in queue, pick the next one
       const remainingModals = broadcasts.filter(
         b => (b.priority === 'Sangat Penting' || b.priority === 'Penting') && 
              b.broadcast_id !== broadcast.broadcast_id &&
@@ -108,9 +112,11 @@ const BroadcastPopup = () => {
     setActiveToastBroadcasts(prev => prev.filter(t => t.broadcast_id !== broadcast.broadcast_id));
     setBroadcasts(prev => prev.filter(b => b.broadcast_id !== broadcast.broadcast_id));
 
-    // 3. Inform backend so if show_on_login is false, it won't show again on future logins
+    // 3. Inform backend
     try {
-      await api.post(`/notifications/broadcasts/${broadcast.broadcast_id}/dismiss`);
+      if (broadcast.broadcast_id && !String(broadcast.broadcast_id).startsWith('preview-')) {
+        await api.post(`/notifications/broadcasts/${broadcast.broadcast_id}/dismiss`);
+      }
     } catch (err) {
       console.error('Error logging broadcast dismissal:', err);
     }
@@ -127,29 +133,67 @@ const BroadcastPopup = () => {
     });
   };
 
+  const getToastStyling = (priority) => {
+    if (priority === 'Sangat Penting') {
+      return {
+        topStrip: 'bg-[#BE185D]',
+        badgeBg: 'bg-[#BE185D] text-white',
+        badgeText: 'MENDESAK / SANGAT PENTING',
+        iconBg: 'bg-[#F5C6EC] text-[#BE185D]',
+        Icon: ShieldAlert,
+        shadow: 'shadow-[6px_6px_0px_#121214]',
+        hasPulseDot: true,
+        bgGlow: 'bg-[#FAF9F6]'
+      };
+    }
+    if (priority === 'Penting') {
+      return {
+        topStrip: 'bg-[#FCE373]',
+        badgeBg: 'bg-[#121214] text-[#FCE373]',
+        badgeText: 'PERINGATAN PENTING',
+        iconBg: 'bg-[#FCE373] text-[#856B12]',
+        Icon: AlertTriangle,
+        shadow: 'shadow-[5px_5px_0px_#121214]',
+        hasPulseDot: false,
+        bgGlow: 'bg-[#FAF9F6]'
+      };
+    }
+    // Biasa (Default)
+    return {
+      topStrip: 'bg-[#BDD4F2]',
+      badgeBg: 'bg-[#BDD4F2] text-[#1E3A8A]',
+      badgeText: 'INFORMASI BIASA',
+      iconBg: 'bg-[#BDD4F2] text-[#1E3A8A]',
+      Icon: Megaphone,
+      shadow: 'shadow-[4px_4px_0px_#121214]',
+      hasPulseDot: false,
+      bgGlow: 'bg-white'
+    };
+  };
+
   return (
     <>
       {/* ======================================================== */}
       {/* 1. HIGH-PRIORITY CENTER MODAL (PENTING & SANGAT PENTING) */}
       {/* ======================================================== */}
       {activeModalBroadcast && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#121214]/65 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-[#121214]/65 backdrop-blur-xs animate-in fade-in duration-200">
           <div 
-            className="w-full max-w-lg bg-white rounded-[26px] border-2 border-[#121214] shadow-[8px_8px_0px_#121214] overflow-hidden transform animate-in zoom-in-95 duration-200 flex flex-col"
+            className="w-full max-w-lg bg-white rounded-[26px] border-2 border-[#121214] shadow-[8px_8px_0px_#121214] overflow-hidden transform animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
             role="alertdialog"
             aria-modal="true"
           >
             {/* Header Banner */}
-            <div className={`p-5 sm:p-6 border-b-2 border-[#121214] ${
+            <div className={`p-4 sm:p-6 border-b-2 border-[#121214] ${
               activeModalBroadcast.priority === 'Sangat Penting'
                 ? 'bg-[#F5C6EC] text-[#121214]'
                 : 'bg-[#FCE373] text-[#121214]'
             }`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-full bg-[#121214] text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+                  <div className="w-10 h-10 rounded-xl bg-[#121214] text-white border-2 border-[#121214] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#121214]">
                     {activeModalBroadcast.priority === 'Sangat Penting' ? (
-                      <ShieldAlert className="w-5 h-5 text-[#F5C6EC]" />
+                      <ShieldAlert className="w-5 h-5 text-[#F5C6EC] animate-pulse" />
                     ) : (
                       <AlertTriangle className="w-5 h-5 text-[#FCE373]" />
                     )}
@@ -164,34 +208,34 @@ const BroadcastPopup = () => {
 
                 <button
                   onClick={() => handleDismiss(activeModalBroadcast)}
-                  className="w-8 h-8 rounded-full bg-white/80 hover:bg-white text-[#121214] border border-[#121214] flex items-center justify-center transition"
+                  className="w-8 h-8 rounded-xl bg-white text-[#121214] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] active:scale-95 transition"
                   aria-label="Tutup"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <h1 className="text-xl sm:text-2xl font-black text-[#121214] mt-3.5 tracking-tight leading-snug">
+              <h1 className="text-lg sm:text-2xl font-black text-[#121214] mt-3.5 tracking-tight leading-snug">
                 {activeModalBroadcast.title}
               </h1>
             </div>
 
             {/* Content Body */}
-            <div className="p-6 space-y-4 max-h-[55vh] overflow-y-auto">
-              <div className="bg-[#FAF9F6] p-4 rounded-2xl border border-[#EAE9E4] text-[#121214] text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-line">
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+              <div className="bg-[#FAF9F6] p-4 rounded-2xl border-2 border-[#121214] text-[#121214] text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-line shadow-[2px_2px_0px_#121214]">
                 {activeModalBroadcast.content}
               </div>
 
               {/* Meta details */}
-              <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#121214]/60 font-medium pt-1">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#121214]/70 font-bold pt-1">
                 {activeModalBroadcast.start_at && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#EAE9E4]">
+                  <span className="inline-flex items-center gap-1.5 bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#121214]">
                     <Clock className="w-3.5 h-3.5 text-[#121214]" />
                     Mulai: {formatDate(activeModalBroadcast.start_at)}
                   </span>
                 )}
                 {activeModalBroadcast.end_at && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#EAE9E4]">
+                  <span className="inline-flex items-center gap-1.5 bg-[#FAF9F6] px-2.5 py-1 rounded-full border border-[#121214]">
                     <Calendar className="w-3.5 h-3.5 text-rose-600" />
                     Berakhir: {formatDate(activeModalBroadcast.end_at)}
                   </span>
@@ -200,14 +244,14 @@ const BroadcastPopup = () => {
             </div>
 
             {/* Footer Action */}
-            <div className="p-5 sm:p-6 bg-[#FAF9F6] border-t-2 border-[#121214] flex flex-col sm:flex-row items-center justify-end gap-3">
+            <div className="p-4 sm:p-6 bg-[#FAF9F6] border-t-2 border-[#121214] flex flex-col sm:flex-row items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => handleDismiss(activeModalBroadcast)}
-                className="w-full sm:w-auto px-7 py-3 rounded-full bg-[#121214] hover:bg-black text-white font-bold text-xs sm:text-sm transition-all shadow-[3px_3px_0px_#8A8985] hover:shadow-none inline-flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#121214] hover:bg-black text-white font-bold text-xs sm:text-sm transition-all shadow-[3px_3px_0px_#8A8985] active:scale-95 inline-flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4 text-[#B8C96E]" />
-                Saya Sudah Membaca & Mengerti
+                Saya Mengerti
               </button>
             </div>
           </div>
@@ -215,57 +259,67 @@ const BroadcastPopup = () => {
       )}
 
       {/* ======================================================== */}
-      {/* 2. NORMAL TOAST POPUPS (PRIORITAS BIASA) - TOP RIGHT     */}
+      {/* 2. DIVERSIFIED TOAST POPUPS - FULLY DISTINCT PER PRIORITY */}
       {/* ======================================================== */}
       {activeToastBroadcasts.length > 0 && (
-        <div className="fixed top-5 right-5 z-[9990] flex flex-col gap-3 max-w-sm sm:max-w-md w-full pointer-events-none px-4 sm:px-0">
-          {activeToastBroadcasts.map((toast) => (
-            <div
-              key={toast.broadcast_id}
-              className="pointer-events-auto bg-white rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] p-4 transition-all duration-300 animate-in slide-in-from-top-4 relative overflow-hidden"
-            >
-              {/* Top Accent Strip */}
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#B8C96E] border-b border-[#121214]"></div>
+        <div className="fixed top-4 left-3 right-3 sm:left-auto sm:right-5 sm:top-5 z-[9990] flex flex-col gap-3 sm:max-w-md w-auto sm:w-full pointer-events-none">
+          {activeToastBroadcasts.map((toast) => {
+            const style = getToastStyling(toast.priority);
+            const ToastIcon = style.Icon;
 
-              <div className="flex items-start justify-between gap-3 pt-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-[#B8C96E]/40 text-[#3C4A11] border border-[#B8C96E] flex items-center justify-center shrink-0">
-                    <Megaphone className="w-3.5 h-3.5" />
+            return (
+              <div
+                key={toast.broadcast_id}
+                className={`pointer-events-auto ${style.bgGlow} rounded-2xl border-2 border-[#121214] ${style.shadow} p-4 transition-all duration-300 animate-in slide-in-from-top-4 relative overflow-hidden`}
+              >
+                {/* Top Accent Strip with Distinct Color */}
+                <div className={`absolute top-0 left-0 right-0 h-2 ${style.topStrip} border-b-2 border-[#121214]`}></div>
+
+                <div className="flex items-start justify-between gap-3 pt-1.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-8 h-8 rounded-xl ${style.iconBg} border-2 border-[#121214] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#121214]`}>
+                      <ToastIcon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        {style.hasPulseDot && (
+                          <span className="w-2 h-2 rounded-full bg-red-600 animate-ping inline-block"></span>
+                        )}
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full inline-block border border-[#121214] ${style.badgeBg}`}>
+                          {style.badgeText}
+                        </span>
+                      </div>
+                      <h3 className="text-xs sm:text-sm font-black text-[#121214] line-clamp-1">
+                        {toast.title}
+                      </h3>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#121214]/60">
-                      Pengumuman
-                    </span>
-                    <h3 className="text-xs sm:text-sm font-extrabold text-[#121214] line-clamp-1">
-                      {toast.title}
-                    </h3>
-                  </div>
+
+                  <button
+                    onClick={() => handleDismiss(toast)}
+                    className="p-1 rounded-lg text-[#121214] hover:bg-black/10 transition shrink-0"
+                    aria-label="Tutup notifikasi"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
 
-                <button
-                  onClick={() => handleDismiss(toast)}
-                  className="p-1 rounded-full text-[#121214]/60 hover:text-[#121214] hover:bg-[#FAF9F6] transition"
-                  aria-label="Tutup notifikasi"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+                <p className="text-xs text-[#121214]/85 mt-2.5 font-medium line-clamp-3 leading-relaxed">
+                  {toast.content}
+                </p>
 
-              <p className="text-xs text-[#121214]/80 mt-2 font-medium line-clamp-3 leading-relaxed">
-                {toast.content}
-              </p>
-
-              <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#EAE9E4] text-[10px] text-[#121214]/50 font-medium">
-                <span>{new Date(toast.sent_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</span>
-                <button
-                  onClick={() => handleDismiss(toast)}
-                  className="text-[#121214] font-bold hover:underline"
-                >
-                  Tutup
-                </button>
+                <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#121214]/20 text-[10px] text-[#121214]/60 font-bold">
+                  <span>{new Date(toast.sent_at || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</span>
+                  <button
+                    onClick={() => handleDismiss(toast)}
+                    className="text-[#121214] font-black hover:underline px-2.5 py-0.5 bg-white border border-[#121214] rounded-lg shadow-[1px_1px_0px_#121214] active:scale-95 transition"
+                  >
+                    Mengerti
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </>

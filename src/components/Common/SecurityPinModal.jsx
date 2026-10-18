@@ -36,8 +36,8 @@ const SecurityPinModal = ({ isOpen, onClose, onSuccess, title = 'Otorisasi Tinda
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-md rounded-2xl border-2 border-[#121214] shadow-[8px_8px_0px_#121214] overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-sm sm:max-w-md rounded-2xl border-2 border-[#121214] shadow-[6px_6px_0px_#121214] overflow-hidden">
         
         {/* Header */}
         <div className="bg-[#F5C6EC] border-b-2 border-[#121214] p-4 flex items-center justify-between">

@@ -37,6 +37,7 @@ const Broadcast = () => {
   const [message, setMessage] = useState('');
   const [target, setTarget] = useState('all');
   const [priority, setPriority] = useState('Biasa');
+  const [displayMode, setDisplayMode] = useState('toast');
   
   // Schedule and persistence states
   const now = new Date();
@@ -95,6 +96,7 @@ const Broadcast = () => {
         message,
         priority,
         target,
+        display_mode: displayMode,
         start_at: payloadStartAt,
         end_at: payloadEndAt,
         show_on_login: showOnLogin
@@ -256,26 +258,37 @@ const Broadcast = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <NeoSelect
                   label="Target Penerima"
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   options={[
-                    { value: 'all', label: 'Semua Pengguna (Peserta & Koordinator)' },
+                    { value: 'all', label: 'Semua Pengguna' },
                     { value: 'participants', label: 'Hanya Peserta Magang' },
                     { value: 'coordinators', label: 'Hanya Koordinator' }
                   ]}
                 />
 
                 <NeoSelect
-                  label="Tingkat Prioritas & Tampilan"
+                  label="Tingkat Prioritas"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                   options={[
-                    { value: 'Biasa', label: 'Biasa (Toast Notifikasi)' },
-                    { value: 'Penting', label: 'Penting (Dialog Modal Layar)' },
-                    { value: 'Sangat Penting', label: 'Sangat Penting (Modal Darurat)' }
+                    { value: 'Biasa', label: 'Biasa (Informasi Rutin)' },
+                    { value: 'Penting', label: 'Penting (Peringatan Khusus)' },
+                    { value: 'Sangat Penting', label: 'Sangat Penting (Darurat / Mendesak)' }
+                  ]}
+                />
+
+                <NeoSelect
+                  label="Format Tampilan"
+                  value={displayMode}
+                  onChange={(e) => setDisplayMode(e.target.value)}
+                  options={[
+                    { value: 'toast', label: 'Toast (Pojok Kanan Atas)' },
+                    { value: 'modal', label: 'Dialog Modal (Tengah Layar)' },
+                    { value: 'both', label: 'Keduanya (Modal & Toast)' }
                   ]}
                 />
               </div>
@@ -397,11 +410,11 @@ const Broadcast = () => {
                 />
               </div>
 
-              <div className="pt-2 flex flex-wrap items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-8 py-3 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-bold transition-all shadow-[3px_3px_0px_#8A8985] hover:shadow-none inline-flex items-center justify-center gap-2 active:scale-95"
+                  className="w-full sm:w-auto px-7 py-3 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-bold transition-all shadow-[3px_3px_0px_#8A8985] hover:shadow-none inline-flex items-center justify-center gap-2 active:scale-95"
                 >
                   <Send className="w-3.5 h-3.5 text-[#B8C96E]" />
                   {loading ? 'Mengirim Siaran...' : 'Kirim Siaran Sekarang'}
@@ -421,16 +434,16 @@ const Broadcast = () => {
                           title: title || 'Contoh Judul Pengumuman',
                           content: message || 'Ini adalah contoh preview tampilan isi pengumuman broadcast sistem BPJSTK.',
                           priority,
+                          display_mode: displayMode,
                           sent_at: new Date().toISOString()
                         }
                       })
                     );
-                    toast.info(`Menampilkan preview pop-up tingkat ${priority}`);
                   }}
-                  className="px-5 py-3 bg-[#FAF9F6] hover:bg-white border-2 border-[#121214] text-[#121214] rounded-full text-xs font-bold transition-all shadow-[2px_2px_0px_#121214] active:scale-95 inline-flex items-center gap-2"
+                  className="w-full sm:w-auto px-5 py-3 bg-[#FAF9F6] hover:bg-white border-2 border-[#121214] text-[#121214] rounded-full text-xs font-bold transition-all shadow-[2px_2px_0px_#121214] active:scale-95 inline-flex items-center justify-center gap-2"
                 >
                   <Eye className="w-3.5 h-3.5 text-[#121214]" />
-                  <span>Preview Pop-up ({priority})</span>
+                  <span>Preview ({priority} • {displayMode === 'toast' ? 'Toast' : displayMode === 'modal' ? 'Modal' : 'Keduanya'})</span>
                 </button>
               </div>
             </form>
