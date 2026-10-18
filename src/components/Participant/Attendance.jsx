@@ -169,6 +169,23 @@ const Attendance = () => {
   const [leaveProofUrl, setLeaveProofUrl] = useState('');
   const [submittingLeave, setSubmittingLeave] = useState(false);
   const [leaveHistory, setLeaveHistory] = useState([]);
+  const [leaveSettings, setLeaveSettings] = useState({
+    max_leave_days: 3,
+    used_leave_days: 0,
+    remaining_leave_days: 3,
+    allowed_types: ['Sakit', 'Izin', 'Cuti', 'Keperluan Mendesak']
+  });
+
+  const loadLeaveSettings = async () => {
+    try {
+      const res = await api.get('/leaves/settings');
+      if (res.data?.success && res.data.data) {
+        setLeaveSettings(res.data.data);
+      }
+    } catch (err) {
+      console.warn('Could not load leave settings:', err);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -184,8 +201,8 @@ const Attendance = () => {
   const loadOfficeLocation = async () => {
     try {
       const res = await api.get('/participant/attendance/office');
-      if (res.data?.success && res.data.office) {
-        const off = res.data.office;
+      const off = res.data?.data || res.data?.office;
+      if (res.data?.success && off) {
         setOfficeLocation({
           id: off.id || DEFAULT_OFFICE_LOCATION.id,
           name: off.name || DEFAULT_OFFICE_LOCATION.name,
@@ -235,6 +252,7 @@ const Attendance = () => {
       loadAttendanceSettings(),
       loadHolidaysList(),
       loadAttendanceData(),
+      loadLeaveSettings(),
       loadLeaveHistory()
     ]);
   };
@@ -927,16 +945,21 @@ const Attendance = () => {
 
               <form onSubmit={handleLeaveSubmit} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-black uppercase text-[#121214] mb-1">
-                    Jenis Permohonan:
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['Sakit', 'Izin', 'Cuti'].map((t) => (
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-black uppercase text-[#121214]">
+                      Jenis Permohonan:
+                    </label>
+                    <span className="text-[10px] font-black bg-[#FCE373] text-[#121214] px-2 py-0.5 rounded border border-[#121214]">
+                      Sisa Kuota Cuti: {leaveSettings.remaining_leave_days} / {leaveSettings.max_leave_days} hari
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(leaveSettings.allowed_types || ['Sakit', 'Izin', 'Cuti']).map((t) => (
                       <button
                         key={t}
                         type="button"
                         onClick={() => setLeaveType(t)}
-                        className={`py-2 rounded-xl border-2 border-[#121214] text-xs font-black transition-all ${
+                        className={`py-2 px-2 rounded-xl border-2 border-[#121214] text-xs font-black transition-all text-center truncate ${
                           leaveType === t
                             ? 'bg-[#121214] text-white shadow-[2px_2px_0px_#F5C6EC]'
                             : 'bg-[#F5F4F0] text-[#121214] hover:bg-white'

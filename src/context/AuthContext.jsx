@@ -41,16 +41,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Dynamic Inactivity Timeout helper (defaults to 5 minutes if not configured)
+  const getInactivityTimeoutMs = () => {
+    const configuredMinutes = parseInt(localStorage.getItem('sys_inactivity_minutes') || '5', 10);
+    return (configuredMinutes > 0 ? configuredMinutes : 5) * 60 * 1000;
+  };
+
   // Initialize auth state
   useEffect(() => {
     const initAuth = async () => {
       try {
         if (authService.isAuthenticated()) {
-          // Inactivity check: jika user tidak aktif lebih dari 5 menit sebelum membuka web
+          // Dynamic Inactivity check: jika user tidak aktif melebihi batas waktu sebelum membuka web
           const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
-          const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-          if (storedLastActive && (Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
-            console.warn('User idle for > 5 minutes before opening website. Redirecting to login...');
+          const timeoutMs = getInactivityTimeoutMs();
+          if (storedLastActive && (Date.now() - storedLastActive > timeoutMs)) {
+            console.warn(`User idle for > ${timeoutMs / 60000} minutes before opening website. Redirecting to login...`);
             authService.clearAuth();
             setUser(null);
             setCoordinator(null);
@@ -65,6 +71,16 @@ export const AuthProvider = ({ children }) => {
           
           if (!localStorage.getItem('last_active_time')) {
             localStorage.setItem('last_active_time', Date.now().toString());
+          }
+
+          // Fetch dynamic timeout setting from server in background
+          try {
+            const setRes = await api.get('/participant/attendance/settings');
+            if (setRes.data?.data?.settings?.inactivity_timeout_minutes) {
+              localStorage.setItem('sys_inactivity_minutes', setRes.data.data.settings.inactivity_timeout_minutes.toString());
+            }
+          } catch (e) {
+            // Silently fallback to existing or default 5 mins
           }
 
           // Load coordinator data hanya jika user adalah peserta
@@ -82,18 +98,18 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // 5-Minute Inactivity Auto-Logout Tracker (Zero Network Heartbeat)
+  // Dynamic Inactivity Auto-Logout Tracker (Zero Network Heartbeat)
   useEffect(() => {
     if (!user) return;
 
-    const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 menit = 300,000 ms
     let lastRecordedActivity = Date.now();
     if (!localStorage.getItem('last_active_time')) {
       localStorage.setItem('last_active_time', Date.now().toString());
     }
 
     const triggerIdleLogout = () => {
-      console.warn('Session expired due to 5-minute inactivity. Logging out...');
+      const timeoutMinutes = parseInt(localStorage.getItem('sys_inactivity_minutes') || '5', 10);
+      console.warn(`Session expired due to ${timeoutMinutes}-minute inactivity. Logging out...`);
       authService.logout('idle_timeout');
       setUser(null);
       setCoordinator(null);
@@ -103,7 +119,8 @@ export const AuthProvider = ({ children }) => {
     const checkInactivity = () => {
       if (!authService.isAuthenticated()) return;
       const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
-      if (storedLastActive && (Date.now() - storedLastActive > INACTIVITY_TIMEOUT_MS)) {
+      const timeoutMs = getInactivityTimeoutMs();
+      if (storedLastActive && (Date.now() - storedLastActive > timeoutMs)) {
         triggerIdleLogout();
       }
     };

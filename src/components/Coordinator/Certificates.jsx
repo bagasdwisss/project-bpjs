@@ -74,8 +74,7 @@ const Certificates = () => {
     try {
       const res = await api.post('/certificates/generate', {
         user_id: formData.participant_id,
-        predicate: formData.type === 'Completion' ? 'Sangat Memuaskan (Grade A)' : 'Pencapaian Khusus (Grade A+)',
-        score_average: 92.5
+        predicate: formData.type === 'Completion' ? 'Sangat Memuaskan (Grade A)' : 'Pencapaian Khusus (Grade A+)'
       });
       if (res.data.success) {
         toast.success(res.data.message || 'E-Sertifikat terverifikasi berhasil diterbitkan!');

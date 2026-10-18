@@ -83,7 +83,7 @@ const ImportExport = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Data Pengguna');
 
-      const fileName = `Export_BPJS_${exportType}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `Export_BPJSTK_${exportType}_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       setStatusMsg({

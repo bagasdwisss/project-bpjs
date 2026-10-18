@@ -1,6 +1,7 @@
 // src/components/Common/CalculatorModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calculator, ShieldCheck, Copy, Check } from 'lucide-react';
+import api from '../../services/api';
 
 const CalculatorModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -10,19 +11,42 @@ const CalculatorModal = ({ isOpen, onClose }) => {
   const [includeJHT, setIncludeJHT] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Dynamic calculations based on wage tier for BPJSTK BPU
-  // JKK BPU: 1% of wage tier (minimum Rp 10.000)
-  const jkkRate = Math.max(10000, Math.round(wageTier * 0.01));
-  // JKM BPU: Flat Rp 6.800
-  const jkmRate = 6800;
-  // JHT BPU: 2% of wage tier (minimum Rp 20.000)
-  const jhtRate = Math.max(20000, Math.round(wageTier * 0.02));
+  // Dynamic BPU Rates loaded from Database
+  const [bpuRates, setBpuRates] = useState({
+    jkk_percentage: 0.01,
+    jkk_min_amount: 10000,
+    jkm_flat_amount: 6800,
+    jht_percentage: 0.02,
+    jht_min_amount: 20000,
+    death_benefit_amount: 42000000,
+    max_scholarship_amount: 174000000
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchRates = async () => {
+      try {
+        const res = await api.get('/bpu/rates');
+        if (res.data?.success && res.data.data) {
+          setBpuRates(res.data.data);
+        }
+      } catch (err) {
+        console.warn('Using default BPU rates:', err);
+      }
+    };
+    fetchRates();
+  }, [isOpen]);
+
+  // Dynamic calculations based on wage tier for BPJSTK BPU from Database
+  const jkkRate = Math.max(Number(bpuRates.jkk_min_amount) || 10000, Math.round(wageTier * (Number(bpuRates.jkk_percentage) || 0.01)));
+  const jkmRate = Number(bpuRates.jkm_flat_amount) || 6800;
+  const jhtRate = Math.max(Number(bpuRates.jht_min_amount) || 20000, Math.round(wageTier * (Number(bpuRates.jht_percentage) || 0.02)));
 
   const totalMonthlyFee = jkkRate + jkmRate + (includeJHT ? jhtRate : 0);
 
-  // Santunan Calculations
-  const santunanKematianJKM = 42000000;
-  const beasiswaMaksimal = 174000000;
+  // Santunan Calculations from Database
+  const santunanKematianJKM = Number(bpuRates.death_benefit_amount) || 42000000;
+  const beasiswaMaksimal = Number(bpuRates.max_scholarship_amount) || 174000000;
   const stmbBulan1sd6 = wageTier; // 100% upah
   const cacatTotalTetap = 56 * wageTier + 12000000; // 56x upah + santunan berkala 24 bln x Rp 500rb
 

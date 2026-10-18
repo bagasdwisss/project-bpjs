@@ -211,7 +211,7 @@ const Broadcast = () => {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Broadcast Pengumuman & Pop-up</h1>
             <p className="text-sm text-[#121214]/60 mt-1">
-              Atur siaran pengumuman instan dengan toast pop-up pojok kanan atau dialog peringatan tengah layar untuk seluruh pengguna BPJS Ketenagakerjaan.
+              Atur siaran pengumuman instan dengan toast pop-up pojok kanan atau dialog peringatan tengah layar untuk seluruh pengguna BPJSTK.
             </p>
           </div>
         </div>
@@ -240,7 +240,7 @@ const Broadcast = () => {
                 <span className="w-2.5 h-2.5 rounded-full bg-[#121214]"></span>
                 <h2 className="text-base font-bold text-[#121214]">Buat Siaran Pengumuman Baru</h2>
               </div>
-              <span className="text-xs font-semibold text-[#8A8985]">BPJS Ketenagakerjaan</span>
+              <span className="text-xs font-semibold text-[#8A8985]">BPJSTK</span>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -419,7 +419,7 @@ const Broadcast = () => {
                         detail: {
                           broadcast_id: 'preview-' + Date.now(),
                           title: title || 'Contoh Judul Pengumuman',
-                          content: message || 'Ini adalah contoh preview tampilan isi pengumuman broadcast sistem BPJS Ketenagakerjaan.',
+                          content: message || 'Ini adalah contoh preview tampilan isi pengumuman broadcast sistem BPJSTK.',
                           priority,
                           sent_at: new Date().toISOString()
                         }

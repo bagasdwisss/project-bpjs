@@ -377,3 +377,57 @@ INSERT INTO events (batch_id, event_title, event_description, start_datetime, en
 (1, 'Sosialisasi Akuisisi BPU', 'Briefing teknis pendekatan kelompok pekerja rentan dan bukan penerima upah', CURRENT_TIMESTAMP + INTERVAL '1 day', CURRENT_TIMESTAMP + INTERVAL '1 day 2 hours', 2),
 (1, 'Evaluasi Mingguan Koordinator', 'Review pencapaian target dan evaluasi kendala di lapangan', CURRENT_TIMESTAMP + INTERVAL '3 days', CURRENT_TIMESTAMP + INTERVAL '3 days 2 hours', 2)
 ON CONFLICT DO NOTHING;
+
+-- ========================================================
+-- DYNAMIC SYSTEM CONFIGURATION TABLES
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS grading_settings (
+    id SERIAL PRIMARY KEY,
+    target_kunjungan_bpu INT DEFAULT 30,
+    target_akuisisi_bpu INT DEFAULT 20,
+    target_kunjungan_pu INT DEFAULT 7,
+    target_video INT DEFAULT 1,
+    target_seminar INT DEFAULT 2,
+    target_sosialisasi INT DEFAULT 1,
+    weight_akuisisi_bpu NUMERIC(4,2) DEFAULT 0.30,
+    weight_kunjungan_bpu NUMERIC(4,2) DEFAULT 0.20,
+    weight_kunjungan_pu NUMERIC(4,2) DEFAULT 0.15,
+    weight_video NUMERIC(4,2) DEFAULT 0.15,
+    weight_seminar NUMERIC(4,2) DEFAULT 0.10,
+    weight_sosialisasi NUMERIC(4,2) DEFAULT 0.10,
+    grade_a_cutoff INT DEFAULT 85,
+    grade_b_cutoff INT DEFAULT 75,
+    grade_c_cutoff INT DEFAULT 65,
+    grade_d_cutoff INT DEFAULT 50,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS bpu_rates (
+    id SERIAL PRIMARY KEY,
+    jkk_percentage NUMERIC(4,2) DEFAULT 0.01,
+    jkk_min_amount INT DEFAULT 10000,
+    jkm_flat_amount INT DEFAULT 6800,
+    jht_percentage NUMERIC(4,2) DEFAULT 0.02,
+    jht_min_amount INT DEFAULT 20000,
+    death_benefit_amount BIGINT DEFAULT 42000000,
+    max_scholarship_amount BIGINT DEFAULT 174000000,
+    description TEXT DEFAULT 'Tarif Iuran dan Manfaat Resmi BPJSTK BPU (PP 82/2019)',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS leave_settings (
+    id SERIAL PRIMARY KEY,
+    max_leave_days_per_batch INT DEFAULT 3,
+    allowed_leave_types TEXT DEFAULT 'Sakit,Izin,Cuti,Keperluan Mendesak',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS placement_options (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

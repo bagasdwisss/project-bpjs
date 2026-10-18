@@ -90,6 +90,28 @@ const gradingService = {
       throw new Error(errorMessage);
     }
   },
+
+  // Get dynamic grading configuration (targets, weights, grade cutoffs)
+  getConfiguration: async () => {
+    try {
+      const response = await api.get('/grading/configuration');
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message;
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Update dynamic grading configuration
+  updateConfiguration: async (configData) => {
+    try {
+      const response = await api.put('/grading/configuration', configData);
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message;
+      throw new Error(errorMessage);
+    }
+  },
 };
 
 export default gradingService;

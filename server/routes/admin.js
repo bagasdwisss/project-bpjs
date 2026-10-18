@@ -286,7 +286,8 @@ router.put('/attendance-settings', authenticateToken, requireRole('Administrator
       late_tolerance_minutes,
       weekend_message,
       before_start_message,
-      after_end_message
+      after_end_message,
+      inactivity_timeout_minutes
     } = req.body;
 
     const result = await query(
@@ -300,8 +301,9 @@ router.put('/attendance-settings', authenticateToken, requireRole('Administrator
            weekend_message = COALESCE($7, weekend_message),
            before_start_message = COALESCE($8, before_start_message),
            after_end_message = COALESCE($9, after_end_message),
+           inactivity_timeout_minutes = COALESCE($10, inactivity_timeout_minutes),
            updated_at = CURRENT_TIMESTAMP,
-           updated_by = $10
+           updated_by = $11
        WHERE id = 1
        RETURNING *`,
       [
@@ -314,6 +316,7 @@ router.put('/attendance-settings', authenticateToken, requireRole('Administrator
         weekend_message,
         before_start_message,
         after_end_message,
+        inactivity_timeout_minutes,
         req.user.user_id
       ]
     );
@@ -321,7 +324,7 @@ router.put('/attendance-settings', authenticateToken, requireRole('Administrator
     await logActivity({
       userId: req.user.user_id,
       type: 'ATTENDANCE_SETTINGS_UPDATED',
-      details: `Admin memperbarui jam kerja dan aturan presensi: Masuk ${work_start_time || '07:00'}, Tepat Waktu s.d. ${work_ontime_limit || '08:00'}, Pulang ${work_end_time || '17:00'}`,
+      details: `Admin memperbarui jam kerja dan aturan presensi: Masuk ${work_start_time || '07:00'}, Tepat Waktu s.d. ${work_ontime_limit || '08:00'}, Pulang ${work_end_time || '17:00'}, Timeout Inaktivitas ${inactivity_timeout_minutes || 5}m`,
       ip: req.ip,
       userAgent: req.headers['user-agent']
     });
@@ -329,6 +332,62 @@ router.put('/attendance-settings', authenticateToken, requireRole('Administrator
     return res.json({
       success: true,
       message: 'Pengaturan jam kerja dan presensi berhasil diperbarui.',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/geofence/office
+ * Retrieve active official office geofence
+ */
+router.get('/geofence/office', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, name, address, latitude, longitude, radius_meters, category, is_active
+       FROM geofence_locations
+       WHERE category = 'kantor' AND id = 1
+       LIMIT 1`
+    );
+    return res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/geofence/office
+ * Administrator updates office name, address, coordinates, and geofence radius
+ */
+router.put('/geofence/office', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { name, address, latitude, longitude, radius_meters } = req.body;
+    const result = await query(
+      `UPDATE geofence_locations
+       SET name = COALESCE($1, name),
+           address = COALESCE($2, address),
+           latitude = COALESCE($3, latitude),
+           longitude = COALESCE($4, longitude),
+           radius_meters = COALESCE($5, radius_meters),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE category = 'kantor' AND id = 1
+       RETURNING *`,
+      [name, address, latitude, longitude, radius_meters]
+    );
+
+    await logActivity({
+      userId: req.user.user_id,
+      type: 'UPDATE_GEOFENCE_OFFICE',
+      details: `Memperbarui lokasi kantor & radius geofence: ${name || 'Kantor Cabang'} (${radius_meters} meter)`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
+    return res.json({
+      success: true,
+      message: 'Lokasi dan radius geofence kantor berhasil diperbarui!',
       data: result.rows[0]
     });
   } catch (error) {

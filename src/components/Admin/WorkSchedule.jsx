@@ -19,13 +19,16 @@ import {
   X,
   Search,
   Check,
-  CalendarOff
+  CalendarOff,
+  MapPin,
+  Target,
+  Calculator
 } from 'lucide-react';
 import NeoDatePicker from '../Common/NeoDatePicker';
 
 const WorkSchedule = () => {
   const { toast, confirm } = useToast();
-  const [activeTab, setActiveTab] = useState('jam-kerja'); // 'jam-kerja' | 'hari-libur'
+  const [activeTab, setActiveTab] = useState('jam-kerja'); // 'jam-kerja' | 'hari-libur' | 'geofence' | 'penilaian' | 'bpu-rates'
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -36,10 +39,54 @@ const WorkSchedule = () => {
     work_end_time: '17:00',
     allow_weekend: false,
     late_tolerance_minutes: 0,
+    inactivity_timeout_minutes: 5,
     weekend_message: 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.',
     before_start_message: 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.',
     after_end_message: 'Presensi hari ini telah ditutup pada pukul {end_time}.'
   });
+
+  // Office Geofence State
+  const [officeGeofence, setOfficeGeofence] = useState({
+    name: 'Kantor Cabang BPJSTK Medan Kota',
+    address: 'BPJSTK, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153',
+    latitude: 3.575556,
+    longitude: 98.665278,
+    radius_meters: 150
+  });
+  const [savingGeofence, setSavingGeofence] = useState(false);
+
+  // Grading Config State
+  const [gradingConfig, setGradingConfig] = useState({
+    target_kunjungan_bpu: 30,
+    target_akuisisi_bpu: 20,
+    target_kunjungan_pu: 7,
+    target_video: 1,
+    target_seminar: 2,
+    target_sosialisasi: 1,
+    weight_akuisisi_bpu: 30,
+    weight_kunjungan_bpu: 20,
+    weight_kunjungan_pu: 15,
+    weight_video: 15,
+    weight_seminar: 10,
+    weight_sosialisasi: 10,
+    grade_a_cutoff: 85,
+    grade_b_cutoff: 75,
+    grade_c_cutoff: 65,
+    grade_d_cutoff: 50
+  });
+  const [savingGrading, setSavingGrading] = useState(false);
+
+  // BPU Rates State
+  const [bpuRates, setBpuRates] = useState({
+    jkk_percentage: 1,
+    jkk_min_amount: 10000,
+    jkm_flat_amount: 6800,
+    jht_percentage: 2,
+    jht_min_amount: 20000,
+    death_benefit_amount: 42000000,
+    max_scholarship_amount: 174000000
+  });
+  const [savingRates, setSavingRates] = useState(false);
 
   // Holidays State
   const [holidays, setHolidays] = useState([]);
@@ -71,6 +118,7 @@ const WorkSchedule = () => {
           work_end_time: (d.work_end_time || '17:00').substring(0, 5),
           allow_weekend: Boolean(d.allow_weekend),
           late_tolerance_minutes: parseInt(d.late_tolerance_minutes, 10) || 0,
+          inactivity_timeout_minutes: parseInt(d.inactivity_timeout_minutes, 10) || 5,
           weekend_message: d.weekend_message || 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.',
           before_start_message: d.before_start_message || 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.',
           after_end_message: d.after_end_message || 'Presensi hari ini telah ditutup pada pukul {end_time}.'
@@ -81,6 +129,75 @@ const WorkSchedule = () => {
       toast.error('Gagal memuat pengaturan jam kerja: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoadingSettings(false);
+    }
+  };
+
+  // Fetch Office Geofence
+  const fetchOfficeGeofence = async () => {
+    try {
+      const res = await api.get('/admin/geofence/office');
+      if (res.data?.success && res.data.data) {
+        setOfficeGeofence({
+          name: res.data.data.name || 'Kantor Cabang BPJSTK Medan Kota',
+          address: res.data.data.address || '',
+          latitude: Number(res.data.data.latitude) || 3.575556,
+          longitude: Number(res.data.data.longitude) || 98.665278,
+          radius_meters: Number(res.data.data.radius_meters) || 150
+        });
+      }
+    } catch (err) {
+      console.warn('Could not fetch office geofence:', err);
+    }
+  };
+
+  // Fetch Grading Config
+  const fetchGradingConfig = async () => {
+    try {
+      const res = await api.get('/grading/configuration');
+      if (res.data?.success && res.data.data) {
+        const d = res.data.data;
+        setGradingConfig({
+          target_kunjungan_bpu: d.targets.max_kunjungan_bpu || 30,
+          target_akuisisi_bpu: d.targets.max_akuisisi_bpu || 20,
+          target_kunjungan_pu: d.targets.max_kunjungan_pu || 7,
+          target_video: d.targets.target_video || 1,
+          target_seminar: d.targets.target_seminar || 2,
+          target_sosialisasi: d.targets.target_sosialisasi || 1,
+          weight_akuisisi_bpu: Math.round((d.weights.akuisisi_bpu || 0.3) * 100),
+          weight_kunjungan_bpu: Math.round((d.weights.kunjungan_bpu || 0.2) * 100),
+          weight_kunjungan_pu: Math.round((d.weights.kunjungan_pu || 0.15) * 100),
+          weight_video: Math.round((d.weights.video || 0.15) * 100),
+          weight_seminar: Math.round((d.weights.seminar || 0.1) * 100),
+          weight_sosialisasi: Math.round((d.weights.sosialisasi || 0.1) * 100),
+          grade_a_cutoff: d.cutoffs?.grade_a || 85,
+          grade_b_cutoff: d.cutoffs?.grade_b || 75,
+          grade_c_cutoff: d.cutoffs?.grade_c || 65,
+          grade_d_cutoff: d.cutoffs?.grade_d || 50
+        });
+      }
+    } catch (err) {
+      console.warn('Could not fetch grading configuration:', err);
+    }
+  };
+
+  // Fetch BPU Rates
+  const fetchBpuRates = async () => {
+    try {
+      const res = await api.get('/bpu/rates');
+      if (res.data?.success && res.data.data) {
+        const d = res.data.data;
+        setBpuRates({
+          jkk_percentage: Math.round((Number(d.jkk_percentage) || 0.01) * 100),
+          jkk_min_amount: Number(d.jkk_min_amount) || 10000,
+          jkm_flat_amount: Number(d.jkm_flat_amount) || 6800,
+          jht_percentage: Math.round((Number(d.jht_percentage) || 0.02) * 100),
+          jht_min_amount: Number(d.jht_min_amount) || 20000,
+          death_benefit_amount: Number(d.death_benefit_amount) || 42000000,
+          max_scholarship_amount: Number(d.max_scholarship_amount) || 174000000
+        });
+      }
+    } catch (err) {
+      console.warn('Could not fetch BPU rates:', err);
     }
   };
 
@@ -103,6 +220,9 @@ const WorkSchedule = () => {
   useEffect(() => {
     fetchSettings();
     fetchHolidays();
+    fetchOfficeGeofence();
+    fetchGradingConfig();
+    fetchBpuRates();
   }, []);
 
   // Save Settings
@@ -116,6 +236,7 @@ const WorkSchedule = () => {
         work_end_time: settings.work_end_time + ':00',
         allow_weekend: settings.allow_weekend,
         late_tolerance_minutes: parseInt(settings.late_tolerance_minutes, 10) || 0,
+        inactivity_timeout_minutes: parseInt(settings.inactivity_timeout_minutes, 10) || 5,
         weekend_message: settings.weekend_message.trim(),
         before_start_message: settings.before_start_message.trim(),
         after_end_message: settings.after_end_message.trim()
@@ -123,6 +244,7 @@ const WorkSchedule = () => {
 
       const res = await api.put('/admin/attendance-settings', payload);
       if (res.data?.success) {
+        localStorage.setItem('sys_inactivity_minutes', (settings.inactivity_timeout_minutes || 5).toString());
         toast.success('Pengaturan jam kerja dan aturan presensi berhasil disimpan secara dinamis!');
       }
     } catch (err) {
@@ -130,6 +252,89 @@ const WorkSchedule = () => {
       toast.error('Gagal menyimpan pengaturan: ' + (err.response?.data?.message || err.message));
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  // Save Office Geofence
+  const handleSaveGeofence = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingGeofence(true);
+      const res = await api.put('/admin/geofence/office', officeGeofence);
+      if (res.data?.success) {
+        toast.success('Koordinat dan radius geofence kantor resmi berhasil diperbarui!');
+        fetchOfficeGeofence();
+      }
+    } catch (err) {
+      console.error('Error saving geofence:', err);
+      toast.error('Gagal menyimpan geofence: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSavingGeofence(false);
+    }
+  };
+
+  // Save Grading Config
+  const handleSaveGradingConfig = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingGrading(true);
+      const payload = {
+        target_kunjungan_bpu: parseInt(gradingConfig.target_kunjungan_bpu, 10) || 30,
+        target_akuisisi_bpu: parseInt(gradingConfig.target_akuisisi_bpu, 10) || 20,
+        target_kunjungan_pu: parseInt(gradingConfig.target_kunjungan_pu, 10) || 7,
+        target_video: parseInt(gradingConfig.target_video, 10) || 1,
+        target_seminar: parseInt(gradingConfig.target_seminar, 10) || 2,
+        target_sosialisasi: parseInt(gradingConfig.target_sosialisasi, 10) || 1,
+        weight_akuisisi_bpu: (parseFloat(gradingConfig.weight_akuisisi_bpu) || 30) / 100,
+        weight_kunjungan_bpu: (parseFloat(gradingConfig.weight_kunjungan_bpu) || 20) / 100,
+        weight_kunjungan_pu: (parseFloat(gradingConfig.weight_kunjungan_pu) || 15) / 100,
+        weight_video: (parseFloat(gradingConfig.weight_video) || 15) / 100,
+        weight_seminar: (parseFloat(gradingConfig.weight_seminar) || 10) / 100,
+        weight_sosialisasi: (parseFloat(gradingConfig.weight_sosialisasi) || 10) / 100,
+        grade_a_cutoff: parseInt(gradingConfig.grade_a_cutoff, 10) || 85,
+        grade_b_cutoff: parseInt(gradingConfig.grade_b_cutoff, 10) || 75,
+        grade_c_cutoff: parseInt(gradingConfig.grade_c_cutoff, 10) || 65,
+        grade_d_cutoff: parseInt(gradingConfig.grade_d_cutoff, 10) || 50
+      };
+
+      const res = await api.put('/grading/configuration', payload);
+      if (res.data?.success) {
+        toast.success('Target dan bobot penilaian kelulusan berhasil diperbarui!');
+        fetchGradingConfig();
+      }
+    } catch (err) {
+      console.error('Error saving grading config:', err);
+      toast.error('Gagal menyimpan bobot penilaian: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSavingGrading(false);
+    }
+  };
+
+  // Save BPU Rates
+  const handleSaveBpuRates = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingRates(true);
+      const payload = {
+        jkk_percentage: (parseFloat(bpuRates.jkk_percentage) || 1) / 100,
+        jkk_min_amount: parseInt(bpuRates.jkk_min_amount, 10) || 10000,
+        jkm_flat_amount: parseInt(bpuRates.jkm_flat_amount, 10) || 6800,
+        jht_percentage: (parseFloat(bpuRates.jht_percentage) || 2) / 100,
+        jht_min_amount: parseInt(bpuRates.jht_min_amount, 10) || 20000,
+        death_benefit_amount: parseInt(bpuRates.death_benefit_amount, 10) || 42000000,
+        max_scholarship_amount: parseInt(bpuRates.max_scholarship_amount, 10) || 174000000
+      };
+
+      const res = await api.put('/bpu/rates', payload);
+      if (res.data?.success) {
+        toast.success('Konfigurasi tarif iuran dan santunan BPU berhasil diperbarui!');
+        fetchBpuRates();
+      }
+    } catch (err) {
+      console.error('Error saving BPU rates:', err);
+      toast.error('Gagal menyimpan tarif BPU: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSavingRates(false);
     }
   };
 
@@ -258,29 +463,65 @@ const WorkSchedule = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-3 border-b-2 border-[#121214]/10 pb-2 overflow-x-auto">
+        <div className="flex items-center gap-2 sm:gap-3 border-b-2 border-[#121214]/10 pb-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('jam-kerja')}
-            className={`px-5 py-2.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'jam-kerja'
                 ? 'bg-[#FCE373] text-[#121214] shadow-[3px_3px_0px_#121214]'
                 : 'bg-white text-gray-600 hover:text-[#121214] hover:bg-gray-100 shadow-[1px_1px_0px_#121214]'
             }`}
           >
             <Clock className="w-4 h-4" />
-            Pengaturan Jam Kerja & Keterlambatan
+            Jam Kerja & Presensi
           </button>
 
           <button
             onClick={() => setActiveTab('hari-libur')}
-            className={`px-5 py-2.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'hari-libur'
                 ? 'bg-[#F5C6EC] text-[#121214] shadow-[3px_3px_0px_#121214]'
                 : 'bg-white text-gray-600 hover:text-[#121214] hover:bg-gray-100 shadow-[1px_1px_0px_#121214]'
             }`}
           >
             <CalendarOff className="w-4 h-4" />
-            Manajemen Hari Libur Nasional ({holidays.length})
+            Hari Libur Nasional ({holidays.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('geofence')}
+            className={`px-4 py-2.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'geofence'
+                ? 'bg-[#B8C96E] text-[#121214] shadow-[3px_3px_0px_#121214]'
+                : 'bg-white text-gray-600 hover:text-[#121214] hover:bg-gray-100 shadow-[1px_1px_0px_#121214]'
+            }`}
+          >
+            <MapPin className="w-4 h-4" />
+            Lokasi Kantor & Geofence GPS
+          </button>
+
+          <button
+            onClick={() => setActiveTab('penilaian')}
+            className={`px-4 py-2.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'penilaian'
+                ? 'bg-[#BDD4F2] text-[#121214] shadow-[3px_3px_0px_#121214]'
+                : 'bg-white text-gray-600 hover:text-[#121214] hover:bg-gray-100 shadow-[1px_1px_0px_#121214]'
+            }`}
+          >
+            <Target className="w-4 h-4" />
+            Bobot & Target Nilai
+          </button>
+
+          <button
+            onClick={() => setActiveTab('bpu-rates')}
+            className={`px-4 py-2.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'bpu-rates'
+                ? 'bg-[#FCE373] text-[#121214] shadow-[3px_3px_0px_#121214]'
+                : 'bg-white text-gray-600 hover:text-[#121214] hover:bg-gray-100 shadow-[1px_1px_0px_#121214]'
+            }`}
+          >
+            <Calculator className="w-4 h-4" />
+            Tarif Iuran BPU
           </button>
         </div>
 
@@ -382,6 +623,29 @@ const WorkSchedule = () => {
                       />
                       <p className="text-[11px] text-gray-500 font-semibold">
                         Absensi ditutup setelah jam ini setiap harinya.
+                      </p>
+                    </div>
+
+                    {/* Batas Waktu Inaktivitas Otomatis */}
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-xs font-black text-[#121214] flex items-center gap-1.5">
+                        Batas Waktu Inaktivitas Sesi Akun (Auto-Logout)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={settings.inactivity_timeout_minutes || 5}
+                          onChange={(e) => setSettings({ ...settings, inactivity_timeout_minutes: Math.max(1, parseInt(e.target.value, 10) || 5) })}
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-sm font-black text-[#121214] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FCE373] shadow-[2px_2px_0px_#121214]"
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400">
+                          Menit
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 font-semibold">
+                        Sesi akun otomatis dikeluarkan demi keamanan jika tidak ada interaksi pengguna selama batas waktu ini (Default: 5 menit).
                       </p>
                     </div>
                   </div>
@@ -707,6 +971,515 @@ const WorkSchedule = () => {
               )}
             </div>
           </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 3: LOKASI KANTOR RESMI & RADIUS GEOFENCE GPS */}
+        {/* ======================================================== */}
+        {activeTab === 'geofence' && (
+          <form onSubmit={handleSaveGeofence} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Kolom Kiri: Form Koordinat & Radius (lg:col-span-7) */}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
+                  <div className="flex items-center gap-2.5 border-b-2 border-gray-100 pb-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#B8C96E] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214]">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-black text-[#121214] uppercase tracking-wide">
+                        Koordinat Acuan Kantor BPJSTK & Geofence
+                      </h2>
+                      <p className="text-xs text-gray-500 font-medium">
+                        Titik pusat GPS kantor yang menjadi acuan validasi presensi selfie peserta.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Nama Kantor */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-[#121214]">
+                        Nama Titik Kantor Presensi
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={officeGeofence.name}
+                        onChange={(e) => setOfficeGeofence({ ...officeGeofence, name: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] focus:bg-white focus:outline-none shadow-[2px_2px_0px_#121214]"
+                      />
+                    </div>
+
+                    {/* Alamat Lengkap */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-[#121214]">
+                        Alamat Lengkap Kantor
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        value={officeGeofence.address}
+                        onChange={(e) => setOfficeGeofence({ ...officeGeofence, address: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-medium text-[#121214] focus:bg-white focus:outline-none shadow-[2px_2px_0px_#121214]"
+                      />
+                    </div>
+
+                    {/* Lat, Lon, Radius */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-black text-[#121214]">
+                          Latitude (Garis Lintang)
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          required
+                          value={officeGeofence.latitude}
+                          onChange={(e) => setOfficeGeofence({ ...officeGeofence, latitude: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] focus:bg-white focus:outline-none shadow-[2px_2px_0px_#121214]"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-black text-[#121214]">
+                          Longitude (Garis Bujur)
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          required
+                          value={officeGeofence.longitude}
+                          onChange={(e) => setOfficeGeofence({ ...officeGeofence, longitude: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] focus:bg-white focus:outline-none shadow-[2px_2px_0px_#121214]"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-black text-[#121214]">
+                          Radius Validasi (Meter)
+                        </label>
+                        <input
+                          type="number"
+                          min="10"
+                          max="2000"
+                          required
+                          value={officeGeofence.radius_meters}
+                          onChange={(e) => setOfficeGeofence({ ...officeGeofence, radius_meters: parseInt(e.target.value, 10) || 150 })}
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] focus:bg-white focus:outline-none shadow-[2px_2px_0px_#121214]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={savingGeofence}
+                      className="w-full py-3 px-4 rounded-xl border-2 border-[#121214] bg-[#B8C96E] hover:bg-[#a5b65b] active:scale-95 text-xs font-black text-[#121214] shadow-[3px_3px_0px_#121214] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {savingGeofence ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Simpan Perubahan Koordinat & Radius Kantor
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kolom Kanan: Live Info Box (lg:col-span-5) */}
+              <div className="lg:col-span-5 space-y-5">
+                <div className="bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl p-5 shadow-[4px_4px_0px_#121214] space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-[#121214]" />
+                    <h3 className="text-xs font-black text-[#121214] uppercase tracking-wide">
+                      Petunjuk Validasi Geofence Dinamis
+                    </h3>
+                  </div>
+                  <ul className="text-xs text-gray-700 font-medium space-y-2 list-disc list-inside">
+                    <li>Peserta diwajibkan berada dalam lingkaran radius <strong className="font-black text-[#121214]">{officeGeofence.radius_meters} meter</strong> dari titik koordinat resmi ini.</li>
+                    <li>Sistem secara otomatis menghitung jarak *Haversine* langsung dari perangkat peserta ke titik GPS ini.</li>
+                    <li>Jika kantor berpindah lokasi atau ada toleransi sinyal GPS lemah (misal saat hujan/berada di dalam gedung), Anda cukup menaikkan radius menjadi 200m atau 300m langsung dari sini.</li>
+                  </ul>
+                  <div className="pt-2">
+                    <a
+                      href={`https://www.google.com/maps?q=${officeGeofence.latitude},${officeGeofence.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border-2 border-[#121214] text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#FCE373] transition-all"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      Buka Koordinat di Google Maps
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </form>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 4: TARGET & BOBOT PENILAIAN DINAMIS */}
+        {/* ======================================================== */}
+        {activeTab === 'penilaian' && (
+          <form onSubmit={handleSaveGradingConfig} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Target Capaian (lg:col-span-6) */}
+              <div className="lg:col-span-6 space-y-6">
+                <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-4">
+                  <div className="flex items-center gap-2.5 border-b-2 border-gray-100 pb-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#BDD4F2] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214]">
+                      <Target className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-black text-[#121214] uppercase tracking-wide">
+                        Target Capaian Kegiatan (100% Poin)
+                      </h2>
+                      <p className="text-xs text-gray-500 font-medium">
+                        Jumlah angka target untuk mencapai skor maksimal pada tiap indikator.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Target Kunjungan BPU</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={gradingConfig.target_kunjungan_bpu}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, target_kunjungan_bpu: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Target Akuisisi BPU</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={gradingConfig.target_akuisisi_bpu}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, target_akuisisi_bpu: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Target Kunjungan PU</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={gradingConfig.target_kunjungan_pu}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, target_kunjungan_pu: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Target Video Viralisasi</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={gradingConfig.target_video}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, target_video: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Target Kehadiran Seminar</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={gradingConfig.target_seminar}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, target_seminar: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Target Sosialisasi</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={gradingConfig.target_sosialisasi}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, target_sosialisasi: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ambang Batas Nilai Huruf */}
+                <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-4">
+                  <h3 className="text-xs font-black text-[#121214] uppercase tracking-wide">
+                    Ambang Batas Nilai Huruf (Grade Cutoff)
+                  </h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-emerald-700">Grade A (Min)</label>
+                      <input
+                        type="number"
+                        value={gradingConfig.grade_a_cutoff}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, grade_a_cutoff: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-black text-center"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-blue-700">Grade B (Min)</label>
+                      <input
+                        type="number"
+                        value={gradingConfig.grade_b_cutoff}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, grade_b_cutoff: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-black text-center"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-amber-700">Grade C (Min)</label>
+                      <input
+                        type="number"
+                        value={gradingConfig.grade_c_cutoff}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, grade_c_cutoff: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-black text-center"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-rose-700">Grade D (Min)</label>
+                      <input
+                        type="number"
+                        value={gradingConfig.grade_d_cutoff}
+                        onChange={(e) => setGradingConfig({ ...gradingConfig, grade_d_cutoff: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-black text-center"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bobot Persentase Nilai (lg:col-span-6) */}
+              <div className="lg:col-span-6 space-y-6">
+                <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-4">
+                  <div className="flex items-center justify-between border-b-2 border-gray-100 pb-3">
+                    <h2 className="text-sm font-black text-[#121214] uppercase tracking-wide">
+                      Bobot Persentase Penilaian (%)
+                    </h2>
+                    <span className={`text-xs font-black px-2.5 py-0.5 rounded border border-[#121214] ${
+                      (Number(gradingConfig.weight_akuisisi_bpu) + Number(gradingConfig.weight_kunjungan_bpu) + Number(gradingConfig.weight_kunjungan_pu) + Number(gradingConfig.weight_video) + Number(gradingConfig.weight_seminar) + Number(gradingConfig.weight_sosialisasi) === 100)
+                        ? 'bg-[#B8C96E] text-[#121214]'
+                        : 'bg-[#F5C6EC] text-[#121214]'
+                    }`}>
+                      Total: {Number(gradingConfig.weight_akuisisi_bpu) + Number(gradingConfig.weight_kunjungan_bpu) + Number(gradingConfig.weight_kunjungan_pu) + Number(gradingConfig.weight_video) + Number(gradingConfig.weight_seminar) + Number(gradingConfig.weight_sosialisasi)}%
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-xs font-bold text-[#121214]">Hasil Akuisisi BPU</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={gradingConfig.weight_akuisisi_bpu}
+                          onChange={(e) => setGradingConfig({ ...gradingConfig, weight_akuisisi_bpu: e.target.value })}
+                          className="w-20 px-2 py-1 bg-gray-50 border-2 border-[#121214] rounded-lg text-xs font-bold text-center"
+                        />
+                        <span className="text-xs font-bold text-gray-500">%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-xs font-bold text-[#121214]">Kunjungan Lapangan BPU</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={gradingConfig.weight_kunjungan_bpu}
+                          onChange={(e) => setGradingConfig({ ...gradingConfig, weight_kunjungan_bpu: e.target.value })}
+                          className="w-20 px-2 py-1 bg-gray-50 border-2 border-[#121214] rounded-lg text-xs font-bold text-center"
+                        />
+                        <span className="text-xs font-bold text-gray-500">%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-xs font-bold text-[#121214]">Kunjungan Perusahaan PU</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={gradingConfig.weight_kunjungan_pu}
+                          onChange={(e) => setGradingConfig({ ...gradingConfig, weight_kunjungan_pu: e.target.value })}
+                          className="w-20 px-2 py-1 bg-gray-50 border-2 border-[#121214] rounded-lg text-xs font-bold text-center"
+                        />
+                        <span className="text-xs font-bold text-gray-500">%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-xs font-bold text-[#121214]">Video Viralisasi BPJSTK</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={gradingConfig.weight_video}
+                          onChange={(e) => setGradingConfig({ ...gradingConfig, weight_video: e.target.value })}
+                          className="w-20 px-2 py-1 bg-gray-50 border-2 border-[#121214] rounded-lg text-xs font-bold text-center"
+                        />
+                        <span className="text-xs font-bold text-gray-500">%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-xs font-bold text-[#121214]">Kehadiran Seminar Nasional</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={gradingConfig.weight_seminar}
+                          onChange={(e) => setGradingConfig({ ...gradingConfig, weight_seminar: e.target.value })}
+                          className="w-20 px-2 py-1 bg-gray-50 border-2 border-[#121214] rounded-lg text-xs font-bold text-center"
+                        />
+                        <span className="text-xs font-bold text-gray-500">%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-xs font-bold text-[#121214]">Kehadiran Sosialisasi BPU</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={gradingConfig.weight_sosialisasi}
+                          onChange={(e) => setGradingConfig({ ...gradingConfig, weight_sosialisasi: e.target.value })}
+                          className="w-20 px-2 py-1 bg-gray-50 border-2 border-[#121214] rounded-lg text-xs font-bold text-center"
+                        />
+                        <span className="text-xs font-bold text-gray-500">%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3">
+                    <button
+                      type="submit"
+                      disabled={savingGrading}
+                      className="w-full py-3 px-4 rounded-xl border-2 border-[#121214] bg-[#BDD4F2] hover:bg-[#a9c5eb] active:scale-95 text-xs font-black text-[#121214] shadow-[3px_3px_0px_#121214] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {savingGrading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Simpan Pengaturan Bobot & Target Penilaian
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </form>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 5: TARIF IURAN & MANFAAT BPJSTK BPU DINAMIS */}
+        {/* ======================================================== */}
+        {activeTab === 'bpu-rates' && (
+          <form onSubmit={handleSaveBpuRates} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              <div className="lg:col-span-7 space-y-6">
+                <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-4">
+                  <div className="flex items-center gap-2.5 border-b-2 border-gray-100 pb-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#FCE373] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214]">
+                      <Calculator className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-black text-[#121214] uppercase tracking-wide">
+                        Skema Iuran & Plafon Santunan BPU
+                      </h2>
+                      <p className="text-xs text-gray-500 font-medium">
+                        Parameter simulasi pada Kalkulator BPU dan verifikasi pendaftaran iuran mandiri.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Persentase Iuran JKK (%)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={bpuRates.jkk_percentage}
+                        onChange={(e) => setBpuRates({ ...bpuRates, jkk_percentage: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Iuran Minimum JKK (Rp)</label>
+                      <input
+                        type="number"
+                        value={bpuRates.jkk_min_amount}
+                        onChange={(e) => setBpuRates({ ...bpuRates, jkk_min_amount: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Iuran Flat JKM (Rp)</label>
+                      <input
+                        type="number"
+                        value={bpuRates.jkm_flat_amount}
+                        onChange={(e) => setBpuRates({ ...bpuRates, jkm_flat_amount: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#121214]">Persentase Iuran JHT (%)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={bpuRates.jht_percentage}
+                        onChange={(e) => setBpuRates({ ...bpuRates, jht_percentage: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-xs font-black text-[#121214]">Santunan Kematian JKM Tunai (Rp)</label>
+                      <input
+                        type="number"
+                        value={bpuRates.death_benefit_amount}
+                        onChange={(e) => setBpuRates({ ...bpuRates, death_benefit_amount: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-xs font-black text-[#121214]">Plafon Beasiswa Maksimal 2 Anak (Rp)</label>
+                      <input
+                        type="number"
+                        value={bpuRates.max_scholarship_amount}
+                        onChange={(e) => setBpuRates({ ...bpuRates, max_scholarship_amount: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={savingRates}
+                      className="w-full py-3 px-4 rounded-xl border-2 border-[#121214] bg-[#FCE373] hover:bg-[#ebd056] active:scale-95 text-xs font-black text-[#121214] shadow-[3px_3px_0px_#121214] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {savingRates ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Simpan Konfigurasi Tarif Iuran & Manfaat BPU
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 space-y-4">
+                <div className="bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl p-5 shadow-[4px_4px_0px_#121214] space-y-3">
+                  <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider block">
+                    Kombinasi Paket Hemat BPU Aktif:
+                  </span>
+                  <div className="p-3 bg-white border-2 border-[#121214] rounded-xl space-y-1">
+                    <p className="text-xs font-black text-[#121214]">2 Program (JKK + JKM)</p>
+                    <p className="text-sm font-black text-emerald-700">Rp {Number(bpuRates.jkk_min_amount) + Number(bpuRates.jkm_flat_amount)} / bulan</p>
+                    <p className="text-[10px] text-gray-500">Memberikan proteksi kecelakaan kerja unlimited + santunan Rp 42 juta.</p>
+                  </div>
+                  <div className="p-3 bg-white border-2 border-[#121214] rounded-xl space-y-1">
+                    <p className="text-xs font-black text-[#121214]">3 Program (JKK + JKM + JHT)</p>
+                    <p className="text-sm font-black text-blue-700">Mulai Rp {Number(bpuRates.jkk_min_amount) + Number(bpuRates.jkm_flat_amount) + Number(bpuRates.jht_min_amount)} / bulan</p>
+                    <p className="text-[10px] text-gray-500">Termasuk tabungan pensiun hari tua.</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </form>
         )}
 
         {/* Modal Tambah / Edit Hari Libur */}

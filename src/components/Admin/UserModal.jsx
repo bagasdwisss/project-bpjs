@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Lock, Briefcase, Shield, Sparkles } from 'lucide-react';
+import api from '../../services/api';
 
 const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +11,28 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
     penempatan: '',
     password: ''
   });
+
+  const [placementOptions, setPlacementOptions] = useState([
+    { code: 'kantor', name: 'Kantor (WFO)', description: 'Penugasan di Kantor Cabang' },
+    { code: 'lapangan', name: 'Lapangan (Survey)', description: 'Penugasan Luar / Lapangan' },
+    { code: 'kepesertaan', name: 'Bidang Kepesertaan BPU', description: 'Akuisisi & Edukasi' },
+    { code: 'pelayanan', name: 'Bidang Pelayanan', description: 'Pelayanan Klaim & Front Office' },
+    { code: 'keuangan_ti', name: 'Bidang Keuangan & TI', description: 'Administrasi & TI' }
+  ]);
+
+  useEffect(() => {
+    const fetchPlacements = async () => {
+      try {
+        const res = await api.get('/placements');
+        if (res.data?.success && res.data.data?.length > 0) {
+          setPlacementOptions(res.data.data);
+        }
+      } catch (err) {
+        console.warn('Using default placement options:', err);
+      }
+    };
+    fetchPlacements();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -146,25 +169,22 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
             <label className="block text-[11px] font-extrabold text-[#121214] uppercase tracking-wider mb-1.5">
               Penempatan Kerja
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { value: 'kantor', label: 'Kantor (WFO)', desc: 'Penugasan di Kantor Cabang' },
-                { value: 'lapangan', label: 'Lapangan (Survey)', desc: 'Penugasan Luar / Lapangan' }
-              ].map(p => {
-                const isSelected = formData.penempatan === p.value;
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {placementOptions.map(p => {
+                const isSelected = formData.penempatan === p.code;
                 return (
                   <button
-                    key={p.value}
+                    key={p.code}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, penempatan: p.value }))}
-                    className={`p-3 rounded-2xl border-2 border-[#121214] text-left transition-all ${
+                    onClick={() => setFormData(prev => ({ ...prev, penempatan: p.code }))}
+                    className={`p-2.5 rounded-2xl border-2 border-[#121214] text-left transition-all ${
                       isSelected
                         ? 'bg-[#FCE373] text-[#121214] shadow-[3px_3px_0px_#121214] font-black'
                         : 'bg-[#FAF9F6] text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-white'
                     }`}
                   >
-                    <div className="text-xs font-black">{p.label}</div>
-                    <div className="text-[10px] text-[#121214]/70 mt-0.5 font-medium">{p.desc}</div>
+                    <div className="text-xs font-black truncate">{p.name}</div>
+                    <div className="text-[10px] text-[#121214]/70 mt-0.5 font-medium truncate">{p.description}</div>
                   </button>
                 );
               })}

@@ -254,7 +254,7 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Modul Aktif</p>
                   <p className="text-2xl font-black text-[#121214] mt-0.5">{stats.totalModules} Modul</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum BPJS</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum BPJSTK</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Database Cloud</p>

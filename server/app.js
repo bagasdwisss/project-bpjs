@@ -178,7 +178,7 @@ app.use((err, req, res, next) => {
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
-    console.log(`🚀 BPJS API server running on port ${PORT}`);
+    console.log(`🚀 BPJSTK API server running on port ${PORT}`);
     console.log(`📦 Neon PostgreSQL target configured`);
   });
 }
