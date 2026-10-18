@@ -55,6 +55,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         ],
         tools: [
           { path: '/coordinator/calendar', icon: Calendar, label: 'Agenda & Jadwal' },
+          { path: '/coordinator/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
           { path: '/coordinator/reminders', icon: Bell, label: 'Pengingat' },
           { isChat: true, icon: MessageSquare, label: 'Chat Bimbingan' },
         ]
@@ -77,6 +78,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       return {
         general: filteredGeneral,
         tools: [
+          { path: '/participant/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
           { path: '/participant/documents', icon: FolderOpen, label: 'Basis Dokumen' },
           { path: '/participant/notifications', icon: Bell, label: 'Notifikasi' },
           { isChat: true, icon: MessageSquare, label: 'Chat Bimbingan' },

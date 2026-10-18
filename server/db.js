@@ -1,4 +1,4 @@
-// api/db.js - Neon PostgreSQL Connection Pool
+// server/db.js - Neon PostgreSQL Connection Pool with Circuit Breaker Pattern
 import pg from 'pg';
 import dotenv from 'dotenv';
 
@@ -6,8 +6,6 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// Neon connection strings look like: postgresql://[user]:[password]@[host]/[dbname]?sslmode=require
-// Vercel's Neon Integration injects POSTGRES_URL, DATABASE_URL, POSTGRES_PRISMA_URL, etc.
 const connectionString = 
   process.env.DATABASE_URL || 
   process.env.POSTGRES_URL || 
@@ -28,8 +26,89 @@ const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle PostgreSQL client:', err);
+  console.error('Unexpected error on idle PostgreSQL client:', err.message);
 });
 
-export const query = (text, params) => pool.query(text, params);
+// =========================================================================
+// FEATURE 21: CIRCUIT BREAKER PATTERN FOR CLOUD DATABASE
+// =========================================================================
+class DatabaseCircuitBreaker {
+  constructor(failureThreshold = 5, recoveryTimeoutMs = 15000) {
+    this.state = 'CLOSED'; // 'CLOSED' | 'OPEN' | 'HALF_OPEN'
+    this.failureCount = 0;
+    this.failureThreshold = failureThreshold;
+    this.recoveryTimeoutMs = recoveryTimeoutMs;
+    this.lastFailureTime = null;
+    this.totalSuccess = 0;
+    this.totalTripped = 0;
+  }
+
+  isOpen() {
+    if (this.state === 'OPEN') {
+      const now = Date.now();
+      if (now - this.lastFailureTime > this.recoveryTimeoutMs) {
+        console.warn('⚡ [Circuit Breaker] Entering HALF_OPEN state. Testing single database query probe...');
+        this.state = 'HALF_OPEN';
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  recordSuccess() {
+    this.failureCount = 0;
+    this.totalSuccess++;
+    if (this.state === 'HALF_OPEN') {
+      console.log('✅ [Circuit Breaker] Probe successful. Resetting state to CLOSED.');
+      this.state = 'CLOSED';
+    }
+  }
+
+  recordFailure(err) {
+    this.failureCount++;
+    this.lastFailureTime = Date.now();
+    console.error(`⚠️ [Circuit Breaker] DB query failed (${this.failureCount}/${this.failureThreshold}):`, err.message);
+
+    if (this.failureCount >= this.failureThreshold || this.state === 'HALF_OPEN') {
+      this.state = 'OPEN';
+      this.totalTripped++;
+      console.error(`🚨 [Circuit Breaker] Database connection tripped to OPEN! Fast-failing for ${this.recoveryTimeoutMs / 1000}s`);
+    }
+  }
+
+  getStatus() {
+    return {
+      state: this.state,
+      failureCount: this.failureCount,
+      totalSuccess: this.totalSuccess,
+      totalTripped: this.totalTripped,
+      isDegraded: this.state !== 'CLOSED'
+    };
+  }
+}
+
+export const circuitBreaker = new DatabaseCircuitBreaker(5, 15000);
+
+/**
+ * Resilient Query Function protected by Circuit Breaker
+ */
+export const query = async (text, params) => {
+  if (circuitBreaker.isOpen()) {
+    const error = new Error('Database Circuit Breaker is OPEN: Basis data cloud sedang mengalami degradasi koneksi sementara.');
+    error.status = 503;
+    error.circuitBreaker = true;
+    throw error;
+  }
+
+  try {
+    const res = await pool.query(text, params);
+    circuitBreaker.recordSuccess();
+    return res;
+  } catch (err) {
+    circuitBreaker.recordFailure(err);
+    throw err;
+  }
+};
+
 export default pool;

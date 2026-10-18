@@ -1,25 +1,14 @@
-// api/routes/auth.js
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { query } from '../db.js';
 import { authenticateToken, JWT_SECRET } from '../middleware/auth.js';
+import { recordFailedAuth, recordSuccessAuth } from '../middleware/rateLimiter.js';
+import { registerSessionFingerprint } from '../middleware/deviceGuard.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = Router();
-
-// Log activity helper
-const logActivity = async (userId, type, details, ip) => {
-  try {
-    await query(
-      `INSERT INTO activity_logs (user_id, activity_type, details, ip_address, created_at)
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
-      [userId, type, details, ip || '127.0.0.1']
-    );
-  } catch (err) {
-    console.error('Failed to log activity:', err.message);
-  }
-};
 
 // In-Memory Brute-Force Rate Limiter
 const loginAttempts = new Map();
@@ -70,6 +59,7 @@ router.post('/login', async (req, res) => {
     // Prevent User Enumeration: if user doesn't exist, perform dummy compare to prevent timing side-channel
     if (userRes.rows.length === 0) {
       await bcrypt.compare(password, DUMMY_HASH).catch(() => {});
+      recordFailedAuth(clientIp);
       const current = loginAttempts.get(rateKey) || { attempts: 0, lockUntil: 0 };
       current.attempts += 1;
       if (current.attempts >= MAX_FAILED_ATTEMPTS) {
@@ -108,6 +98,7 @@ router.post('/login', async (req, res) => {
     }
 
     if (!isMatch) {
+      recordFailedAuth(clientIp);
       const current = loginAttempts.get(rateKey) || { attempts: 0, lockUntil: 0 };
       current.attempts += 1;
       if (current.attempts >= MAX_FAILED_ATTEMPTS) {
@@ -121,8 +112,15 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Successful login: reset failed attempts
+    // Successful login: reset failed attempts & IP jailing tracker
     loginAttempts.delete(rateKey);
+    recordSuccessAuth(clientIp);
+
+    // Register Device Fingerprint
+    const deviceFp = req.headers['x-device-fingerprint'];
+    if (deviceFp) {
+      registerSessionFingerprint(user.user_id, deviceFp, req.headers['user-agent'], clientIp);
+    }
 
     const sessionToken = crypto.randomUUID();
     await query(
@@ -142,7 +140,12 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
-    await logActivity(user.user_id, 'LOGIN', `Login sukses dari perangkat (${req.headers['user-agent']?.substring(0, 80) || 'Unknown Browser'})`, req.ip);
+    await logActivity({
+      userId: user.user_id,
+      action: 'LOGIN',
+      details: `Login sukses dari perangkat (${req.headers['user-agent']?.substring(0, 80) || 'Unknown Browser'})`,
+      req
+    });
 
     return res.json({
       success: true,

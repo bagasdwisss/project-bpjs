@@ -2,6 +2,9 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { checkSubmissionVelocity, checkDuplicateNikRecent } from '../utils/velocityDetector.js';
+import { applyPdpMasking } from '../utils/pdpMasking.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = Router();
 
@@ -81,9 +84,12 @@ router.get('/acquisition-result', authenticateToken, async (req, res) => {
     const pendingRecords = result.rows.filter(r => r.status_pendaftaran === 'MENUNGGU PEMBAYARAN').length;
     const totalRevenue = result.rows.reduce((acc, r) => acc + (parseFloat(r.biaya) || 0), 0);
 
+    // Apply PDP Masking
+    const maskedData = applyPdpMasking(result.rows, req.user.role);
+
     return res.json({
       success: true,
-      data: result.rows,
+      data: maskedData,
       statistics: {
         total: totalRecords,
         paid: paidRecords,
@@ -229,12 +235,30 @@ router.post('/peserta', authenticateToken, async (req, res) => {
       bukti_sosialisasi_link
     } = req.body;
 
+    const clientIp = (req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '127.0.0.1').trim();
+
+    // 1. Anti-Fraud & Spike Input Velocity Detector (Feature 13)
+    const velocity = checkSubmissionVelocity(userId, 5, 15);
+    let fraudFlag = 'NORMAL';
+    if (velocity.isSpike) {
+      fraudFlag = 'FLAGGED_VELOCITY_SPIKE';
+      console.warn(`🚨 [Velocity Spike Detected] User #${userId} submitted > 5 records in 15 minutes!`);
+      await logActivity({
+        userId,
+        action: 'ANOMALY_VELOCITY_SPIKE',
+        details: velocity.reason,
+        req,
+        isAnomaly: true,
+        anomalyReason: 'Lonjakan input data BPU tidak wajar dalam rentang waktu singkat'
+      });
+    }
+
     const result = await query(
       `INSERT INTO peserta (
          user_id, nama_peserta, nik, tanggal_pendaftaran, no_telepon, pekerjaan, email,
          status_pendaftaran, periode_pelatihan, biaya, program_terdaftar, bukti_pembayaran_link,
-         bukti_sosialisasi_link, created_at, updated_at
-       ) VALUES ($1, $2, $3, COALESCE($4, CURRENT_DATE), $5, $6, $7, COALESCE($8, 'BARU DAFTAR'), $9, COALESCE($10, 0), $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         bukti_sosialisasi_link, fraud_flag, submission_velocity_ip, created_at, updated_at
+       ) VALUES ($1, $2, $3, COALESCE($4, CURRENT_DATE), $5, $6, $7, COALESCE($8, 'BARU DAFTAR'), $9, COALESCE($10, 0), $11, $12, $13, $14, $15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING *`,
       [
         userId,
@@ -249,7 +273,9 @@ router.post('/peserta', authenticateToken, async (req, res) => {
         biaya ? parseFloat(biaya) : 0,
         program_terdaftar || null,
         bukti_pembayaran_link || null,
-        bukti_sosialisasi_link || null
+        bukti_sosialisasi_link || null,
+        fraudFlag,
+        clientIp
       ]
     );
 
@@ -264,8 +290,11 @@ router.post('/peserta', authenticateToken, async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Data peserta berhasil ditambahkan.',
-      data: result.rows[0]
+      message: velocity.isSpike 
+        ? 'Data peserta tersimpan. Catatan: Lonjakan input terdeteksi dan ditandai untuk peninjauan koordinator.' 
+        : 'Data peserta berhasil ditambahkan.',
+      data: result.rows[0],
+      velocity_alert: velocity.isSpike ? velocity.reason : null
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

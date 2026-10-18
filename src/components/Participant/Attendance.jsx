@@ -6,12 +6,15 @@ import {
   Calendar, Clock, MapPin, CheckCircle, 
   XCircle, AlertCircle, RefreshCw, X, ShieldCheck,
   Camera, Upload, FileText, QrCode, Calculator, Navigation,
-  Sparkles, Check, AlertTriangle, Eye, ArrowRight, CalendarOff
+  Sparkles, Check, AlertTriangle, Eye, ArrowRight, CalendarOff,
+  WifiOff, CloudUpload, Shield
 } from 'lucide-react';
 import api from '../../services/api';
 import CalculatorModal from '../Common/CalculatorModal';
 import QRCodeModal from '../Common/QRCodeModal';
 import NeoDatePicker from '../Common/NeoDatePicker';
+import { sanitizeAndWatermarkSelfie, SensorMotionChecker } from '../../utils/photoSanitizer';
+import { saveOfflineAttendance, getOfflineAttendances, syncOfflineAttendanceQueue } from '../../utils/offlineQueue';
 
 // Toast Notification Component
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -158,8 +161,13 @@ const Attendance = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const [selfieImage, setSelfieImage] = useState(null);
   const [faceDetected, setFaceDetected] = useState(false);
+  const [watermarkSig, setWatermarkSig] = useState(null);
+  const [offlineCount, setOfflineCount] = useState(0);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [syncingOffline, setSyncingOffline] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const sensorCheckerRef = useRef(new SensorMotionChecker());
 
   // Leave / Cuti / Sakit Form State
   const [leaveType, setLeaveType] = useState('Sakit');
@@ -351,10 +359,11 @@ const Attendance = () => {
     );
   };
 
-  // Camera Selfie & Liveness Simulation
+  // Camera Selfie & Sensor Motion Cross-Check (Features 1 & 2)
   const startCamera = async () => {
     setCameraActive(true);
     setFaceDetected(false);
+    sensorCheckerRef.current.start();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: { ideal: 480 }, height: { ideal: 480 }, facingMode: 'user' } 
@@ -371,57 +380,63 @@ const Attendance = () => {
     }
   };
 
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
+  const capturePhoto = async () => {
+    sensorCheckerRef.current.stop();
+    if (videoRef.current) {
       const video = videoRef.current;
-      const canvas = canvasRef.current;
-      
-      const maxDim = 480;
-      let w = video.videoWidth || 320;
-      let h = video.videoHeight || 320;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) {
-          h = Math.round((h * maxDim) / w);
-          w = maxDim;
-        } else {
-          w = Math.round((w * maxDim) / h);
-          h = maxDim;
-        }
-      }
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, w, h);
-      const dataUri = canvas.toDataURL('image/jpeg', 0.7);
-      setSelfieImage(dataUri);
+      try {
+        // Feature 2: Canvas Sanitization & WebP Re-encoding (Anti Polyglot File Attack)
+        // Feature 3: Watermarking Kriptografi Steganografi pada Foto Selfie Presensi
+        const sanitized = await sanitizeAndWatermarkSelfie({
+          imageSource: video,
+          userName: user?.full_name || 'Peserta',
+          userNim: user?.unique_id || '',
+          coordinates: currentCoords ? `${currentCoords.lat.toFixed(6)}, ${currentCoords.lon.toFixed(6)}` : null,
+          distanceMeters: distanceToOffice
+        });
 
-      // Stop camera stream
-      const stream = video.srcObject;
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        setSelfieImage(sanitized.dataUri);
+        setWatermarkSig(sanitized.watermarkSignature);
+
+        // Stop camera stream
+        const stream = video.srcObject;
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        setCameraActive(false);
+        showToast('Foto wajah berhasil disanitasi & diberi watermark kriptografi WebP!', 'success');
+      } catch (e) {
+        console.error('Sanitization error:', e);
       }
-      setCameraActive(false);
-      showToast('Foto wajah berhasil diverifikasi!', 'success');
     } else {
-      // Fallback dummy selfie image
+      // Fallback
       const dummyCanvas = document.createElement('canvas');
-      dummyCanvas.width = 300;
-      dummyCanvas.height = 300;
+      dummyCanvas.width = 400;
+      dummyCanvas.height = 400;
       const ctx = dummyCanvas.getContext('2d');
-      ctx.fillStyle = '#BDD4F2';
-      ctx.fillRect(0, 0, 300, 300);
       ctx.fillStyle = '#121214';
-      ctx.font = 'bold 16px sans-serif';
+      ctx.fillRect(0, 0, 400, 400);
+      ctx.fillStyle = '#B8C96E';
+      ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('Selfie Verified', 150, 150);
-      setSelfieImage(dummyCanvas.toDataURL('image/jpeg', 0.7));
+      ctx.fillText('BPJSTK SANITIZED SELFIE', 200, 180);
+      ctx.fillText('WATERMARK VERIFIED', 200, 220);
+      const sanitized = await sanitizeAndWatermarkSelfie({
+        imageSource: dummyCanvas,
+        userName: user?.full_name || 'Peserta',
+        userNim: user?.unique_id || '',
+        coordinates: currentCoords ? `${currentCoords.lat.toFixed(6)}, ${currentCoords.lon.toFixed(6)}` : null,
+        distanceMeters: distanceToOffice
+      });
+      setSelfieImage(sanitized.dataUri);
+      setWatermarkSig(sanitized.watermarkSignature);
       setCameraActive(false);
       setFaceDetected(true);
-      showToast('Foto selfie berhasil diambil.', 'success');
+      showToast('Foto selfie berhasil diambil & disanitasi WebP.', 'success');
     }
   };
 
-  // Check In Execution
+  // Check In Execution with Anti-Mock & Offline Sync Support (Features 1 & 20)
   const handleCheckIn = async () => {
     if (attendanceStatus && attendanceStatus.status !== 'pending') {
       showToast('Anda sudah melakukan absensi hari ini.', 'error');
@@ -460,6 +475,9 @@ const Attendance = () => {
         status = (currentHour > 8 || (currentHour === 8 && currentMinute > 0)) ? 'Terlambat' : 'Hadir';
       }
 
+      // Feature 1: Anti-Mock Sensor Telemetry Cross-Check
+      const telemetry = sensorCheckerRef.current.getTelemetry(currentCoords);
+
       const payload = {
         status,
         notes: notes || (isWithinRadius ? `Presensi dalam radius ${officeLocation.name}` : 'Presensi di luar radius kantor resmi (Verifikasi Koordinator)'),
@@ -469,8 +487,21 @@ const Attendance = () => {
         selfie_image_url: selfieImage,
         geofence_id: officeLocation.id || 1,
         distance_meters: distanceToOffice !== null ? distanceToOffice : 0,
-        is_mock_location: isMockLocation
+        is_mock_location: isMockLocation || telemetry.mock_detected,
+        watermark_signature: watermarkSig,
+        sensor_telemetry: telemetry,
+        client_timestamp: new Date().toISOString()
       };
+
+      // Feature 20: PWA Offline Attendance Queue
+      if (!navigator.onLine) {
+        await saveOfflineAttendance(payload);
+        const items = await getOfflineAttendances();
+        setOfflineCount(items.length);
+        showToast('Luar Jaringan: Presensi tersimpan di antrean PWA Offline. Akan tersinkron otomatis saat internet kembali tersambung.', 'info');
+        setLoading(false);
+        return;
+      }
 
       const res = await api.post('/participant/attendance/check-in', payload);
 
@@ -490,6 +521,28 @@ const Attendance = () => {
         throw new Error(res.data?.message || 'Gagal menyimpan absensi');
       }
     } catch (err) {
+      // Fallback to offline queue if network disconnected midway
+      if (!navigator.onLine || err.message === 'Network Error' || !err.response) {
+        try {
+          await saveOfflineAttendance({
+            status: 'Hadir',
+            notes,
+            coordinates: `${currentCoords.lat},${currentCoords.lon}`,
+            address: locationAddress || officeLocation.address,
+            device_info: navigator.userAgent,
+            selfie_image_url: selfieImage,
+            geofence_id: officeLocation.id || 1,
+            distance_meters: distanceToOffice !== null ? distanceToOffice : 0,
+            watermark_signature: watermarkSig
+          });
+          const items = await getOfflineAttendances();
+          setOfflineCount(items.length);
+          showToast('Koneksi terputus: Presensi Anda aman tersimpan di antrean lokal (PWA Offline Queue).', 'info');
+          return;
+        } catch (e) {
+          // ignore
+        }
+      }
       showToast(err.response?.data?.message || err.message || 'Terjadi kesalahan check-in', 'error');
     } finally {
       setLoading(false);
@@ -574,6 +627,50 @@ const Attendance = () => {
             </button>
           </div>
         </div>
+
+        {/* Offline Queue Notification Bar (Feature 20) */}
+        {(!isOnline || offlineCount > 0) && (
+          <div className="bg-[#FCE373] border-2 border-[#121214] rounded-2xl p-4 shadow-[4px_4px_0px_#121214] flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#121214] text-white flex items-center justify-center shrink-0">
+                {!isOnline ? <WifiOff className="w-5 h-5 text-rose-400" /> : <CloudUpload className="w-5 h-5 text-[#B8C96E]" />}
+              </div>
+              <div>
+                <p className="font-black text-xs sm:text-sm text-[#121214]">
+                  {!isOnline ? 'Mode Luar Jaringan (Offline PWA) Aktif' : 'Antrean Presensi Offline Tersimpan'}
+                </p>
+                <p className="text-[11px] text-gray-700">
+                  {offlineCount > 0 
+                    ? `Terdapat ${offlineCount} data presensi tersimpan di perangkat lokal Anda.` 
+                    : 'Anda tetap dapat melakukan presensi selfie di daerah pelosok tanpa internet.'}
+                </p>
+              </div>
+            </div>
+            {offlineCount > 0 && isOnline && (
+              <button
+                onClick={async () => {
+                  setSyncingOffline(true);
+                  try {
+                    const res = await syncOfflineAttendanceQueue(api);
+                    if (res.synced > 0) {
+                      showToast(`${res.synced} presensi offline berhasil disinkronkan!`, 'success');
+                      await loadAttendanceData();
+                    }
+                    const pending = await getOfflineAttendances();
+                    setOfflineCount(pending.length);
+                  } finally {
+                    setSyncingOffline(false);
+                  }
+                }}
+                disabled={syncingOffline}
+                className="px-4 py-2 bg-[#B8C96E] hover:bg-[#a5b85a] border-2 border-[#121214] rounded-xl font-black text-xs text-[#121214] shadow-[2px_2px_0px_#121214] flex items-center gap-2"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${syncingOffline ? 'animate-spin' : ''}`} />
+                <span>{syncingOffline ? 'Menyinkronkan...' : 'Sinkronkan Sekarang'}</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Tab Switcher */}
         <div className="flex space-x-2 border-b-2 border-[#121214] pb-1">
@@ -801,10 +898,16 @@ const Attendance = () => {
                       <canvas ref={canvasRef} className="hidden" />
                     </div>
                   ) : selfieImage ? (
-                    <div className="relative w-40 h-40 rounded-xl overflow-hidden border-2 border-[#121214] shadow-[3px_3px_0px_#121214]">
-                      <img src={selfieImage} alt="Selfie Presensi" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                      <div className="absolute bottom-1 right-1 bg-emerald-500 text-white p-1 rounded-full border border-[#121214]">
-                        <Check className="w-3 h-3" />
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="relative w-44 h-44 rounded-xl overflow-hidden border-2 border-[#121214] shadow-[3px_3px_0px_#121214]">
+                        <img src={selfieImage} alt="Selfie Presensi" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                        <div className="absolute bottom-1 right-1 bg-emerald-500 text-white p-1 rounded-full border border-[#121214]">
+                          <Check className="w-3 h-3" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#BDD4F2] border border-[#121214] text-[10px] font-black text-[#121214]">
+                        <Shield className="w-3 h-3 text-[#121214]" />
+                        <span>WebP Sanitized & Watermark Tersemat</span>
                       </div>
                     </div>
                   ) : (

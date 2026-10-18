@@ -5,11 +5,13 @@ import { DashboardProvider } from './context/DashboardContext';
 import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageLoader from './components/Common/PageLoader';
+import MaintenanceOverlay from './components/Common/MaintenanceOverlay';
 import './App.css';
 
 // Public Components (Lazy Loaded)
 const Login = lazy(() => import('./components/Auth/Login'));
 const VerifyCertificate = lazy(() => import('./components/Common/VerifyCertificate'));
+const DigitalBrochureCatalog = lazy(() => import('./components/Common/DigitalBrochureCatalog'));
 
 // Participant Components (Lazy Loaded)
 const ParticipantDashboard = lazy(() => import('./components/Participant/Dashboard'));
@@ -54,6 +56,7 @@ function App() {
       <ToastProvider>
         <DashboardProvider>
           <Router>
+            <MaintenanceOverlay />
             <Suspense fallback={<PageLoader />}>
               <Routes>
             {/* Public Routes */}
@@ -108,6 +111,11 @@ function App() {
                 <ParticipantAcquisitionResult />
               </ProtectedRoute>
             } />
+            <Route path="/participant/brochures" element={
+              <ProtectedRoute allowedRoles={['Peserta']}>
+                <DigitalBrochureCatalog />
+              </ProtectedRoute>
+            } />
 
             {/* Coordinator Routes */}
             <Route path="/coordinator/dashboard" element={
@@ -158,6 +166,11 @@ function App() {
             <Route path="/coordinator/bpu-acquisitions" element={
               <ProtectedRoute allowedRoles={['Koordinator', 'Administrator']}>
                 <CoordinatorBpuAcquisitions />
+              </ProtectedRoute>
+            } />
+            <Route path="/coordinator/brochures" element={
+              <ProtectedRoute allowedRoles={['Koordinator', 'Administrator']}>
+                <DigitalBrochureCatalog />
               </ProtectedRoute>
             } />
 

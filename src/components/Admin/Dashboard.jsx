@@ -1,13 +1,15 @@
-// src/components/Admin/Dashboard.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
 import dashboardService from '../../services/DashboardService';
+import api from '../../services/api';
+import SecurityPinModal from '../Common/SecurityPinModal';
 import { 
   Users, TrendingUp, Database, Server, 
   Download, Upload, BarChart3, Shield,
   Calendar as CalendarIcon, FileText, Bell, RefreshCw, 
-  CheckCircle, ArrowUpRight, Clock, ChevronLeft, ChevronRight, Plus
+  CheckCircle, ArrowUpRight, Clock, ChevronLeft, ChevronRight, Plus,
+  ShieldCheck, ShieldAlert, Wrench, Archive, Check, AlertTriangle, Key
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -15,6 +17,15 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState(null);
+
+  // Enterprise System Hardening & Maintenance State
+  const [maintenance, setMaintenance] = useState({ is_active: false, message: '', estimated_end: null });
+  const [updatingMaintenance, setUpdatingMaintenance] = useState(false);
+  const [merkleStatus, setMerkleStatus] = useState(null);
+  const [verifyingMerkle, setVerifyingMerkle] = useState(false);
+  const [securityPinOpen, setSecurityPinOpen] = useState(false);
+  const [pendingDangerousAction, setPendingDangerousAction] = useState(null);
+  const [actionSuccessMsg, setActionSuccessMsg] = useState(null);
 
   const fetchDashboard = async () => {
     try {
@@ -30,9 +41,80 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchMaintenance = async () => {
+    try {
+      const res = await api.get('/admin/system/maintenance');
+      if (res.data?.success) {
+        setMaintenance(res.data.data);
+      }
+    } catch (e) {
+      console.warn('Could not load maintenance settings:', e);
+    }
+  };
+
   useEffect(() => {
     fetchDashboard();
+    fetchMaintenance();
   }, []);
+
+  const handleToggleMaintenance = async () => {
+    const nextState = !maintenance.is_active;
+    setUpdatingMaintenance(true);
+    try {
+      const res = await api.put('/admin/system/maintenance', {
+        is_active: nextState,
+        message: maintenance.message || 'Sistem Absensi & Nilai BPJSTK sedang dalam pemeliharaan berkala untuk peningkatan infrastruktur.',
+        estimated_end: maintenance.estimated_end
+      });
+      if (res.data?.success) {
+        setMaintenance(res.data.data);
+        setActionSuccessMsg(`Mode Pemeliharaan berhasil ${nextState ? 'diaktifkan' : 'dinonaktifkan'}.`);
+        setTimeout(() => setActionSuccessMsg(null), 4000);
+      }
+    } catch (err) {
+      console.error('Failed to toggle maintenance mode:', err);
+    } finally {
+      setUpdatingMaintenance(false);
+    }
+  };
+
+  const handleVerifyMerkle = async () => {
+    setVerifyingMerkle(true);
+    try {
+      const res = await api.get('/admin/audit-trail/verify');
+      if (res.data?.success) {
+        setMerkleStatus(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to verify Merkle chain:', err);
+    } finally {
+      setVerifyingMerkle(false);
+    }
+  };
+
+  const executeDangerousAction = async (actionType) => {
+    if (actionType === 'VACUUM') {
+      try {
+        const res = await api.post('/admin/maintenance/vacuum');
+        if (res.data?.success) {
+          setActionSuccessMsg(res.data.message);
+          setTimeout(() => setActionSuccessMsg(null), 5000);
+        }
+      } catch (e) {
+        console.error('Vacuum error:', e);
+      }
+    } else if (actionType === 'ARCHIVE') {
+      try {
+        const res = await api.post('/admin/maintenance/archive', { chatRetentionDays: 90, logRetentionDays: 180 });
+        if (res.data?.success) {
+          setActionSuccessMsg(res.data.message);
+          setTimeout(() => setActionSuccessMsg(null), 5000);
+        }
+      } catch (e) {
+        console.error('Archive error:', e);
+      }
+    }
+  };
 
   const stats = dashboardData?.stats || {
     totalUsers: 11,
@@ -273,6 +355,162 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Enterprise System Controls & Security Hardening (Features 10, 11, 17, 19, 22) */}
+        <div className="bg-white rounded-[22px] border-2 border-[#121214] p-5 sm:p-6 shadow-[5px_5px_0px_#121214] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-gray-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#BDD4F2] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
+                <ShieldCheck className="w-5 h-5 text-[#121214]" />
+              </div>
+              <div>
+                <h3 className="font-black text-sm sm:text-base text-[#121214]">
+                  Pusat Kendali Keamanan & Pemeliharaan Sistem
+                </h3>
+                <p className="text-xs text-gray-500 font-medium">
+                  Mode pemeliharaan dinamis, verifikasi rantai audit Merkle, dan pembersihan basis data
+                </p>
+              </div>
+            </div>
+
+            {/* Maintenance Mode Toggle Switch */}
+            <div className="flex items-center gap-3 bg-[#F5F4F0] px-4 py-2 rounded-xl border border-[#121214]">
+              <div className="text-right">
+                <span className="text-[11px] font-black text-[#121214] block">Mode Pemeliharaan</span>
+                <span className={`text-[10px] font-bold ${maintenance.is_active ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {maintenance.is_active ? 'AKTIF (Bypass Admin)' : 'NONAKTIF (Publik Normal)'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleMaintenance}
+                disabled={updatingMaintenance}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-[#121214] transition-colors duration-200 ease-in-out focus:outline-none ${
+                  maintenance.is_active ? 'bg-amber-400' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[#121214] shadow ring-0 transition duration-200 ease-in-out mt-0.5 ml-0.5 ${
+                    maintenance.is_active ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {actionSuccessMsg && (
+            <div className="p-3 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+              <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span>{actionSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* Action Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            {/* Action 1: Merkle Audit Trail Verification */}
+            <div className="p-4 rounded-xl border-2 border-[#121214] bg-[#F5F4F0] flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black bg-[#121214] text-white px-2 py-0.5 rounded">
+                    Anti-Tampering
+                  </span>
+                  {merkleStatus && (
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded border border-[#121214] ${
+                      merkleStatus.isValid ? 'bg-[#B8C96E]' : 'bg-rose-300'
+                    }`}>
+                      {merkleStatus.isValid ? 'RANTAI VALID ✓' : 'RUSAK ✗'}
+                    </span>
+                  )}
+                </div>
+                <h4 className="font-black text-xs text-[#121214]">Verifikasi Integritas Merkle Audit</h4>
+                <p className="text-[11px] text-gray-600 mt-1">
+                  Mendeteksi secara matematis bila terdapat baris log audit yang diedit atau dihapus oleh oknum.
+                </p>
+                {merkleStatus && (
+                  <p className="text-[10px] text-gray-500 font-mono mt-2 break-all bg-white p-1.5 rounded border border-gray-200">
+                    {merkleStatus.message}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleVerifyMerkle}
+                disabled={verifyingMerkle}
+                className="w-full py-2 bg-[#BDD4F2] hover:bg-[#a5c4ec] font-black text-xs text-[#121214] rounded-xl border-2 border-[#121214] shadow-[2px_2px_0px_#121214] flex items-center justify-center gap-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${verifyingMerkle ? 'animate-spin' : ''}`} />
+                <span>{verifyingMerkle ? 'Memeriksa Hash...' : 'Periksa Integritas Hash'}</span>
+              </button>
+            </div>
+
+            {/* Action 2: Database Vacuum Maintenance */}
+            <div className="p-4 rounded-xl border-2 border-[#121214] bg-[#F5F4F0] flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black bg-[#121214] text-white px-2 py-0.5 rounded">
+                    Optimasi Database
+                  </span>
+                </div>
+                <h4 className="font-black text-xs text-[#121214]">VACUUM & Pembersihan Sampah</h4>
+                <p className="text-[11px] text-gray-600 mt-1">
+                  Membersihkan notifikasi kadaluwarsa & merefresh statistik PostgreSQL ANALYZE.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setPendingDangerousAction('VACUUM');
+                  setSecurityPinOpen(true);
+                }}
+                className="w-full py-2 bg-[#FCE373] hover:bg-[#ebd056] font-black text-xs text-[#121214] rounded-xl border-2 border-[#121214] shadow-[2px_2px_0px_#121214] flex items-center justify-center gap-1.5"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>Jalankan VACUUM</span>
+              </button>
+            </div>
+
+            {/* Action 3: Cold Storage Archival */}
+            <div className="p-4 rounded-xl border-2 border-[#121214] bg-[#F5F4F0] flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black bg-[#121214] text-white px-2 py-0.5 rounded">
+                    Cold Storage
+                  </span>
+                </div>
+                <h4 className="font-black text-xs text-[#121214]">Arsip Chat & Log Kadaluwarsa</h4>
+                <p className="text-[11px] text-gray-600 mt-1">
+                  Memindahkan riwayat chat (&gt;90 hari) & log (&gt;180 hari) ke tabel penyimpanan dingin.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setPendingDangerousAction('ARCHIVE');
+                  setSecurityPinOpen(true);
+                }}
+                className="w-full py-2 bg-[#F5C6EC] hover:bg-[#e7b4dc] font-black text-xs text-[#121214] rounded-xl border-2 border-[#121214] shadow-[2px_2px_0px_#121214] flex items-center justify-center gap-1.5"
+              >
+                <Archive className="w-3.5 h-3.5" />
+                <span>Arsipkan Data Kadaluwarsa</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Security PIN Authorization Modal for Two-Person Approval (Feature 19) */}
+        <SecurityPinModal
+          isOpen={securityPinOpen}
+          onClose={() => setSecurityPinOpen(false)}
+          onSuccess={() => {
+            if (pendingDangerousAction) {
+              executeDangerousAction(pendingDangerousAction);
+              setPendingDangerousAction(null);
+            }
+          }}
+          title={pendingDangerousAction === 'VACUUM' ? 'Otorisasi Pemeliharaan VACUUM' : 'Otorisasi Arsip Cold Storage'}
+          actionDescription={
+            pendingDangerousAction === 'VACUUM'
+              ? 'Tindakan ini akan mengunci sementara tabel untuk memperbarui query planner dan membersihkan baris kadaluwarsa.'
+              : 'Tindakan ini akan memindahkan pesan chat lama (>90 hari) dan log (>180 hari) ke tabel arsip dingin.'
+          }
+        />
 
         {/* Bottom Split Section: 2 Columns (Activities List & Right Detail / Calendar Widget) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

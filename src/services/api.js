@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getDeviceFingerprint } from '../utils/deviceFingerprint.js';
 
 // API Base URL - defaults to /api for relative same-origin on Vercel and local Vite proxy
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -17,6 +18,9 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     const isAuthRoute = config.url?.includes('/login') || config.url?.includes('/logout');
 
+    // Attach Device Fingerprint Header (Feature 5)
+    config.headers['x-device-fingerprint'] = getDeviceFingerprint();
+
     // Cek batas inaktivitas 5 menit sebelum request dikirim
     if (token && !isAuthRoute) {
       const storedLastActive = parseInt(localStorage.getItem('last_active_time') || '0', 10);
@@ -31,13 +35,6 @@ api.interceptors.request.use(
       }
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // Log untuk debugging
-    console.log('API Request:', {
-      url: config.url,
-      method: config.method,
-      headers: config.headers
-    });
     
     return config;
   },
@@ -74,6 +71,10 @@ api.interceptors.response.use(
           window.location.href = '/login?reason=session_expired';
         }
       }
+    }
+
+    if (error.response?.status === 503 || error.response?.data?.code === 'MAINTENANCE_MODE_ACTIVE') {
+      window.dispatchEvent(new CustomEvent('maintenance-mode', { detail: error.response?.data }));
     }
     
     if (error.response?.status === 403) {

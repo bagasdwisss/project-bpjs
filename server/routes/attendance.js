@@ -192,7 +192,11 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       selfie_image_url, 
       geofence_id, 
       distance_meters, 
-      is_mock_location 
+      is_mock_location,
+      watermark_signature,
+      sensor_telemetry,
+      is_offline_sync,
+      client_timestamp
     } = req.body;
 
     // Use Asia/Jakarta timezone for date and time
@@ -203,6 +207,30 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       minute: '2-digit', 
       second: '2-digit' 
     }).format(new Date());
+
+    // Anti-Mock Cross-Check: Sensor Telemetry & Clock Drift Verification (Feature 1)
+    let mockDetected = Boolean(is_mock_location);
+    let mockReason = null;
+
+    if (sensor_telemetry) {
+      if (sensor_telemetry.mock_detected) {
+        mockDetected = true;
+        mockReason = 'Fake GPS Provider / Mock Location Flag terdeteksi aktif pada perangkat pengguna.';
+      } else if (sensor_telemetry.accuracy !== undefined && (sensor_telemetry.accuracy <= 0 || sensor_telemetry.accuracy > 150)) {
+        mockDetected = true;
+        mockReason = `Akurasi GPS tidak wajar (${sensor_telemetry.accuracy}m). Kemungkinan emulator atau injeksi koordinat statis.`;
+      }
+    }
+
+    // Verify Timestamp Drift (Anti Clock Manipulation)
+    if (client_timestamp) {
+      const clientEpoch = new Date(client_timestamp).getTime();
+      const driftMinutes = Math.abs(Date.now() - clientEpoch) / 60000;
+      if (driftMinutes > 5 && !is_offline_sync) {
+        mockDetected = true;
+        mockReason = `Manipulasi waktu sistem terdeteksi (Selisih waktu perangkat dengan server NTP: ${driftMinutes.toFixed(1)} menit).`;
+      }
+    }
 
     // 1. Fetch Dynamic Attendance Settings
     const settingsRes = await query(`SELECT * FROM attendance_settings WHERE id = 1 LIMIT 1`);
@@ -243,7 +271,7 @@ router.post('/check-in', authenticateToken, async (req, res) => {
     const endTimeStr = String(settings.work_end_time).substring(0, 8);
     const ontimeLimitStr = String(settings.work_ontime_limit).substring(0, 8);
 
-    if (nowTime < startTimeStr) {
+    if (nowTime < startTimeStr && !is_offline_sync) {
       const startMsg = (settings.before_start_message || 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.')
         .replace('{start_time}', startTimeStr.substring(0, 5) + ' WIB');
       return res.status(400).json({
@@ -252,7 +280,7 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       });
     }
 
-    if (nowTime > endTimeStr) {
+    if (nowTime > endTimeStr && !is_offline_sync) {
       const endMsg = (settings.after_end_message || 'Presensi hari ini telah ditutup pada pukul {end_time}.')
         .replace('{end_time}', endTimeStr.substring(0, 5) + ' WIB');
       return res.status(400).json({
@@ -339,9 +367,10 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         user_id, attendance_date, check_in_time, status, notes, 
         location_coordinates, location_address, ip_address, device_info,
         selfie_image_url, geofence_id, distance_meters, is_mock_location,
+        watermark_signature, sensor_telemetry, is_offline_sync,
         created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
       RETURNING *`,
       [
         userId,
@@ -356,18 +385,21 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         selfie_image_url || null,
         validGeofenceId,
         finalDistance,
-        Boolean(is_mock_location)
+        mockDetected,
+        watermark_signature || null,
+        sensor_telemetry ? JSON.stringify(sensor_telemetry) : null,
+        Boolean(is_offline_sync)
       ]
     );
 
     // Audit Trail: Log attendance activity for admin monitoring
     await logActivity({
       userId,
-      type: 'PRESENSI_CHECKIN',
-      details: `Presensi ${normalizedStatus} berhasil dicatat (Jarak: ${finalDistance || 0}m, Status: ${normalizedStatus})`,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-      isAnomaly: Boolean(is_mock_location)
+      action: 'PRESENSI_CHECKIN',
+      details: `Presensi ${normalizedStatus} berhasil dicatat (Jarak: ${finalDistance || 0}m, OfflineSync: ${Boolean(is_offline_sync)}, Watermark: ${watermark_signature ? 'Valid' : 'None'}, Mock: ${mockDetected ? 'YA (' + mockReason + ')' : 'Tidak'})`,
+      req,
+      isAnomaly: mockDetected,
+      anomalyReason: mockReason
     });
 
     return res.status(201).json({

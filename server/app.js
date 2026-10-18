@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import pool from './db.js';
+import pool, { circuitBreaker } from './db.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
 import gradingRoutes from './routes/grading.js';
@@ -23,6 +23,13 @@ import moduleRoutes from './routes/modules.js';
 import adminRoutes from './routes/admin.js';
 import featuresRoutes from './routes/features.js';
 
+// Enterprise Middlewares
+import securityHeadersMiddleware from './middleware/securityHeaders.js';
+import compressionMiddleware from './middleware/compressionMiddleware.js';
+import slidingWindowRateLimiter from './middleware/rateLimiter.js';
+import maintenanceMiddleware from './middleware/maintenanceMiddleware.js';
+import deviceGuardMiddleware from './middleware/deviceGuard.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,14 +40,14 @@ const app = express();
 // Security: Disable X-Powered-By to prevent technology fingerprinting
 app.disable('x-powered-by');
 
-// Security Headers Middleware
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  next();
-});
+// 1. Enterprise HTTP Header Hardening (CSP, HSTS, Permissions-Policy Strict)
+app.use(securityHeadersMiddleware);
+
+// 2. Brotli & Gzip Compression Middleware
+app.use(compressionMiddleware);
+
+// 3. Sliding-Window Rate Limiter & Brute-Force IP Jailing
+app.use(slidingWindowRateLimiter({ max: 200, windowMs: 60 * 1000 }));
 
 // Optimasi HTTP Caching & Request: Strong ETag untuk 304 Not Modified
 app.set('etag', 'strong');
@@ -50,7 +57,7 @@ app.use(cors({
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-init-key']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-init-key', 'x-device-fingerprint', 'x-security-pin']
 }));
 
 app.use((req, res, next) => {
@@ -60,13 +67,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// 4. Dynamic Maintenance Mode Switch with Admin Bypass
+app.use(maintenanceMiddleware);
+
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Helper router to mount endpoints under both /api/... and /...
 const apiRouter = express.Router();
 
-// Real-time Healthcheck & Database Status (Sanitized: No Schema or Stacktrace Leak)
+// Real-time Healthcheck & Circuit Breaker Status
 apiRouter.get('/health', async (req, res) => {
   let isDbConnected = false;
   try {
@@ -76,9 +86,13 @@ apiRouter.get('/health', async (req, res) => {
     isDbConnected = false;
   }
 
+  const circuitStatus = circuitBreaker.getStatus();
+
   res.json({
-    status: isDbConnected ? 'healthy' : 'degraded',
-    service: 'BPJSTK Absensi & Nilai API',
+    status: isDbConnected && !circuitStatus.isDegraded ? 'healthy' : 'degraded',
+    service: 'BPJSTK Absensi & Penilaian API (Enterprise Grade)',
+    database: isDbConnected ? 'connected' : 'disconnected',
+    circuitBreaker: circuitStatus,
     timestamp: new Date().toISOString()
   });
 });

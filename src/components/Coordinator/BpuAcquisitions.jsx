@@ -9,8 +9,9 @@ import NeoSelect from '../Common/NeoSelect';
 import { 
   Users, Search, RefreshCw, Eye, CheckCircle2, 
   Clock, ShieldAlert, FileText, ExternalLink, X, 
-  Check, Phone, IdCard, Briefcase, DollarSign
+  Check, Phone, IdCard, Briefcase, DollarSign, Shield
 } from 'lucide-react';
+import { maskNIK, maskPhone } from '../../utils/pdpMasking';
 
 const BpuAcquisitions = () => {
   const { user } = useContext(AuthContext);
@@ -277,9 +278,9 @@ const BpuAcquisitions = () => {
                       <td className="px-5 py-4">
                         <div className="font-black text-sm text-[#121214]">{item.nama_peserta || 'Tanpa Nama'}</div>
                         <div className="text-[11px] text-[#6E6D6A] mt-0.5 space-x-2">
-                          <span>NIK: <strong className="text-[#121214]">{item.nik || '-'}</strong></span>
+                          <span>NIK: <strong className="text-[#121214] font-mono">{maskNIK(item.nik)}</strong></span>
                           <span>•</span>
-                          <span>HP: {item.no_telepon || '-'}</span>
+                          <span>HP: <span className="font-mono">{maskPhone(item.no_telepon)}</span></span>
                         </div>
                         {item.pekerjaan && (
                           <div className="text-[10px] text-[#121214]/70 font-semibold mt-0.5">

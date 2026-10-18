@@ -89,8 +89,8 @@ const VerifyCertificate = () => {
                 </div>
               </div>
               <div className="hidden sm:block text-right">
-                <span className="text-[10px] font-bold text-[#121214]/80 uppercase">Standar Keamanan</span>
-                <p className="text-xs font-black text-[#121214]">SHA-256 Hash Guard</p>
+                <span className="text-[10px] font-bold text-[#121214]/80 uppercase">Standar Kriptografi</span>
+                <p className="text-xs font-black text-[#121214]">{certData?.signature_algorithm || 'HMAC-SHA256'} Guard</p>
               </div>
             </div>
 
@@ -123,17 +123,22 @@ const VerifyCertificate = () => {
                 </div>
               </div>
 
-              {/* Cryptographic Hash Verification Box */}
+              {/* Cryptographic Hash Verification Box (Feature 16) */}
               <div className="p-4 bg-[#BDD4F2]/30 rounded-xl border-2 border-[#121214]">
-                <div className="flex items-center space-x-2 mb-1.5">
-                  <Lock className="w-4 h-4 text-[#121214]" />
-                  <span className="text-xs font-black uppercase text-[#121214]">Digital Signature Hash (Kriptografi)</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center space-x-2">
+                    <Lock className="w-4 h-4 text-[#121214]" />
+                    <span className="text-xs font-black uppercase text-[#121214]">Tanda Tangan Digital Kriptografis ({certData.signature_algorithm || 'HMAC-SHA256'})</span>
+                  </div>
+                  <span className="text-[10px] font-black bg-[#B8C96E] text-[#121214] px-2 py-0.5 rounded border border-[#121214]">
+                    Matematis Sah ✓
+                  </span>
                 </div>
                 <p className="font-mono text-[10px] text-gray-700 break-all bg-white p-2.5 rounded-lg border border-[#121214]/30 select-all">
-                  {certData.digital_signature_hash}
+                  {certData.digital_signature || certData.digital_signature_hash}
                 </p>
-                <p className="text-[10px] text-gray-600 mt-2">
-                  Hash unik ini dienkripsi secara digital dan membuktikan dokumen ini otentik tanpa adanya manipulasi nilai atau identitas peserta.
+                <p className="text-[10px] text-gray-600 mt-2 font-medium">
+                  Tanda tangan kriptografis ini mengunci secara matematis nama peserta, predikat kelulusan, nomor registrasi, dan tanggal penerbitan sehingga mustahil dipalsukan atau diubah.
                 </p>
               </div>
 

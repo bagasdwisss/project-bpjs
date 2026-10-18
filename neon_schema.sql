@@ -431,3 +431,72 @@ CREATE TABLE IF NOT EXISTS placement_options (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 21. DYNAMIC SYSTEM SETTINGS (MAINTENANCE MODE & SECURITY PIN)
+CREATE TABLE IF NOT EXISTS system_settings (
+    setting_key VARCHAR(100) PRIMARY KEY,
+    setting_value TEXT NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+INSERT INTO system_settings (setting_key, setting_value, description) VALUES
+('maintenance_mode', 'false', 'Saklar Mode Pemeliharaan (true/false)'),
+('maintenance_message', 'Sistem Absensi & Nilai BPJSTK sedang dalam pemeliharaan berkala untuk peningkatan infrastruktur.', 'Pesan saat pemeliharaan aktif'),
+('maintenance_estimated_end', '', 'Estimasi waktu pemeliharaan selesai (ISO string)'),
+('master_security_pin_hash', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 'PIN Keamanan Master untuk Kontrol Ganda')
+ON CONFLICT (setting_key) DO NOTHING;
+
+-- 22. TWO-PERSON CONTROL / DUAL APPROVAL RULE
+CREATE TABLE IF NOT EXISTS pending_approvals (
+    approval_id SERIAL PRIMARY KEY,
+    action_type VARCHAR(100) NOT NULL,
+    action_title VARCHAR(200) NOT NULL,
+    payload JSONB NOT NULL,
+    reason TEXT,
+    requested_by INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    approved_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')),
+    rejection_reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP
+);
+
+-- 23. DIGITAL BROCHURES & BPU SOCIALIZATION MATERIALS
+CREATE TABLE IF NOT EXISTS digital_brochures (
+    brochure_id SERIAL PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    target_audience VARCHAR(100) DEFAULT 'Pekerja Mandiri / BPU',
+    summary TEXT,
+    file_url TEXT NOT NULL,
+    thumbnail_url TEXT,
+    download_count INT DEFAULT 0,
+    share_count INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 24. COLD STORAGE ARCHIVAL TABLES
+CREATE TABLE IF NOT EXISTS archived_messages (
+    message_id INT,
+    sender_id INT,
+    receiver_id INT,
+    message TEXT,
+    is_read BOOLEAN,
+    created_at TIMESTAMP,
+    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS archived_activity_logs (
+    log_id INT,
+    user_id INT,
+    activity_type VARCHAR(100),
+    details TEXT,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP,
+    prev_hash VARCHAR(64),
+    current_hash VARCHAR(64),
+    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
