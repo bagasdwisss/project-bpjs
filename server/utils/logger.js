@@ -1,8 +1,6 @@
 import { query } from '../db.js';
-import crypto from 'crypto';
 import { compressPayload } from './payloadCompressor.js';
-
-const GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
+import { computeLogHash, GENESIS_HASH } from './merkleAudit.js';
 
 /**
  * Centralized Audit Trail Logger with Merkle Hash Chain (Feature 17)
@@ -33,9 +31,8 @@ export const logActivity = async (options = {}) => {
       ? lastRes.rows[0].current_hash 
       : GENESIS_HASH;
 
-    const timestamp = new Date().toISOString();
-    const payload = `${prevHash}|#|${userId || 'ANON'}|#|${type}|#|${details}|#|${timestamp}`;
-    const currentHash = crypto.createHash('sha256').update(payload).digest('hex');
+    const timestamp = new Date();
+    const currentHash = computeLogHash(prevHash, userId, type, details, timestamp);
 
     await query(
       `INSERT INTO activity_logs (
@@ -43,7 +40,7 @@ export const logActivity = async (options = {}) => {
         user_agent, device_fingerprint, prev_hash, current_hash, created_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [userId, type, details, ip, isAnomaly, anomalyReason, userAgent, deviceFingerprint, prevHash, currentHash, timestamp]
+      [userId, type, details, ip, isAnomaly, anomalyReason, userAgent, deviceFingerprint, prevHash, currentHash, timestamp.toISOString()]
     );
   } catch (err) {
     console.error('Audit Trail Logging Error:', err.message);

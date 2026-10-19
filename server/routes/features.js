@@ -1428,9 +1428,11 @@ router.get('/admin/audit-trail/verify', authenticateToken, requireRole('Administ
 
     await logActivity({
       userId: req.user.user_id,
-      action: 'MERKLE_CHAIN_VERIFY',
-      details: `Pemeriksaan integritas rantai audit Merkle dijalankan (${auditResult.checkedCount} catatan diperiksa). Status: ${auditResult.isValid ? 'VALID' : 'RUSAK'}`,
-      req
+      action: auditResult.isValid ? 'MERKLE_CHAIN_VERIFY' : 'MERKLE_TAMPER_DETECTED',
+      details: auditResult.message,
+      req,
+      isAnomaly: !auditResult.isValid,
+      anomalyReason: !auditResult.isValid ? auditResult.message : null
     });
 
     return res.json({

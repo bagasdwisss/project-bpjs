@@ -5,6 +5,7 @@ import { AuthContext } from '../../context/AuthContext';
 import userService from '../../services/userService';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { getTimeGreeting } from '../../utils/trueTime';
 
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 import { DashboardSkeleton } from '../Common/Skeleton';
@@ -196,7 +197,7 @@ const CoordinatorDashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Selamat Pagi, {user?.full_name?.split(' ')[0] || 'Koordinator'}
+              {getTimeGreeting()}, {user?.full_name?.split(' ')[0] || 'Koordinator'}
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
               Membimbing <span className="font-bold text-[#121214]">{totalCount} Peserta Magang Aktif</span>. Evaluasi pencapaian tugas dan target akuisisi harian.

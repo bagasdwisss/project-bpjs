@@ -4,6 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import dashboardService from '../../services/DashboardService';
 import api from '../../services/api';
 import SecurityPinModal from '../Common/SecurityPinModal';
+import { getTimeGreeting } from '../../utils/trueTime';
 import { 
   Users, TrendingUp, Database, Server, 
   Download, Upload, BarChart3, Shield,
@@ -140,7 +141,7 @@ const AdminDashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Selamat Pagi, {user?.full_name?.split(' ')[0] || 'Admin'}
+              {getTimeGreeting()}, {user?.full_name?.split(' ')[0] || 'Admin'}
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
               Saat ini ada <span className="font-bold text-[#121214]">{stats.totalUsers} akun terdaftar</span>, <span className="font-bold text-[#121214]">{stats.activeParticipants} peserta aktif magang</span> pada {stats.totalBatches} batch aktif. Seluruh modul siap digunakan.
@@ -415,10 +416,10 @@ const AdminDashboard = () => {
                     Anti-Tampering
                   </span>
                   {merkleStatus && (
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded border border-[#121214] ${
-                      merkleStatus.isValid ? 'bg-[#B8C96E]' : 'bg-rose-300'
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded border border-[#121214] flex items-center gap-1 ${
+                      merkleStatus.isValid ? 'bg-[#B8C96E] text-[#121214]' : 'bg-rose-500 text-white animate-pulse'
                     }`}>
-                      {merkleStatus.isValid ? 'RANTAI VALID ✓' : 'RUSAK ✗'}
+                      {merkleStatus.isValid ? 'RANTAI VALID ✓' : 'MANIPULASI TERDETEKSI ✗'}
                     </span>
                   )}
                 </div>
@@ -427,9 +428,13 @@ const AdminDashboard = () => {
                   Mendeteksi secara matematis bila terdapat baris log audit yang diedit atau dihapus oleh oknum.
                 </p>
                 {merkleStatus && (
-                  <p className="text-[10px] text-gray-500 font-mono mt-2 break-all bg-white p-1.5 rounded border border-gray-200">
+                  <div className={`mt-2 p-2 rounded-lg border text-[11px] leading-relaxed ${
+                    merkleStatus.isValid
+                      ? 'bg-white text-emerald-800 border-emerald-300 font-medium'
+                      : 'bg-rose-50 text-rose-900 border-rose-300 font-bold'
+                  }`}>
                     {merkleStatus.message}
-                  </p>
+                  </div>
                 )}
               </div>
               <button

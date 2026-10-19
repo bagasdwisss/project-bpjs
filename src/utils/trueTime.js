@@ -49,6 +49,22 @@ export const getAuthoritativeIso = () => {
   return getAuthoritativeTime().toISOString();
 };
 
+/**
+ * Dynamic Indonesian greeting based on authoritative current time
+ * - 04:00 - 10:59: Selamat Pagi
+ * - 11:00 - 14:59: Selamat Siang
+ * - 15:00 - 18:59: Selamat Sore
+ * - 19:00 - 03:59: Selamat Malam
+ */
+export const getTimeGreeting = (date = getAuthoritativeTime()) => {
+  const current = date || new Date();
+  const hour = current.getHours();
+  if (hour >= 4 && hour < 11) return 'Selamat Pagi';
+  if (hour >= 11 && hour < 15) return 'Selamat Siang';
+  if (hour >= 15 && hour < 19) return 'Selamat Sore';
+  return 'Selamat Malam';
+};
+
 export const getClockStatus = () => ({
   isSynchronized,
   isClockTampered,
@@ -65,5 +81,6 @@ export default {
   syncServerTime,
   getAuthoritativeTime,
   getAuthoritativeIso,
-  getClockStatus
+  getClockStatus,
+  getTimeGreeting
 };

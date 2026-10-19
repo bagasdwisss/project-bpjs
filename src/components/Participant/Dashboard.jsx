@@ -10,6 +10,7 @@ import {
   Calculator, QrCode, MessageSquare
 } from 'lucide-react';
 import dashboardService from '../../services/DashboardService.js';
+import { getTimeGreeting } from '../../utils/trueTime';
 
 const CalculatorModal = lazy(() => import('../Common/CalculatorModal'));
 const QRCodeModal = lazy(() => import('../Common/QRCodeModal'));
@@ -130,7 +131,7 @@ const ParticipantDashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
-              Selamat Datang, {user?.full_name?.split(' ')[0] || 'Peserta'}
+              {getTimeGreeting()}, {user?.full_name?.split(' ')[0] || 'Peserta'}
             </h1>
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
               Penempatan: <span className="font-bold text-[#121214] capitalize">{user?.penempatan || 'Kantor Cabang'}</span> • Capaian akuisisi kamu saat ini mencapai <span className="font-bold text-[#121214]">{progressPct}%</span>.
