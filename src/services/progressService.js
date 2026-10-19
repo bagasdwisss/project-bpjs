@@ -18,13 +18,13 @@ const progressService = {
 
   // NEW METHOD: Get coordinator participants progress
   getCoordinatorParticipantsProgress: async () => {
-    const response = await api.get('/api/coordinator/participants/progress');
+    const response = await api.get('/coordinator/participants/progress');
     return response.data;
   },
 
   // NEW METHOD: Get participant progress by ID
   getParticipantProgress: async (userId) => {
-    const response = await api.get(`/api/coordinator/participants/${userId}/progress`);
+    const response = await api.get(`/coordinator/participants/${userId}/progress`);
     return response.data;
   }
 };

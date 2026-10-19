@@ -17,7 +17,7 @@ const getUsers = (params = {}) => {
 
 const getUsersByCoordinator = async (coordinatorId) => {
   try {
-    const response = await apiClient.get(`/api/users/by-coordinator/${coordinatorId}`);
+    const response = await api.get(`/users/by-coordinator/${coordinatorId}`);
     return response;
   } catch (error) {
     throw error;
@@ -278,7 +278,7 @@ const userService = {
 
   getUserProgress: async (userId) => {
     try {
-      const response = await api.get(`/api/users/${userId}/progress`);
+      const response = await api.get(`/users/${userId}/progress`);
       return response;
     } catch (error) {
       console.error('Error fetching user progress:', error);

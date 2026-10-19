@@ -214,10 +214,14 @@ export const AuthProvider = ({ children }) => {
         };
 
         eventSource.onerror = () => {
-          // Keep browser reconnect logic intact
+          // If SSE closes or errors out in serverless, close to prevent reconnect loops in console
+          if (eventSource && (eventSource.readyState === 2 || eventSource.readyState === EventSource.CLOSED)) {
+            eventSource.close();
+            eventSource = null;
+          }
         };
       } catch (e) {
-        console.warn('SSE Session Stream initialization error:', e);
+        // SSE not supported or blocked
       }
     }
 
@@ -230,10 +234,13 @@ export const AuthProvider = ({ children }) => {
           performKickout('concurrent_session');
         }
       } catch (err) {
-        // If 401 or session hijack detected
-        if (err.response?.status === 401 && err.response?.data?.code === 'SESSION_HIJACK_DETECTED') {
-          if (eventSource) eventSource.close();
-          performKickout('concurrent_session');
+        // If 401 or session hijack / concurrent login detected
+        if (err.response?.status === 401) {
+          const code = err.response?.data?.code;
+          if (code === 'SESSION_HIJACK_DETECTED' || code === 'CONCURRENT_LOGIN_DETECTED') {
+            if (eventSource) eventSource.close();
+            performKickout('concurrent_session');
+          }
         }
       }
     };

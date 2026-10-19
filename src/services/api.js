@@ -51,12 +51,16 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Response Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
+    // Suppress console error noise for background session checks or 401 unauth checks
+    const isBackgroundCheck = error.config?.url?.includes('session-check') || error.config?.url?.includes('session-stream');
+    if (!isBackgroundCheck && import.meta.env.DEV) {
+      console.error('API Response Error:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+    }
 
     if (error.response?.status === 401) {
       const isLoginRequest = error.config?.url?.includes('/login');

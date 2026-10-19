@@ -136,6 +136,7 @@ apiRouter.all('/init-db', async (req, res) => {
 });
 
 // Mount modular sub-routers
+apiRouter.use('/auth', authRoutes);
 apiRouter.use('/', authRoutes);
 apiRouter.use('/dashboard', dashboardRoutes);
 apiRouter.use('/grading', gradingRoutes);

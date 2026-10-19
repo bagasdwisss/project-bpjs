@@ -231,6 +231,35 @@ router.get('/progress/summary', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/users/progress or /api/coordinator/participants/progress
+ */
+router.get('/progress', authenticateToken, async (req, res) => {
+  try {
+    let result;
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      result = await query(`
+        SELECT p.*, u.full_name, u.unique_id, u.penempatan
+        FROM progress p
+        JOIN users u ON p.user_id = u.user_id
+        WHERE u.coordinator_id = $1
+      `, [req.user.user_id]);
+    } else {
+      result = await query(`
+        SELECT p.*, u.full_name, u.unique_id, u.penempatan
+        FROM progress p
+        JOIN users u ON p.user_id = u.user_id
+      `);
+    }
+    return res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * GET /api/users/:id/progress
  */
 router.get('/:id/progress', authenticateToken, async (req, res) => {
