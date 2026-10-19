@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node api/index.js",
-    "db:init": "node scripts/init_neon_db.js"
+    "db:init": "node scripts/init_neon_db.js",
+    "test:e2e": "node scripts/test_e2e.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",

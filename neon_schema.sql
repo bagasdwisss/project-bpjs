@@ -503,8 +503,8 @@ CREATE TABLE IF NOT EXISTS archived_activity_logs (
 );
 
 -- 25. BRIN (BLOCK RANGE INDEXES) FOR HISTORICAL TIME-SERIES TABLES
-CREATE INDEX IF NOT EXISTS idx_attendance_brin_date ON attendance USING brin (attendance_date);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_brin_time ON activity_logs USING brin (timestamp);
+CREATE INDEX IF NOT EXISTS idx_attendance_brin_date ON attendance_records USING brin (attendance_date);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_brin_time ON activity_logs USING brin (created_at);
 CREATE INDEX IF NOT EXISTS idx_archived_messages_brin_time ON archived_messages USING brin (archived_at);
 CREATE INDEX IF NOT EXISTS idx_archived_activity_logs_brin_time ON archived_activity_logs USING brin (archived_at);
 

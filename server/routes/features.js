@@ -931,11 +931,11 @@ router.get('/coordinator/early-warning', authenticateToken, requireRole('Koordin
              COUNT(DISTINCT a.attendance_id) as total_attendance,
              COUNT(DISTINCT CASE WHEN a.status = 'Terlambat' THEN a.attendance_id END) as late_count,
              COUNT(DISTINCT CASE WHEN a.status = 'Alfa' THEN a.attendance_id END) as absent_count,
-             COALESCE(AVG(p.nilai), 0) as avg_score,
-             COUNT(DISTINCT p.id) as modules_completed
+             COALESCE(AVG(s.score_value), 0) as avg_score,
+             COUNT(DISTINCT s.score_id) as modules_completed
       FROM users u
       LEFT JOIN attendance_records a ON u.user_id = a.user_id
-      LEFT JOIN progress p ON u.user_id = p.user_id
+      LEFT JOIN scores s ON u.user_id = s.user_id
       WHERE u.role_id = 1 AND u.status = 'Aktif'
     `;
     const params = [];

@@ -29,7 +29,8 @@ const DUMMY_HASH = '$2a$10$w8T9c0l12F4tU2bO0wT3teqO64h3x4n0s8a1v5y8g3j2k1l9m0n1o
  */
 router.post('/login', async (req, res) => {
   try {
-    const { unique_id, password } = req.body;
+    const unique_id = req.body.unique_id || req.body.identifier;
+    const password = req.body.password;
     const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
     if (!unique_id || !password) {
