@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { DashboardProvider } from './context/DashboardContext';
@@ -6,48 +6,50 @@ import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageLoader from './components/Common/PageLoader';
 import MaintenanceOverlay from './components/Common/MaintenanceOverlay';
+import ChunkErrorBoundary from './components/Common/ChunkErrorBoundary';
+import lazyRetry from './utils/lazyRetry';
 import './App.css';
 
-// Public Components (Lazy Loaded)
-const Login = lazy(() => import('./components/Auth/Login'));
-const VerifyCertificate = lazy(() => import('./components/Common/VerifyCertificate'));
-const DigitalBrochureCatalog = lazy(() => import('./components/Common/DigitalBrochureCatalog'));
+// Public Components (Lazy Loaded with Auto-Retry on Stale Chunks)
+const Login = lazyRetry(() => import('./components/Auth/Login'));
+const VerifyCertificate = lazyRetry(() => import('./components/Common/VerifyCertificate'));
+const DigitalBrochureCatalog = lazyRetry(() => import('./components/Common/DigitalBrochureCatalog'));
 
-// Participant Components (Lazy Loaded)
-const ParticipantDashboard = lazy(() => import('./components/Participant/Dashboard'));
-const ParticipantAttendance = lazy(() => import('./components/Participant/Attendance'));
-const ParticipantScores = lazy(() => import('./components/Participant/Scores'));
-const ParticipantCalendar = lazy(() => import('./components/Participant/Calendar'));
-const ParticipantProgress = lazy(() => import('./components/Participant/Progress'));
-const ParticipantDocuments = lazy(() => import('./components/Participant/Documents'));
-const ParticipantForum = lazy(() => import('./components/Participant/Forum'));
-const ParticipantNotifications = lazy(() => import('./components/Participant/Notifications'));
-const ParticipantAcquisitionResult = lazy(() => import('./components/Participant/AcquisitionResult'));
+// Participant Components (Lazy Loaded with Auto-Retry on Stale Chunks)
+const ParticipantDashboard = lazyRetry(() => import('./components/Participant/Dashboard'));
+const ParticipantAttendance = lazyRetry(() => import('./components/Participant/Attendance'));
+const ParticipantScores = lazyRetry(() => import('./components/Participant/Scores'));
+const ParticipantCalendar = lazyRetry(() => import('./components/Participant/Calendar'));
+const ParticipantProgress = lazyRetry(() => import('./components/Participant/Progress'));
+const ParticipantDocuments = lazyRetry(() => import('./components/Participant/Documents'));
+const ParticipantForum = lazyRetry(() => import('./components/Participant/Forum'));
+const ParticipantNotifications = lazyRetry(() => import('./components/Participant/Notifications'));
+const ParticipantAcquisitionResult = lazyRetry(() => import('./components/Participant/AcquisitionResult'));
 
-// Coordinator Components (Lazy Loaded)
-const CoordinatorDashboard = lazy(() => import('./components/Coordinator/Dashboard'));
-const CoordinatorParticipants = lazy(() => import('./components/Coordinator/Participants'));
-const CoordinatorGrading = lazy(() => import('./components/Coordinator/Grading'));
-const CoordinatorAnalysis = lazy(() => import('./components/Coordinator/Analysis'));
-const CoordinatorTemplates = lazy(() => import('./components/Coordinator/Templates'));
-const CoordinatorCertificates = lazy(() => import('./components/Coordinator/Certificates'));
-const CoordinatorForum = lazy(() => import('./components/Coordinator/Forum'));
-const CoordinatorReminders = lazy(() => import('./components/Coordinator/Reminders'));
-const CoordinatorBpuAcquisitions = lazy(() => import('./components/Coordinator/BpuAcquisitions'));
+// Coordinator Components (Lazy Loaded with Auto-Retry on Stale Chunks)
+const CoordinatorDashboard = lazyRetry(() => import('./components/Coordinator/Dashboard'));
+const CoordinatorParticipants = lazyRetry(() => import('./components/Coordinator/Participants'));
+const CoordinatorGrading = lazyRetry(() => import('./components/Coordinator/Grading'));
+const CoordinatorAnalysis = lazyRetry(() => import('./components/Coordinator/Analysis'));
+const CoordinatorTemplates = lazyRetry(() => import('./components/Coordinator/Templates'));
+const CoordinatorCertificates = lazyRetry(() => import('./components/Coordinator/Certificates'));
+const CoordinatorForum = lazyRetry(() => import('./components/Coordinator/Forum'));
+const CoordinatorReminders = lazyRetry(() => import('./components/Coordinator/Reminders'));
+const CoordinatorBpuAcquisitions = lazyRetry(() => import('./components/Coordinator/BpuAcquisitions'));
 
-// Admin Components (Lazy Loaded)
-const AdminDashboard = lazy(() => import('./components/Admin/Dashboard'));
-const AdminUserManagement = lazy(() => import('./components/Admin/UserManagement'));
-const AdminBatchManagement = lazy(() => import('./components/Admin/BatchManagement'));
-const AdminReports = lazy(() => import('./components/Admin/Reports'));
-const AdminImportExport = lazy(() => import('./components/Admin/ImportExport'));
-const AdminMonitoring = lazy(() => import('./components/Admin/Monitoring'));
-const AdminBackup = lazy(() => import('./components/Admin/Backup'));
-const AdminBroadcast = lazy(() => import('./components/Admin/Broadcast'));
-const AdminWorkSchedule = lazy(() => import('./components/Admin/WorkSchedule'));
-const AdminOfficeLocation = lazy(() => import('./components/Admin/OfficeLocation'));
-const AdminGradingSettings = lazy(() => import('./components/Admin/GradingSettings'));
-const AdminBpuCalculator = lazy(() => import('./components/Admin/BpuCalculatorSettings'));
+// Admin Components (Lazy Loaded with Auto-Retry on Stale Chunks)
+const AdminDashboard = lazyRetry(() => import('./components/Admin/Dashboard'));
+const AdminUserManagement = lazyRetry(() => import('./components/Admin/UserManagement'));
+const AdminBatchManagement = lazyRetry(() => import('./components/Admin/BatchManagement'));
+const AdminReports = lazyRetry(() => import('./components/Admin/Reports'));
+const AdminImportExport = lazyRetry(() => import('./components/Admin/ImportExport'));
+const AdminMonitoring = lazyRetry(() => import('./components/Admin/Monitoring'));
+const AdminBackup = lazyRetry(() => import('./components/Admin/Backup'));
+const AdminBroadcast = lazyRetry(() => import('./components/Admin/Broadcast'));
+const AdminWorkSchedule = lazyRetry(() => import('./components/Admin/WorkSchedule'));
+const AdminOfficeLocation = lazyRetry(() => import('./components/Admin/OfficeLocation'));
+const AdminGradingSettings = lazyRetry(() => import('./components/Admin/GradingSettings'));
+const AdminBpuCalculator = lazyRetry(() => import('./components/Admin/BpuCalculatorSettings'));
 
 
 function App() {
@@ -57,7 +59,8 @@ function App() {
         <DashboardProvider>
           <Router>
             <MaintenanceOverlay />
-            <Suspense fallback={<PageLoader />}>
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
               <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
@@ -240,6 +243,7 @@ function App() {
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>
+        </ChunkErrorBoundary>
         </Router>
       </DashboardProvider>
     </ToastProvider>
