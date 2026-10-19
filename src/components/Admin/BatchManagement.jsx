@@ -197,47 +197,51 @@ function AdminBatchManagement() {
         )}
 
         {/* 3 Pastel Bento Stat Cards */}
+        {/* 3 Bento Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-5 rounded-[22px] bg-[#FCE373] text-[#121214] shadow-sm flex items-center justify-between">
+          <div className="p-5 rounded-2xl bg-[#FCE373] text-[#121214] border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Gelombang</p>
+              <p className="text-[11px] font-black text-[#121214]/70 uppercase tracking-wider">Total Gelombang</p>
               <h3 className="text-3xl font-black mt-1 text-[#121214]">{batches.length}</h3>
-              <p className="text-[10px] text-[#121214]/60 font-medium">Terjadwal di sistem</p>
+              <p className="text-[10px] text-[#121214]/60 font-bold">Terjadwal di sistem</p>
             </div>
-            <div className="w-12 h-12 bg-[#121214] text-[#FCE373] rounded-[14px] flex items-center justify-center font-bold">
+            <div className="w-12 h-12 bg-[#121214] text-[#FCE373] rounded-xl border-2 border-[#121214] flex items-center justify-center font-bold shadow-[2px_2px_0px_#121214]">
               <Calendar className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="p-5 rounded-[22px] bg-[#B8C96E] text-[#121214] shadow-sm flex items-center justify-between">
+          <div className="p-5 rounded-2xl bg-[#B8C96E] text-[#121214] border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold text-[#121214]/70 uppercase tracking-wider">Batch Aktif</p>
+              <p className="text-[11px] font-black text-[#121214]/70 uppercase tracking-wider">Batch Aktif</p>
               <h3 className="text-3xl font-black mt-1 text-[#121214]">
                 {batches.filter(b => b.status === 'Aktif').length}
               </h3>
-              <p className="text-[10px] text-[#121214]/60 font-medium">Sedang berjalan</p>
+              <p className="text-[10px] text-[#121214]/60 font-bold">Sedang berjalan</p>
             </div>
-            <div className="w-12 h-12 bg-[#121214] text-[#B8C96E] rounded-[14px] flex items-center justify-center font-bold">
+            <div className="w-12 h-12 bg-[#121214] text-[#B8C96E] rounded-xl border-2 border-[#121214] flex items-center justify-center font-bold shadow-[2px_2px_0px_#121214]">
               <Clock className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="p-5 rounded-[22px] bg-[#F5C6EC] text-[#121214] shadow-sm flex items-center justify-between">
+          <div className="p-5 rounded-2xl bg-[#F5C6EC] text-[#121214] border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold text-[#121214]/70 uppercase tracking-wider">Peserta Terdaftar</p>
+              <p className="text-[11px] font-black text-[#121214]/70 uppercase tracking-wider">Peserta Terdaftar</p>
               <h3 className="text-3xl font-black mt-1 text-[#121214]">{participants.length}</h3>
-              <p className="text-[10px] text-[#121214]/60 font-medium">Akun peserta magang</p>
+              <p className="text-[10px] text-[#121214]/60 font-bold">Akun peserta magang</p>
             </div>
-            <div className="w-12 h-12 bg-[#121214] text-[#F5C6EC] rounded-[14px] flex items-center justify-center font-bold">
+            <div className="w-12 h-12 bg-[#121214] text-[#F5C6EC] rounded-xl border-2 border-[#121214] flex items-center justify-center font-bold shadow-[2px_2px_0px_#121214]">
               <Users className="w-6 h-6" />
             </div>
           </div>
         </div>
 
         {/* Batches Table Card */}
-        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-[#EAE9E4]">
-            <h2 className="text-sm font-bold text-[#121214]">Daftar Gelombang Pelatihan</h2>
+        <div className="bg-white rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] overflow-hidden">
+          <div className="p-5 border-b-2 border-[#121214] flex items-center justify-between">
+            <h2 className="text-sm font-black text-[#121214] uppercase tracking-wider">Daftar Gelombang Pelatihan</h2>
+            <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-[#BDD4F2] border border-[#121214]">
+              {batches.length} Batch
+            </span>
           </div>
 
           {loading ? (
@@ -246,8 +250,8 @@ function AdminBatchManagement() {
             <div className="p-12 text-center text-xs text-[#6E6D6A]">Belum ada batch terdaftar. Silakan buat batch baru.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
-                <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
+              <table className="min-w-full divide-y-2 divide-[#121214] text-xs">
+                <thead className="bg-[#121214] text-white uppercase text-[10px] font-black tracking-wider">
                   <tr>
                     <th className="px-5 py-3.5 text-left">Nama Batch</th>
                     <th className="px-5 py-3.5 text-left">Periode Pelaksanaan</th>

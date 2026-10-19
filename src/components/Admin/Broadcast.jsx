@@ -227,9 +227,9 @@ const Broadcast = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Send Broadcast Form (Left Side - 7 Cols) */}
-          <div className="lg:col-span-7 bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm p-6 sm:p-7 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-stretch">
+          {/* Send Broadcast Form (Left Side - 50%) */}
+          <div className="bg-white rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] p-5 sm:p-7 space-y-5 flex flex-col justify-between">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#121214]"></span>
@@ -433,8 +433,8 @@ const Broadcast = () => {
             </form>
           </div>
 
-          {/* Broadcast History List (Right Side - 5 Cols) */}
-          <div className="lg:col-span-5 bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm p-6 space-y-4 flex flex-col">
+          {/* Broadcast History List (Right Side - 50%) */}
+          <div className="bg-white rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] p-5 sm:p-7 space-y-4 flex flex-col justify-between">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#121214]"></span>

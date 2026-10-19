@@ -240,7 +240,7 @@ const UserManagement = () => {
         </div>
 
         {/* Search & Filter Pill Group */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-[22px] border border-[#EAE9E4] shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214]">
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A8985]" />
             <input
@@ -248,39 +248,39 @@ const UserManagement = () => {
               placeholder="Cari nama, ID pengguna..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full text-xs font-medium text-[#121214] placeholder-[#8A8985] focus:outline-none focus:ring-2 focus:ring-[#121214]"
+              className="w-full pl-9 pr-4 py-2 bg-[#FAF9F6] border-2 border-[#121214] rounded-full text-xs font-bold text-[#121214] placeholder-[#8A8985] focus:outline-none shadow-[2px_2px_0px_#121214]"
             />
           </div>
 
           <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
             <button
               onClick={() => setRoleFilter('all')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                roleFilter === 'all' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A] hover:text-[#121214]'
+              className={`px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#121214] transition-all ${
+                roleFilter === 'all' ? 'bg-[#121214] text-white shadow-[2px_2px_0px_#B8C96E]' : 'bg-[#FAF9F6] text-[#121214] hover:bg-[#EAE9E4]'
               }`}
             >
               Semua ({users.length})
             </button>
             <button
               onClick={() => setRoleFilter('1')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                roleFilter === '1' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A] hover:text-[#121214]'
+              className={`px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#121214] transition-all ${
+                roleFilter === '1' ? 'bg-[#121214] text-white shadow-[2px_2px_0px_#B8C96E]' : 'bg-[#FAF9F6] text-[#121214] hover:bg-[#EAE9E4]'
               }`}
             >
               Peserta
             </button>
             <button
               onClick={() => setRoleFilter('2')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                roleFilter === '2' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A] hover:text-[#121214]'
+              className={`px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#121214] transition-all ${
+                roleFilter === '2' ? 'bg-[#121214] text-white shadow-[2px_2px_0px_#B8C96E]' : 'bg-[#FAF9F6] text-[#121214] hover:bg-[#EAE9E4]'
               }`}
             >
               Koordinator
             </button>
             <button
               onClick={() => setRoleFilter('3')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                roleFilter === '3' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#6E6D6A] hover:text-[#121214]'
+              className={`px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#121214] transition-all ${
+                roleFilter === '3' ? 'bg-[#121214] text-white shadow-[2px_2px_0px_#B8C96E]' : 'bg-[#FAF9F6] text-[#121214] hover:bg-[#EAE9E4]'
               }`}
             >
               Admin
@@ -292,18 +292,18 @@ const UserManagement = () => {
         {loading ? (
           <TableSkeleton rows={7} cols={7} />
         ) : (
-          <div className="bg-white rounded-[22px] border border-[#EAE9E4] overflow-hidden shadow-sm">
+          <div className="bg-white rounded-2xl border-2 border-[#121214] overflow-hidden shadow-[4px_4px_0px_#121214]">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[720px] divide-y divide-[#EAE9E4]">
-              <thead className="bg-[#FAF9F6]">
+            <table className="w-full text-left text-xs min-w-[720px] divide-y-2 divide-[#121214]">
+              <thead className="bg-[#121214] text-white">
                 <tr>
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">ID</th>
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Nama Lengkap</th>
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Role</th>
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Penempatan</th>
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Koordinator</th>
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3.5 text-right text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider">Aksi</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider">ID</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider">Nama Lengkap</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider">Role</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider">Penempatan</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider">Koordinator</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-3.5 text-right text-[11px] font-black uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EFEA] bg-white">

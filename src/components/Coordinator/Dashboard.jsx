@@ -347,10 +347,10 @@ const CoordinatorDashboard = () => {
           </div>
         )}
 
-        {/* 4-Card Pastel Bento Grid (Intelly Signature) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
-          {/* Card 1: Participants (Pastel Butter Yellow - lg:col-span-5) */}
-          <div className="lg:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+        {/* 4-Card Pastel Bento Grid (Intelly Signature - Perfectly Symmetrical 2x2) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+          {/* Card 1: Participants (Pastel Butter Yellow) */}
+          <div className="h-full rounded-2xl bg-[#FCE373] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
               ●
             </div>
@@ -394,8 +394,8 @@ const CoordinatorDashboard = () => {
             </div>
           </div>
 
-          {/* Card 2: Attendance & Sesi (Soft Bubblegum Pink - lg:col-span-7) */}
-          <div className="lg:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 2: Attendance & Sesi (Soft Bubblegum Pink) */}
+          <div className="h-full rounded-2xl bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <svg 
               className="absolute right-4 -bottom-4 w-32 h-32 opacity-15 pointer-events-none text-[#121214]" 
               fill="currentColor" 
@@ -439,8 +439,8 @@ const CoordinatorDashboard = () => {
             </div>
           </div>
 
-          {/* Card 3: Grade Distribution (Muted Olive Green - lg:col-span-6) */}
-          <div className="lg:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 3: Grade Distribution (Muted Olive Green) */}
+          <div className="h-full rounded-2xl bg-[#B8C96E] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-3 -bottom-5 opacity-15 pointer-events-none font-black text-8xl">
               ▲
             </div>
@@ -484,8 +484,8 @@ const CoordinatorDashboard = () => {
             </div>
           </div>
 
-          {/* Card 4: Sesi & Seminar (Pastel Sky Blue - lg:col-span-6) */}
-          <div className="lg:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 4: Sesi & Seminar (Pastel Sky Blue) */}
+          <div className="h-full rounded-2xl bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none font-black text-8xl">
               ★
             </div>
@@ -527,9 +527,9 @@ const CoordinatorDashboard = () => {
         </div>
 
         {/* Bottom Split Section (Section 5.B.4: Participant's List & Details in Pink) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Participant's List (lg:col-span-5) */}
-          <div className="lg:col-span-5 bg-white rounded-[22px] border border-[#EAE9E4] p-5 shadow-sm space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
+          {/* Left Column: Participant's List */}
+          <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214] space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-[#121214]">Daftar Peserta (List)</h3>
@@ -614,8 +614,8 @@ const CoordinatorDashboard = () => {
             )}
           </div>
 
-          {/* Right Column: Participant Details Card (Visit Details in Pink #F5C6EC) (lg:col-span-7) */}
-          <div className="lg:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-6 shadow-sm border border-[#E59CD8] space-y-6">
+          {/* Right Column: Participant Details Card (Visit Details in Pink #F5C6EC) */}
+          <div className="rounded-2xl bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214] border-2 border-[#121214] space-y-6">
             {selectedParticipant ? (
               <>
                 {/* Header: Name, Demographics, ID pill badge */}

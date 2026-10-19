@@ -146,12 +146,12 @@ const BpuCalculatorSettings = () => {
         </div>
 
         {/* 2 Main Columns: Left = Rate Configuration Form | Right = Live Interactive Simulator */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
           
           {/* ======================================================== */}
-          {/* KOLOM KIRI: FORM PENGATURAN TARIF (lg:col-span-6) */}
+          {/* KOLOM KIRI: FORM PENGATURAN TARIF (50%) */}
           {/* ======================================================== */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="space-y-6">
             <form onSubmit={handleSaveRates} className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
               <div className="flex items-center justify-between border-b-2 border-gray-100 pb-3">
                 <div className="flex items-center gap-2.5">
@@ -316,9 +316,9 @@ const BpuCalculatorSettings = () => {
           </div>
 
           {/* ======================================================== */}
-          {/* KOLOM KANAN: LIVE SIMULATOR / KALKULATOR BPU (lg:col-span-6) */}
+          {/* KOLOM KANAN: LIVE SIMULATOR / KALKULATOR BPU (50%) */}
           {/* ======================================================== */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="space-y-6">
             <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
               <div className="flex items-center justify-between border-b-2 border-gray-100 pb-3">
                 <div className="flex items-center gap-2.5">

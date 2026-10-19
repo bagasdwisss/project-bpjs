@@ -293,9 +293,9 @@ const WorkSchedule = () => {
         {/* ======================================================== */}
         {activeTab === 'jam-kerja' && (
           <form onSubmit={handleSaveSettings} className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
               {/* Kolom Kiri: Waktu & Jam Kerja */}
-              <div className="lg:col-span-7 space-y-6">
+              <div className="space-y-6">
                 <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
                   <div className="flex items-center gap-2.5 border-b-2 border-gray-100 pb-3">
                     <div className="w-8 h-8 rounded-lg bg-[#FCE373] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214]">
@@ -493,7 +493,7 @@ const WorkSchedule = () => {
               </div>
 
               {/* Kolom Kanan: Pesan Kustom Jam & Tombol Simpan */}
-              <div className="lg:col-span-5 space-y-6">
+              <div className="space-y-6">
                 <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
                   <div className="flex items-center gap-2.5 border-b-2 border-gray-100 pb-3">
                     <div className="w-8 h-8 rounded-lg bg-[#F5C6EC] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214]">

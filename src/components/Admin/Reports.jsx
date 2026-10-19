@@ -114,54 +114,62 @@ const Reports = () => {
         )}
 
         {/* 4 Pastel Bento Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-[#BDD4F2]/30 rounded-[22px] border border-[#BDD4F2] p-5 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-[#BDD4F2] rounded-2xl border-2 border-[#121214] p-5 shadow-[4px_4px_0px_#121214] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-[#121214]/70">Total Peserta</span>
-              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
-                <Users className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase text-[#121214]/70">Total Peserta</span>
+              <div className="w-8 h-8 rounded-xl bg-white border border-[#121214] flex items-center justify-center text-[#121214] shadow-[1px_1px_0px_#121214]">
+                <Users className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{summaryStats.totalParticipants}</div>
-            <p className="text-xs text-[#121214]/60 mt-1">Peserta terdaftar</p>
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-[#121214]">{summaryStats.totalParticipants}</div>
+              <p className="text-xs text-[#121214]/70 mt-1 font-bold">Peserta terdaftar</p>
+            </div>
           </div>
 
-          <div className="bg-[#B8C96E]/30 rounded-[22px] border border-[#B8C96E] p-5 shadow-sm">
+          <div className="bg-[#B8C96E] rounded-2xl border-2 border-[#121214] p-5 shadow-[4px_4px_0px_#121214] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-[#121214]/70">Rata-rata Nilai</span>
-              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
-                <Award className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase text-[#121214]/70">Rata-rata Nilai</span>
+              <div className="w-8 h-8 rounded-xl bg-white border border-[#121214] flex items-center justify-center text-[#121214] shadow-[1px_1px_0px_#121214]">
+                <Award className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{summaryStats.averageScore} <span className="text-sm font-bold text-[#121214]/50">/ 100</span></div>
-            <p className="text-xs text-[#121214]/60 mt-1">Skor agregat</p>
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-[#121214]">{summaryStats.averageScore} <span className="text-sm font-bold text-[#121214]/70">/ 100</span></div>
+              <p className="text-xs text-[#121214]/70 mt-1 font-bold">Skor agregat</p>
+            </div>
           </div>
 
-          <div className="bg-[#FCE373]/30 rounded-[22px] border border-[#FCE373] p-5 shadow-sm">
+          <div className="bg-[#FCE373] rounded-2xl border-2 border-[#121214] p-5 shadow-[4px_4px_0px_#121214] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-[#121214]/70">Tingkat Kelulusan</span>
-              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
-                <BarChart2 className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase text-[#121214]/70">Tingkat Kelulusan</span>
+              <div className="w-8 h-8 rounded-xl bg-white border border-[#121214] flex items-center justify-center text-[#121214] shadow-[1px_1px_0px_#121214]">
+                <BarChart2 className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{summaryStats.completionRate}%</div>
-            <p className="text-xs text-[#121214]/60 mt-1">Penyelesaian program</p>
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-[#121214]">{summaryStats.completionRate}%</div>
+              <p className="text-xs text-[#121214]/70 mt-1 font-bold">Penyelesaian program</p>
+            </div>
           </div>
 
-          <div className="bg-[#F5C6EC]/30 rounded-[22px] border border-[#F5C6EC] p-5 shadow-sm">
+          <div className="bg-[#F5C6EC] rounded-2xl border-2 border-[#121214] p-5 shadow-[4px_4px_0px_#121214] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-[#121214]/70">Jam Kerja Akumulasi</span>
-              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
-                <Clock className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase text-[#121214]/70">Jam Kerja Akumulasi</span>
+              <div className="w-8 h-8 rounded-xl bg-white border border-[#121214] flex items-center justify-center text-[#121214] shadow-[1px_1px_0px_#121214]">
+                <Clock className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{summaryStats.totalHours} <span className="text-sm font-bold text-[#121214]/50">Jam</span></div>
-            <p className="text-xs text-[#121214]/60 mt-1">Presensi aktif</p>
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-[#121214]">{summaryStats.totalHours} <span className="text-sm font-bold text-[#121214]/70">Jam</span></div>
+              <p className="text-xs text-[#121214]/70 mt-1 font-bold">Presensi aktif</p>
+            </div>
           </div>
         </div>
 
         {/* Generate Controls Bento Card */}
-        <div className="bg-white p-5 sm:p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm space-y-4">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-[#EAE9E4]">
             <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
             <h2 className="text-sm sm:text-base font-bold text-[#121214]">Parameter Pembuatan Laporan Baru</h2>
@@ -207,12 +215,12 @@ const Reports = () => {
         </div>
 
         {/* History Table Bento Card */}
-        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-[#EAE9E4] flex items-center justify-between">
+        <div className="bg-white rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] overflow-hidden">
+          <div className="p-5 border-b-2 border-[#121214] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
-              <h3 className="text-sm sm:text-base font-bold text-[#121214]">Arsip Laporan yang Telah Dibuat</h3>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#121214]"></span>
+              <h3 className="text-sm sm:text-base font-black text-[#121214]">Arsip Laporan yang Telah Dibuat</h3>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-[#FAF9F6] border border-[#121214] text-[#121214]">
                 {history.length}
               </span>
             </div>
@@ -220,17 +228,17 @@ const Reports = () => {
 
           {history.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center mx-auto mb-3 text-[#121214]/40">
+              <div className="w-12 h-12 rounded-full bg-[#FAF9F6] border-2 border-[#121214] flex items-center justify-center mx-auto mb-3 text-[#121214]">
                 <FileText className="w-5 h-5" />
               </div>
-              <h4 className="text-sm font-bold text-[#121214]">Belum ada riwayat laporan</h4>
-              <p className="text-xs text-[#121214]/50 mt-1">Gunakan formulir parameter di atas untuk mencetak rekapitulasi baru.</p>
+              <h4 className="text-sm font-black text-[#121214]">Belum ada riwayat laporan</h4>
+              <p className="text-xs text-[#121214]/60 mt-1">Gunakan formulir parameter di atas untuk mencetak rekapitulasi baru.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm min-w-[640px]">
-                <thead>
-                  <tr className="border-b border-[#EAE9E4] bg-[#FAF9F6] text-[#121214]/60 font-bold uppercase text-[11px] tracking-wider">
+                <thead className="bg-[#121214] text-white uppercase text-[11px] font-black tracking-wider">
+                  <tr>
                     <th className="px-5 py-3.5">Nama Laporan</th>
                     <th className="px-5 py-3.5">Format</th>
                     <th className="px-5 py-3.5">Tanggal Dibuat</th>

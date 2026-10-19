@@ -191,10 +191,10 @@ const GradingSettings = () => {
 
         {/* Content Form */}
         <form onSubmit={handleSave} className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
             
-            {/* Target Capaian (lg:col-span-6) */}
-            <div className="lg:col-span-6 space-y-6">
+            {/* Target Capaian (50%) */}
+            <div className="space-y-6">
               <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-4">
                 <div className="flex items-center justify-between border-b-2 border-gray-100 pb-3">
                   <div className="flex items-center gap-2.5">
@@ -364,8 +364,8 @@ const GradingSettings = () => {
               </div>
             </div>
 
-            {/* Kolom Kanan: Bobot Persentase Penilaian (%) (lg:col-span-6) */}
-            <div className="lg:col-span-6 space-y-6">
+            {/* Kolom Kanan: Bobot Persentase Penilaian (%) (50%) */}
+            <div className="space-y-6">
               <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-4">
                 <div className="flex items-center justify-between border-b-2 border-gray-100 pb-3">
                   <div className="flex items-center gap-2.5">

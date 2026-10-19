@@ -99,22 +99,22 @@ const Backup = () => {
       <div className="space-y-6 w-full">
         
         {/* Header Bento Box */}
-        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl border-2 border-[#121214] p-6 shadow-[4px_4px_0px_#121214] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E]/40 text-[#3C4A11]">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E] border border-[#121214] text-[#121214]">
                 <Database className="w-4 h-4" />
               </span>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Pemeliharaan & Keamanan</span>
+              <span className="text-xs font-black uppercase tracking-wider text-[#121214]/60">Pemeliharaan & Keamanan</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Backup & Restore Database</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Kelola pencadangan data sistem dan snapshot basis data utama BPJSTK secara berkala</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-[#121214] tracking-tight">Backup & Restore Database</h1>
+            <p className="text-xs sm:text-sm text-[#121214]/70 mt-1 font-semibold">Kelola pencadangan data sistem dan snapshot basis data utama BPJSTK secara berkala</p>
           </div>
 
           <button
             onClick={loadBackups}
             disabled={fetching}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#EAE9E4] bg-white text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition shadow-sm self-start sm:self-auto"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-[#121214] bg-[#FAF9F6] text-xs font-black text-[#121214] hover:bg-[#FCE373] transition shadow-[2px_2px_0px_#121214] self-start sm:self-auto cursor-pointer active:scale-95"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${fetching ? 'animate-spin' : ''}`} />
             Segarkan Riwayat
@@ -125,8 +125,8 @@ const Backup = () => {
         {statusMsg && (
           <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-bold ${
             statusMsg.type === 'success' 
-              ? 'bg-[#B8C96E]/20 text-[#3C4A11] border border-[#B8C96E]' 
-              : 'bg-red-50 text-red-700 border border-red-200'
+              ? 'bg-[#B8C96E]/20 text-[#3C4A11] border-2 border-[#B8C96E]' 
+              : 'bg-red-50 text-red-700 border-2 border-red-200'
           }`}>
             {statusMsg.type === 'success' ? (
               <CheckCircle className="w-5 h-5 text-[#627514] shrink-0" />
@@ -138,20 +138,20 @@ const Backup = () => {
         )}
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
           {/* Create Backup Bento */}
-          <div className="bg-white p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col justify-between space-y-4">
+          <div className="bg-white p-6 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-[#FCE373]/30 border border-[#FCE373] text-[#856B12] rounded-2xl">
+                <div className="p-3 bg-[#FCE373] border-2 border-[#121214] text-[#121214] rounded-2xl shadow-[2px_2px_0px_#121214]">
                   <Database className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#121214] text-base sm:text-lg">Buat Snapshot Database Baru</h3>
-                  <p className="text-xs text-[#121214]/60">Snapshot instan dari basis data operasional BPJSTK</p>
+                  <h3 className="font-black text-[#121214] text-base sm:text-lg">Buat Snapshot Database Baru</h3>
+                  <p className="text-xs text-[#121214]/60 font-semibold">Snapshot instan dari basis data operasional BPJSTK</p>
                 </div>
               </div>
-              <p className="text-xs sm:text-sm text-[#121214]/70 leading-relaxed font-medium">
+              <p className="text-xs sm:text-sm text-[#121214]/70 leading-relaxed font-semibold">
                 Pencadangan mencakup seluruh tabel pengguna, data kehadiran, penilaian magang, dan log aktivitas ke dalam file SQL terenkripsi secara aman.
               </p>
             </div>
@@ -159,39 +159,39 @@ const Backup = () => {
             <button
               onClick={handleCreateBackup}
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-bold transition-all shadow-sm"
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-black transition-all border-2 border-[#121214] shadow-[3px_3px_0px_#8A8985] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
             >
-              {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <HardDrive className="w-3.5 h-3.5" />}
+              {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <HardDrive className="w-3.5 h-3.5 text-[#FCE373]" />}
               {loading ? 'Sedang Memproses Snapshot...' : 'Buat Snapshot Sekarang'}
             </button>
           </div>
 
           {/* System Status Bento */}
-          <div className="bg-white p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col justify-between space-y-4">
+          <div className="bg-white p-6 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-[#B8C96E]/30 border border-[#B8C96E] text-[#3C4A11] rounded-2xl">
+                <div className="p-3 bg-[#B8C96E] border-2 border-[#121214] text-[#121214] rounded-2xl shadow-[2px_2px_0px_#121214]">
                   <Shield className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#121214] text-base sm:text-lg">Status & Ketahanan Data</h3>
-                  <p className="text-xs text-[#121214]/60">Keamanan & Ketahanan Data Operasional</p>
+                  <h3 className="font-black text-[#121214] text-base sm:text-lg">Status & Ketahanan Data</h3>
+                  <p className="text-xs text-[#121214]/60 font-semibold">Keamanan & Ketahanan Data Operasional</p>
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs font-medium text-[#121214]/70 divide-y divide-[#EAE9E4]">
+              <div className="space-y-2 text-xs font-bold text-[#121214]/80 divide-y divide-[#121214]/10">
                 <div className="flex justify-between py-1.5">
                   <span>Tipe Basis Data:</span>
-                  <span className="font-bold text-[#121214]">PostgreSQL Relasional</span>
+                  <span className="font-black text-[#121214]">PostgreSQL Relasional</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span>Ketersediaan Cadangan:</span>
-                  <span className="font-bold text-[#121214]">Terenkripsi & Otomatis</span>
+                  <span className="font-black text-[#121214]">Terenkripsi & Otomatis</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span>Point-in-Time Recovery:</span>
-                  <span className="inline-flex items-center gap-1 font-bold text-[#3C4A11] bg-[#B8C96E]/30 px-2 py-0.5 rounded-full border border-[#B8C96E]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#627514]"></span>
+                  <span className="inline-flex items-center gap-1 font-black text-[#121214] bg-[#B8C96E] px-2.5 py-0.5 rounded-full border border-[#121214]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#121214]"></span>
                     Aktif (Automated)
                   </span>
                 </div>
@@ -201,12 +201,12 @@ const Backup = () => {
         </div>
 
         {/* Backups List Bento */}
-        <div className="bg-white rounded-[22px] border border-[#EAE9E4] shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-[#EAE9E4] flex items-center justify-between">
+        <div className="bg-white rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] overflow-hidden">
+          <div className="p-5 border-b-2 border-[#121214] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
-              <h3 className="text-sm sm:text-base font-bold text-[#121214]">Riwayat Snapshot Database</h3>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#121214]"></span>
+              <h3 className="text-sm sm:text-base font-black text-[#121214]">Riwayat Snapshot Database</h3>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-[#FAF9F6] border border-[#121214] text-[#121214]">
                 {backups.length}
               </span>
             </div>
@@ -228,8 +228,8 @@ const Backup = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm min-w-[640px]">
-                <thead>
-                  <tr className="border-b border-[#EAE9E4] bg-[#FAF9F6] text-[#121214]/60 font-bold uppercase text-[11px] tracking-wider">
+                <thead className="bg-[#121214] text-white uppercase text-[11px] font-black tracking-wider">
+                  <tr>
                     <th className="px-5 py-3.5">Nama File Backup</th>
                     <th className="px-5 py-3.5">Tanggal Dibuat</th>
                     <th className="px-5 py-3.5">Ukuran</th>

@@ -130,22 +130,22 @@ const ImportExport = () => {
       <div className="space-y-6 w-full">
         
         {/* Header Bento Box */}
-        <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl border-2 border-[#121214] p-6 shadow-[4px_4px_0px_#121214] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE373]/50 text-[#856B12]">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE373] border border-[#121214] text-[#121214]">
                 <FileSpreadsheet className="w-4 h-4" />
               </span>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Integrasi & Sinkronisasi</span>
+              <span className="text-xs font-black uppercase tracking-wider text-[#121214]/60">Integrasi & Sinkronisasi</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Import & Export Data</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Sinkronisasi data massal akun peserta magang dan koordinator menggunakan berkas Excel / CSV</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-[#121214] tracking-tight">Import & Export Data</h1>
+            <p className="text-xs sm:text-sm text-[#121214]/70 mt-1 font-semibold">Sinkronisasi data massal akun peserta magang dan koordinator menggunakan berkas Excel / CSV</p>
           </div>
 
           <button
             type="button"
             onClick={handleDownloadTemplate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#EAE9E4] bg-white text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition shadow-sm self-start sm:self-auto"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-[#121214] bg-[#FCE373] text-xs font-black text-[#121214] hover:bg-[#ebd056] transition shadow-[2px_2px_0px_#121214] self-start sm:self-auto cursor-pointer active:scale-95"
           >
             <Download className="w-3.5 h-3.5" />
             Unduh Template Excel
@@ -156,8 +156,8 @@ const ImportExport = () => {
         {statusMsg && (
           <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-bold ${
             statusMsg.type === 'success' 
-              ? 'bg-[#B8C96E]/20 text-[#3C4A11] border border-[#B8C96E]' 
-              : 'bg-red-50 text-red-700 border border-red-200'
+              ? 'bg-[#B8C96E]/20 text-[#3C4A11] border-2 border-[#B8C96E]' 
+              : 'bg-red-50 text-red-700 border-2 border-red-200'
           }`}>
             {statusMsg.type === 'success' ? (
               <CheckCircle className="w-5 h-5 text-[#627514] shrink-0" />
@@ -169,27 +169,27 @@ const ImportExport = () => {
         )}
 
         {/* 2 Main Action Bento Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
           {/* Import Card */}
-          <div className="bg-white p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col justify-between space-y-5">
+          <div className="bg-white p-6 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-5">
             <div>
-              <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4] mb-3">
+              <div className="flex items-center justify-between pb-3 border-b-2 border-[#121214] mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
-                  <h2 className="text-base font-bold text-[#121214]">Impor Data Pengguna</h2>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#121214]"></span>
+                  <h2 className="text-base font-black text-[#121214]">Impor Data Pengguna</h2>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214]/70">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#FAF9F6] border border-[#121214] text-[#121214]">
                   Spreadsheet
                 </span>
               </div>
               
-              <p className="text-xs text-[#121214]/60 mb-4">
-                Unggah file spreadsheet (<code className="font-mono text-[#121214]">.xlsx</code>, <code className="font-mono text-[#121214]">.csv</code>) dengan kolom identitas yang valid.
+              <p className="text-xs text-[#121214]/70 font-semibold mb-4">
+                Unggah file spreadsheet (<code className="font-mono text-[#121214] font-bold">.xlsx</code>, <code className="font-mono text-[#121214] font-bold">.csv</code>) dengan kolom identitas yang valid.
               </p>
 
               <form onSubmit={handleImport} className="space-y-4">
-                <div className="border-2 border-dashed border-[#EAE9E4] hover:border-[#121214] bg-[#FAF9F6] rounded-2xl p-6 text-center transition-all cursor-pointer">
-                  <FileSpreadsheet className="w-10 h-10 text-[#121214]/40 mx-auto mb-2" />
+                <div className="border-2 border-dashed border-[#121214] hover:bg-yellow-50/50 bg-[#FAF9F6] rounded-2xl p-6 text-center transition-all cursor-pointer">
+                  <FileSpreadsheet className="w-10 h-10 text-[#121214] mx-auto mb-2" />
                   <input
                     type="file"
                     id="importFileInput"
@@ -199,17 +199,17 @@ const ImportExport = () => {
                   />
                   <label
                     htmlFor="importFileInput"
-                    className="cursor-pointer text-xs sm:text-sm font-bold text-[#121214] hover:underline block"
+                    className="cursor-pointer text-xs sm:text-sm font-black text-[#121214] hover:underline block"
                   >
                     {importFile ? importFile.name : 'Klik untuk memilih file Excel/CSV'}
                   </label>
-                  <p className="text-[11px] text-[#121214]/40 mt-1">Ukuran maksimal file: 10MB</p>
+                  <p className="text-[11px] text-[#121214]/60 font-semibold mt-1">Ukuran maksimal file: 10MB</p>
                 </div>
 
                 <button
                   type="submit"
                   disabled={!importFile || loading}
-                  className="w-full py-2.5 px-4 rounded-full text-xs font-bold text-white bg-[#121214] hover:bg-black disabled:opacity-40 transition-all shadow-sm"
+                  className="w-full py-3 px-4 rounded-full text-xs font-black text-white bg-[#121214] hover:bg-black disabled:opacity-40 transition-all border-2 border-[#121214] shadow-[3px_3px_0px_#8A8985] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
                 >
                   {loading ? 'Mengimpor Data...' : 'Mulai Proses Impor'}
                 </button>
@@ -218,7 +218,7 @@ const ImportExport = () => {
           </div>
 
           {/* Export Card */}
-          <div className="bg-white p-6 rounded-[22px] border border-[#EAE9E4] shadow-sm flex flex-col justify-between space-y-5">
+          <div className="bg-white p-6 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-5">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4] mb-3">
                 <div className="flex items-center gap-2">

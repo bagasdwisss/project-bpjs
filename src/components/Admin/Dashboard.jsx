@@ -162,10 +162,10 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* 4-Card Pastel Bento Grid (Intelly Signature) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
-          {/* Card 1: Users & Demographics (Pastel Butter Yellow - lg:col-span-5) */}
-          <div className="lg:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+        {/* 4-Card Pastel Bento Grid (Intelly Signature - Perfectly Symmetrical 2x2) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+          {/* Card 1: Users & Demographics (Pastel Butter Yellow) */}
+          <div className="h-full rounded-2xl bg-[#FCE373] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             {/* Watermark shape */}
             <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
               ●
@@ -216,8 +216,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 2: Attendance & Visits Summary (Soft Bubblegum Pink - lg:col-span-7) */}
-          <div className="lg:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 2: Attendance & Visits Summary (Soft Bubblegum Pink) */}
+          <div className="h-full rounded-2xl bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             {/* Heart Watermark SVG */}
             <svg 
               className="absolute right-4 -bottom-4 w-32 h-32 opacity-15 pointer-events-none text-[#121214]" 
@@ -266,8 +266,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 3: Performance & Condition (Muted Olive Green - lg:col-span-6) */}
-          <div className="lg:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 3: Performance & Condition (Muted Olive Green) */}
+          <div className="h-full rounded-2xl bg-[#B8C96E] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             {/* Triangle Watermark */}
             <div className="absolute right-3 -bottom-5 opacity-15 pointer-events-none font-black text-8xl">
               ▲
@@ -309,8 +309,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 4: Sessions & Batches (Pastel Sky Blue - lg:col-span-6) */}
-          <div className="lg:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 4: Sessions & Batches (Pastel Sky Blue) */}
+          <div className="h-full rounded-2xl bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             {/* Starburst Watermark */}
             <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none font-black text-8xl">
               ★
@@ -513,21 +513,21 @@ const AdminDashboard = () => {
         />
 
         {/* Bottom Split Section: 2 Columns (Activities List & Right Detail / Calendar Widget) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Recent Audit Activities (lg:col-span-8) */}
-          <div className="lg:col-span-8 bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
+          {/* Left Column: Recent Audit Activities (50%) */}
+          <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214]">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="text-base font-bold text-[#121214]">Aktivitas Sistem & Audit Log Terakhir</h3>
+                <h3 className="text-base font-black text-[#121214]">Aktivitas Sistem & Audit Log Terakhir</h3>
                 <p className="text-xs text-[#6E6D6A]">Pencatatan real-time perubahan data, absensi, dan penilaian</p>
               </div>
-              <span className="text-[11px] font-bold bg-[#121214] text-white px-3 py-1 rounded-full">
+              <span className="text-[11px] font-black bg-[#121214] text-white px-3 py-1 rounded-full border border-[#121214]">
                 Real-Time
               </span>
             </div>
 
             {activities.length === 0 ? (
-              <div className="text-center py-12 text-[#6E6D6A] text-xs">
+              <div className="text-center py-12 text-[#6E6D6A] text-xs font-bold">
                 Belum ada aktivitas tercatat pada sistem.
               </div>
             ) : (
@@ -538,31 +538,31 @@ const AdminDashboard = () => {
                     <div 
                       key={act.log_id || index}
                       onClick={() => setSelectedActivity(act)}
-                      className={`p-3.5 rounded-[16px] flex items-center justify-between transition-all cursor-pointer ${
+                      className={`p-3.5 rounded-xl border-2 border-[#121214] flex items-center justify-between transition-all cursor-pointer shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] ${
                         isFirst 
-                          ? 'bg-[#F5C6EC]/40 border border-[#F5C6EC]/80' 
-                          : 'bg-[#FAF9F6] hover:bg-[#F5F4F0] border border-[#EAE9E4]'
+                          ? 'bg-[#F5C6EC]/40 hover:bg-[#F5C6EC]/60' 
+                          : 'bg-[#FAF9F6] hover:bg-white'
                       }`}
                     >
                       <div className="flex items-center space-x-3 min-w-0">
                         {/* Squircle Icon */}
-                        <div className={`w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 ${
-                          isFirst ? 'bg-[#F5C6EC] text-[#121214]' : 'bg-white text-[#121214] border border-[#EAE9E4]'
+                        <div className={`w-10 h-10 rounded-xl border-2 border-[#121214] flex items-center justify-center shrink-0 shadow-[1px_1px_0px_#121214] ${
+                          isFirst ? 'bg-[#F5C6EC] text-[#121214]' : 'bg-white text-[#121214]'
                         }`}>
                           <FileText className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#121214] truncate">
+                          <p className="text-xs font-black text-[#121214] truncate">
                             {act.activity_type} - {act.details}
                           </p>
-                          <p className="text-[11px] text-[#6E6D6A] mt-0.5 truncate">
-                            Oleh: <span className="font-semibold text-[#121214]">{act.full_name || 'System'}</span> {act.unique_id && `(${act.unique_id})`}
+                          <p className="text-[11px] text-[#6E6D6A] mt-0.5 truncate font-medium">
+                            Oleh: <span className="font-bold text-[#121214]">{act.full_name || 'System'}</span> {act.unique_id && `(${act.unique_id})`}
                           </p>
                         </div>
                       </div>
 
                       <div className="shrink-0 ml-3 text-right">
-                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                        <span className={`text-[11px] font-black px-2.5 py-1 rounded-full border border-[#121214] ${
                           isFirst ? 'bg-[#121214] text-white' : 'bg-[#EAE9E4] text-[#121214]'
                         }`}>
                           {new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -575,24 +575,24 @@ const AdminDashboard = () => {
             )}
           </div>
 
-          {/* Right Column: Mini Calendar & Action Panel (lg:col-span-4) */}
-          <div className="lg:col-span-4 space-y-5">
+          {/* Right Column: Mini Calendar & Action Panel (50%) */}
+          <div className="space-y-5">
             {/* Mini Calendar Widget (Intelly Style) */}
-            <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-5 shadow-sm">
+            <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 shadow-[4px_4px_0px_#121214]">
               <div className="flex items-center justify-between mb-4">
-                <button className="p-1 rounded-full hover:bg-[#F5F4F0] text-[#121214]">
+                <button className="p-1 rounded-lg border border-[#121214] hover:bg-[#F5F4F0] text-[#121214]">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <div className="bg-[#F5C6EC] text-[#121214] px-3.5 py-1 rounded-full text-xs font-extrabold tracking-tight">
+                <div className="bg-[#F5C6EC] text-[#121214] border border-[#121214] px-3.5 py-1 rounded-full text-xs font-black tracking-tight shadow-[1px_1px_0px_#121214]">
                   {currentMonthStr}
                 </div>
-                <button className="p-1 rounded-full hover:bg-[#F5F4F0] text-[#121214]">
+                <button className="p-1 rounded-lg border border-[#121214] hover:bg-[#F5F4F0] text-[#121214]">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Weekday headers */}
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8A8985] mb-2">
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-[#121214] mb-2">
                 <span>SE</span>
                 <span>SL</span>
                 <span>RB</span>
@@ -603,16 +603,16 @@ const AdminDashboard = () => {
               </div>
 
               {/* Day numbers grid */}
-              <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-[#121214]">
+              <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-[#121214]">
                 {[...Array(31)].map((_, i) => {
                   const dayNum = i + 1;
                   const isCurrent = dayNum === currentDay;
                   return (
                     <div 
                       key={dayNum} 
-                      className={`h-8 flex items-center justify-center rounded-full text-[11px] transition-colors ${
+                      className={`h-8 flex items-center justify-center rounded-xl text-[11px] transition-colors ${
                         isCurrent 
-                          ? 'bg-[#121214] text-white font-black shadow-sm' 
+                          ? 'bg-[#121214] text-white font-black border border-[#121214] shadow-[1px_1px_0px_#121214]' 
                           : 'hover:bg-[#F5F4F0]'
                       }`}
                     >
@@ -625,15 +625,15 @@ const AdminDashboard = () => {
               {/* Quick Action Pill Button */}
               <button 
                 onClick={fetchDashboard}
-                className="w-full mt-4 bg-[#121214] hover:bg-neutral-800 text-white font-bold text-xs py-2.5 rounded-full flex items-center justify-center space-x-2 transition-all shadow-sm"
+                className="w-full mt-4 bg-[#121214] hover:bg-neutral-800 text-white font-black text-xs py-2.5 rounded-xl border-2 border-[#121214] flex items-center justify-center space-x-2 transition-all shadow-[2px_2px_0px_#8A8985] active:translate-x-[1px] active:translate-y-[1px]"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-[#B8C96E]" />
                 <span>Kelola Agenda & Jadwal</span>
               </button>
             </div>
 
             {/* Distribusi Penempatan Magang */}
-            <div className="bg-[#FAF9F6] rounded-[22px] border border-[#EAE9E4] p-5">
+            <div className="bg-[#FAF9F6] rounded-2xl border-2 border-[#121214] p-5 shadow-[4px_4px_0px_#121214]">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[11px] font-bold text-[#121214] uppercase tracking-wider">
                   Distribusi Penempatan Magang

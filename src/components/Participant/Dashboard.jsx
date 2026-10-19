@@ -172,10 +172,10 @@ const ParticipantDashboard = () => {
           </div>
         </div>
 
-        {/* 4-Card Pastel Bento Grid (Intelly Signature) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
-          {/* Card 1: Akuisisi BPU (Pastel Butter Yellow - lg:col-span-5) */}
-          <div className="lg:col-span-5 rounded-[22px] bg-[#FCE373] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+        {/* 4-Card Pastel Bento Grid (Intelly Signature - Perfectly Symmetrical 2x2) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+          {/* Card 1: Akuisisi BPU (Pastel Butter Yellow) */}
+          <div className="h-full rounded-2xl bg-[#FCE373] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
               ●
             </div>
@@ -215,8 +215,8 @@ const ParticipantDashboard = () => {
             </div>
           </div>
 
-          {/* Card 2: Kehadiran Absensi (Soft Bubblegum Pink - lg:col-span-7) */}
-          <div className="lg:col-span-7 rounded-[22px] bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 2: Kehadiran Absensi (Soft Bubblegum Pink) */}
+          <div className="h-full rounded-2xl bg-[#F5C6EC] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <svg 
               className="absolute right-4 -bottom-4 w-32 h-32 opacity-15 pointer-events-none text-[#121214]" 
               fill="currentColor" 
@@ -239,7 +239,7 @@ const ParticipantDashboard = () => {
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hadir Efektif</p>
                   <p className="text-2xl font-black text-[#121214] mt-0.5">{attPresent} Hari</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">Dari {attTotal} hari tercatat</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Dari {attTotal} hari</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Izin & Sakit</p>
@@ -260,8 +260,8 @@ const ParticipantDashboard = () => {
             </div>
           </div>
 
-          {/* Card 3: Nilai Rata-rata & Rank (Muted Olive Green - lg:col-span-6) */}
-          <div className="lg:col-span-6 rounded-[22px] bg-[#B8C96E] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 3: Nilai Rata-rata & Rank (Muted Olive Green) */}
+          <div className="h-full rounded-2xl bg-[#B8C96E] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-3 -bottom-5 opacity-15 pointer-events-none font-black text-8xl">
               ▲
             </div>
@@ -307,8 +307,8 @@ const ParticipantDashboard = () => {
             </div>
           </div>
 
-          {/* Card 4: Penugasan & Modul (Pastel Sky Blue - lg:col-span-6) */}
-          <div className="lg:col-span-6 rounded-[22px] bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          {/* Card 4: Penugasan & Modul (Pastel Sky Blue) */}
+          <div className="h-full rounded-2xl bg-[#BDD4F2] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-4 -bottom-4 opacity-15 pointer-events-none font-black text-8xl">
               ★
             </div>
@@ -355,64 +355,64 @@ const ParticipantDashboard = () => {
           </div>
         </div>
 
-        {/* Split Section: Attendance Breakdown & Timeline Schedule */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Attendance Breakdown & Progress Summary (lg:col-span-7) */}
-          <div className="lg:col-span-7 bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm space-y-5">
+        {/* Split Section: Attendance Breakdown & Timeline Schedule (Symmetrical 2 Columns) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Left Column: Attendance Breakdown & Progress Summary */}
+          <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214] space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-[#121214]">Rincian Presensi & Kepatuhan Jam Kerja</h3>
+                <h3 className="text-base font-black text-[#121214]">Rincian Presensi & Kepatuhan Jam Kerja</h3>
                 <p className="text-xs text-[#6E6D6A]">Data kehadiran resmi yang dicatat oleh sistem GPS & Koordinator</p>
               </div>
-              <span className="text-xs font-bold bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214] px-3 py-1 rounded-full">
+              <span className="text-xs font-black bg-[#FAF9F6] border border-[#121214] text-[#121214] px-3 py-1 rounded-full shadow-[1px_1px_0px_#121214]">
                 {attendance.month}
               </span>
             </div>
 
             {/* Attendance Status Badges Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+              <div className="p-3 bg-[#FAF9F6] rounded-xl border-2 border-[#121214] text-center shadow-[1px_1px_0px_#121214]">
                 <p className="text-lg font-black text-emerald-600">{attPresent}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Hadir</p>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#6E6D6A] mt-0.5">Hadir</p>
               </div>
-              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+              <div className="p-3 bg-[#FAF9F6] rounded-xl border-2 border-[#121214] text-center shadow-[1px_1px_0px_#121214]">
                 <p className="text-lg font-black text-[#1F4275]">{attIzin}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Izin</p>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#6E6D6A] mt-0.5">Izin</p>
               </div>
-              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+              <div className="p-3 bg-[#FAF9F6] rounded-xl border-2 border-[#121214] text-center shadow-[1px_1px_0px_#121214]">
                 <p className="text-lg font-black text-amber-500">{attSick}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Sakit</p>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#6E6D6A] mt-0.5">Sakit</p>
               </div>
-              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+              <div className="p-3 bg-[#FAF9F6] rounded-xl border-2 border-[#121214] text-center shadow-[1px_1px_0px_#121214]">
                 <p className="text-lg font-black text-rose-500">{attAbsent}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Alpa</p>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#6E6D6A] mt-0.5">Alpa</p>
               </div>
-              <div className="p-3 bg-[#FAF9F6] rounded-[16px] border border-[#EAE9E4] text-center">
+              <div className="p-3 bg-[#FAF9F6] rounded-xl border-2 border-[#121214] text-center shadow-[1px_1px_0px_#121214]">
                 <p className="text-lg font-black text-purple-600">{attLate}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6D6A] mt-0.5">Terlambat</p>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#6E6D6A] mt-0.5">Terlambat</p>
               </div>
             </div>
 
             {/* Progress Akuisisi Meter */}
-            <div className="p-4 rounded-[18px] bg-[#FAF9F6] border border-[#EAE9E4] space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-[#121214]">
+            <div className="p-4 rounded-xl bg-[#FAF9F6] border-2 border-[#121214] space-y-2 shadow-[2px_2px_0px_#121214]">
+              <div className="flex items-center justify-between text-xs font-black text-[#121214]">
                 <span>Progress Akuisisi BPU ({akuisisiBPU} / {targetAkuisisi} Peserta)</span>
                 <span>{progressPct}%</span>
               </div>
-              <div className="w-full h-3 bg-[#EAE9E4] rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-[#EAE9E4] rounded-full overflow-hidden border border-[#121214]">
                 <div 
                   className="h-full bg-[#121214] rounded-full transition-all duration-500" 
                   style={{ width: `${progressPct}%` }}
                 ></div>
               </div>
-              <p className="text-[11px] text-[#6E6D6A]">
+              <p className="text-[11px] text-[#6E6D6A] font-medium">
                 Terus tingkatkan sosialisasi program jaminan sosial ketenagakerjaan pada sektor pekerja mandiri (BPU).
               </p>
             </div>
           </div>
 
-          {/* Right Column: Upcoming Agenda & Nilai Terakhir (lg:col-span-5) */}
-          <div className="lg:col-span-5 bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm space-y-4">
+          {/* Right Column: Upcoming Agenda & Nilai Terakhir */}
+          <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214] space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-[#121214]">Agenda & Nilai Terbaru</h3>
               <Link 

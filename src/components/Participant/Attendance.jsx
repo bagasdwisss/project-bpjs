@@ -698,10 +698,10 @@ const Attendance = () => {
 
         {/* TAB 1: PRESENSI MASUK & GEOFENCING */}
         {activeTab === 'presensi' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
             
-            {/* Left Column: Clock & Check-in Bento (lg:col-span-5) */}
-            <div className="lg:col-span-5 rounded-2xl bg-[#FCE373] border-2 border-[#121214] text-[#121214] p-5 sm:p-6 shadow-[5px_5px_0px_#121214] flex flex-col justify-between space-y-5">
+            {/* Left Column: Clock & Check-in Bento (50%) */}
+            <div className="rounded-2xl bg-[#FCE373] border-2 border-[#121214] text-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-5">
               <div className="space-y-3">
                 {/* Dynamic Schedule Badge */}
                 <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-white/80 border-2 border-[#121214] text-[11px] font-black text-[#121214] shadow-[2px_2px_0px_#121214]">
@@ -856,11 +856,11 @@ const Attendance = () => {
               </button>
             </div>
 
-            {/* Right Column: Selfie Face Verification & Recent Records (lg:col-span-7) */}
-            <div className="lg:col-span-7 space-y-5">
+            {/* Right Column: Selfie Face Verification & Recent Records (50%) */}
+            <div className="space-y-5">
               
               {/* Selfie Camera Card */}
-              <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 shadow-[5px_5px_0px_#121214] space-y-4">
+              <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 shadow-[4px_4px_0px_#121214] space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-9 h-9 rounded-xl bg-[#BDD4F2] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
@@ -1032,10 +1032,10 @@ const Attendance = () => {
 
         {/* TAB 2: PENGAJUAN IZIN, CUTI & SAKIT (APPROVAL WORKFLOW) */}
         {activeTab === 'izin' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
             
-            {/* Form Column (lg:col-span-5) */}
-            <div className="lg:col-span-5 bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[5px_5px_0px_#121214] space-y-4">
+            {/* Form Column (50%) */}
+            <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214] space-y-4">
               <div className="flex items-center space-x-2.5 border-b-2 border-[#121214] pb-3">
                 <div className="w-10 h-10 rounded-xl bg-[#F5C6EC] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
                   <FileText className="w-5 h-5 text-[#121214]" />
@@ -1137,8 +1137,8 @@ const Attendance = () => {
               </form>
             </div>
 
-            {/* History Column (lg:col-span-7) */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[5px_5px_0px_#121214] space-y-4">
+            {/* History Column (50%) */}
+            <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214] space-y-4">
               <h3 className="font-black text-sm uppercase tracking-wider text-[#121214]">
                 Status & Riwayat Pengajuan Izin Anda
               </h3>

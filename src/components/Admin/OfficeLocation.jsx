@@ -126,10 +126,10 @@ const OfficeLocation = () => {
 
         {/* Content Form & Guide */}
         <form onSubmit={handleSave} className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
             
-            {/* Kolom Kiri: Form Koordinat & Radius (lg:col-span-7) */}
-            <div className="lg:col-span-7 space-y-6">
+            {/* Kolom Kiri: Form Koordinat & Radius (50%) */}
+            <div className="space-y-6">
               <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b-2 border-gray-100 pb-3">
                   <div className="flex items-center gap-2.5">
@@ -268,8 +268,8 @@ const OfficeLocation = () => {
               </div>
             </div>
 
-            {/* Kolom Kanan: Live Info Box & Visual Card (lg:col-span-5) */}
-            <div className="lg:col-span-5 space-y-5">
+            {/* Kolom Kanan: Live Info Box & Visual Card (50%) */}
+            <div className="space-y-5">
               
               {/* Preview Status Card */}
               <div className="bg-white border-2 border-[#121214] rounded-2xl p-5 shadow-[4px_4px_0px_#121214] space-y-4">
