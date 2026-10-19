@@ -36,7 +36,7 @@ async function testAllLogins() {
       console.log(`✅ [LOGIN SUKSES] ${uid} (${user.full_name}) | Role: ${user.role_name}`);
       const token = jwt.sign(
         { user_id: user.user_id, unique_id: user.unique_id, role_id: user.role_id, role: user.role_name },
-        process.env.JWT_SECRET || 'bpjs-super-secret-key-2026-vercel-neon',
+        process.env.JWT_SECRET || 'dev_secret_for_test',
         { expiresIn: '7d' }
       );
       console.log(`   JWT Token: ${token.substring(0, 30)}...`);

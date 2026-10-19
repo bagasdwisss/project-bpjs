@@ -1,8 +1,11 @@
 // api/middleware/auth.js
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { query } from '../db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'bpjs-super-secret-key-2026-vercel-neon';
+// In-memory fallback secret for local development if JWT_SECRET is not set in environment
+const devFallbackSecret = crypto.randomBytes(32).toString('hex');
+const JWT_SECRET = process.env.JWT_SECRET || devFallbackSecret;
 
 /**
  * Middleware to verify JWT token

@@ -56,7 +56,7 @@ Isi konfigurasi database Neon Anda di `.env`:
 ```env
 VITE_API_URL=/api
 DATABASE_URL=postgresql://[user]:[password]@[neon-host]/[dbname]?sslmode=require
-JWT_SECRET=rahasia-bpjs-super-secret-key
+JWT_SECRET=your_jwt_secret_key_change_in_production
 ```
 
 ### 3. Inisialisasi Database Neon
