@@ -2,6 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import BroadcastPopup from '../Common/BroadcastPopup';
+import ArchivalAlertModal from '../Admin/ArchivalAlertModal';
 
 const TanyaBPJSBot = lazy(() => import('../Common/TanyaBPJSBot'));
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
@@ -56,6 +57,9 @@ const Layout = ({ children }) => {
 
       {/* Global Broadcast Toast & Center Modal Alerts */}
       <BroadcastPopup />
+
+      {/* Cold Storage Archival Automated Notification Alert (Admin Only) */}
+      <ArchivalAlertModal />
     </div>
   );
 };

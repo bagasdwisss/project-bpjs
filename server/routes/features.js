@@ -1432,6 +1432,47 @@ router.get('/admin/audit-trail/verify', authenticateToken, requireRole('Administ
 // =========================================================================
 
 /**
+ * GET /api/admin/maintenance/archive/status
+ * Checks if expired records (> 90 days chat, > 180 days logs) exist and archival is due
+ */
+router.get('/admin/maintenance/archive/status', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const chatDays = parseInt(req.query.chatDays, 10) || 90;
+    const logDays = parseInt(req.query.logDays, 10) || 180;
+
+    const chatCountRes = await query(
+      `SELECT COUNT(*)::int as count FROM direct_messages WHERE created_at < NOW() - INTERVAL '${chatDays} days'`
+    );
+    const logCountRes = await query(
+      `SELECT COUNT(*)::int as count FROM activity_logs WHERE created_at < NOW() - INTERVAL '${logDays} days'`
+    );
+
+    const expiredChats = chatCountRes.rows[0]?.count || 0;
+    const expiredLogs = logCountRes.rows[0]?.count || 0;
+
+    const lastArchiveRes = await query(
+      `SELECT setting_value FROM system_settings WHERE setting_key = 'last_archival_timestamp' LIMIT 1`
+    );
+
+    const isDue = (expiredChats > 0 || expiredLogs > 0);
+
+    return res.json({
+      success: true,
+      data: {
+        expiredChats,
+        expiredLogs,
+        isDue,
+        chatDays,
+        logDays,
+        lastArchival: lastArchiveRes.rows[0]?.setting_value || null
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * POST /api/admin/maintenance/archive
  * Executes cold storage archival for expired chats (> 90 days) & logs (> 180 days)
  */
@@ -1441,6 +1482,12 @@ router.post('/admin/maintenance/archive', authenticateToken, requireRole('Admini
     const logDays = parseInt(req.body.logRetentionDays, 10) || 180;
 
     const result = await runColdStorageArchival({ chatRetentionDays: chatDays, logRetentionDays: logDays });
+
+    await query(`
+      INSERT INTO system_settings (setting_key, setting_value, updated_at)
+      VALUES ('last_archival_timestamp', $1, CURRENT_TIMESTAMP)
+      ON CONFLICT (setting_key) DO UPDATE SET setting_value = $1, updated_at = CURRENT_TIMESTAMP
+    `, [new Date().toISOString()]);
 
     await logActivity({
       userId: req.user.user_id,

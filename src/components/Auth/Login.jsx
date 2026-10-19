@@ -13,6 +13,7 @@ import {
   ShieldAlert 
 } from 'lucide-react';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
+import PageLoader from '../Common/PageLoader';
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -88,14 +89,7 @@ const Login = () => {
   };
 
   if (isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-[#F5F4F0] flex items-center justify-center p-4">
-        <div className="text-center space-y-3">
-          <div className="w-12 h-12 rounded-full border-3 border-[#121214] border-t-transparent animate-spin mx-auto"></div>
-          <p className="text-sm font-semibold text-[#121214]">Mengarahkan ke dashboard...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Memuat Halaman..." />;
   }
 
   return (
