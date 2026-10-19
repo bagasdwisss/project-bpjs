@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { recordScoreCdcDiff } from '../utils/cdcDiff.js';
 
 const router = Router();
 
@@ -120,6 +121,10 @@ router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'
     const { id } = req.params;
     const { score_value, comments } = req.body;
 
+    // Fetch previous score for CDC delta computation
+    const prevRes = await query(`SELECT * FROM scores WHERE score_id = $1`, [id]);
+    const oldScore = prevRes.rows[0];
+
     const result = await query(
       `UPDATE scores 
        SET score_value = COALESCE($1, score_value),
@@ -129,11 +134,44 @@ router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'
       [score_value, comments, id]
     );
 
+    if (result.rows.length > 0 && oldScore) {
+      await recordScoreCdcDiff({
+        scoreId: id,
+        userId: result.rows[0].user_id,
+        moduleId: result.rows[0].module_id,
+        coordinatorId: req.user.user_id,
+        oldScore,
+        newScore: score_value !== undefined ? score_value : oldScore.score_value,
+        comments: comments !== undefined ? comments : oldScore.comments
+      });
+    }
+
     return res.json({
       success: true,
       message: 'Nilai berhasil diperbarui.',
       data: result.rows[0]
     });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/coordinator/scores/:id/cdc-history
+ */
+router.get('/:id/cdc-history', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(
+      `SELECT d.*, u.full_name as coordinator_name
+       FROM cdc_score_diffs d
+       LEFT JOIN users u ON d.coordinator_id = u.user_id
+       WHERE d.score_id = $1
+       ORDER BY d.created_at DESC`,
+      [id]
+    );
+
+    return res.json({ success: true, data: result.rows });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

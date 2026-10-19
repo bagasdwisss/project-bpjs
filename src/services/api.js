@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getDeviceFingerprint } from '../utils/deviceFingerprint.js';
+import { enqueueFailedTransaction } from '../utils/deadLetterQueue.js';
 
 // API Base URL - defaults to /api for relative same-origin on Vercel and local Vite proxy
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -20,6 +21,11 @@ api.interceptors.request.use(
 
     // Attach Device Fingerprint Header (Feature 5)
     config.headers['x-device-fingerprint'] = getDeviceFingerprint();
+
+    // Attach Distributed Tracing Correlation ID (Feature 11)
+    if (!config.headers['X-Correlation-ID']) {
+      config.headers['X-Correlation-ID'] = `c-${Math.random().toString(36).substring(2, 9)}-${Date.now().toString(36)}`;
+    }
 
     // Cek batas inaktivitas 15 menit sebelum request dikirim
     if (token && !isAuthRoute) {
@@ -84,6 +90,22 @@ api.interceptors.response.use(
     
     if (error.response?.status === 403) {
       console.log('Access forbidden');
+    }
+
+    // Auto-enqueue critical failed mutations to Dead Letter Queue (DLQ)
+    const isNetworkOrDegraded = !error.response || error.response.status === 503 || error.code === 'ECONNABORTED';
+    const isCriticalAction = error.config?.method?.toLowerCase() === 'post' || error.config?.method?.toLowerCase() === 'put';
+    const isRequestedFromDlq = error.config?.headers?.['X-Requested-From-DLQ'];
+
+    if (isNetworkOrDegraded && isCriticalAction && !isRequestedFromDlq && error.config?.url) {
+      const url = error.config.url;
+      if (url.includes('attendance') || url.includes('scores') || url.includes('progress')) {
+        let payload = error.config.data;
+        try {
+          if (typeof payload === 'string') payload = JSON.parse(payload);
+        } catch {}
+        enqueueFailedTransaction('MUTATION_' + url.split('/').pop().toUpperCase(), url, error.config.method, payload, error.message);
+      }
     }
 
     return Promise.reject(error);

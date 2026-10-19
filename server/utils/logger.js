@@ -1,5 +1,6 @@
 import { query } from '../db.js';
 import crypto from 'crypto';
+import { compressPayload } from './payloadCompressor.js';
 
 const GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 
@@ -13,7 +14,10 @@ export const logActivity = async (options = {}) => {
     const req = options.req;
     const userId = options.userId || req?.user?.user_id || null;
     const type = options.action || options.type || 'SYSTEM_EVENT';
-    const details = options.description || options.details || '';
+    const rawDetails = options.description || options.details || '';
+    const details = typeof rawDetails === 'object' 
+      ? compressPayload(rawDetails) 
+      : (typeof rawDetails === 'string' && rawDetails.length > 256 ? compressPayload(rawDetails) : rawDetails);
     const rawIp = req?.headers?.['x-forwarded-for'] || req?.ip || options.ip || '127.0.0.1';
     const ip = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : '127.0.0.1';
     const userAgent = req?.headers?.['user-agent'] || options.userAgent || null;

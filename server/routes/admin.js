@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
+import { decompressPayload } from '../utils/payloadCompressor.js';
 
 const router = Router();
 
@@ -23,7 +24,12 @@ router.get('/monitoring/activity-logs', authenticateToken, requireRole('Administ
 
     return res.json({
       success: true,
-      data: result.rows
+      data: result.rows.map(r => ({
+        ...r,
+        details: typeof r.details === 'string' && r.details.startsWith('zst:v1:')
+          ? (typeof decompressPayload(r.details) === 'object' ? JSON.stringify(decompressPayload(r.details)) : decompressPayload(r.details))
+          : r.details
+      }))
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

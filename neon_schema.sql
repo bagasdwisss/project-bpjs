@@ -501,3 +501,90 @@ CREATE TABLE IF NOT EXISTS archived_activity_logs (
     current_hash VARCHAR(64),
     archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 25. BRIN (BLOCK RANGE INDEXES) FOR HISTORICAL TIME-SERIES TABLES
+CREATE INDEX IF NOT EXISTS idx_attendance_brin_date ON attendance USING brin (attendance_date);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_brin_time ON activity_logs USING brin (timestamp);
+CREATE INDEX IF NOT EXISTS idx_archived_messages_brin_time ON archived_messages USING brin (archived_at);
+CREATE INDEX IF NOT EXISTS idx_archived_activity_logs_brin_time ON archived_activity_logs USING brin (archived_at);
+
+-- 26. HONEYTOKEN INTRUSION LOGS & JAILED ATTACKERS
+CREATE TABLE IF NOT EXISTS honeytoken_traps (
+    trap_id SERIAL PRIMARY KEY,
+    trap_path VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent TEXT,
+    http_method VARCHAR(10) NOT NULL,
+    request_headers JSONB,
+    severity VARCHAR(20) DEFAULT 'CRITICAL',
+    jailed_until TIMESTAMP,
+    triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS jailed_ips (
+    ip VARCHAR(45) PRIMARY KEY,
+    reason TEXT NOT NULL,
+    jailed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    jailed_until TIMESTAMP NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- 27. REFRESH TOKEN FAMILIES FOR ZERO-TRUST REUSE DETECTION
+CREATE TABLE IF NOT EXISTS refresh_token_families (
+    family_id VARCHAR(64) PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    current_jti VARCHAR(64) NOT NULL,
+    is_revoked BOOLEAN DEFAULT FALSE,
+    revocation_reason VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS refresh_token_reuse_logs (
+    log_id SERIAL PRIMARY KEY,
+    family_id VARCHAR(64) NOT NULL,
+    user_id INT NOT NULL,
+    reused_jti VARCHAR(64) NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 28. CDC (CHANGE DATA CAPTURE) DELTA AUDIT
+CREATE TABLE IF NOT EXISTS cdc_score_diffs (
+    diff_id SERIAL PRIMARY KEY,
+    score_id INT NOT NULL,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    module_id INT,
+    coordinator_id INT REFERENCES users(user_id) ON DELETE SET NULL,
+    delta_json JSONB NOT NULL,
+    diff_summary VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 29. WHISTLEBLOWING & COUNSELING (ISOLATED ANONYMOUS REPORTING)
+CREATE TABLE IF NOT EXISTS whistleblowing_reports (
+    report_id SERIAL PRIMARY KEY,
+    ticket_code VARCHAR(32) NOT NULL UNIQUE,
+    category VARCHAR(100) NOT NULL,
+    subject VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    location_or_unit VARCHAR(100),
+    status VARCHAR(30) DEFAULT 'TERKIRIM' CHECK (status IN ('TERKIRIM', 'DALAM_PENELAAHAN', 'DITINDAKLANJUTI', 'SELESAI', 'DITOLAK')),
+    admin_response TEXT,
+    responded_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    responded_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 30. SERVER TELEMETRY & LATENCY TRACKING
+CREATE TABLE IF NOT EXISTS system_telemetry_logs (
+    telemetry_id SERIAL PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    latency_ms NUMERIC(8,2) NOT NULL,
+    memory_heap_used_mb NUMERIC(6,2),
+    details JSONB,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

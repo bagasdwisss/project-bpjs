@@ -15,6 +15,8 @@ import QRCodeModal from '../Common/QRCodeModal';
 import NeoDatePicker from '../Common/NeoDatePicker';
 import { sanitizeAndWatermarkSelfie, SensorMotionChecker } from '../../utils/photoSanitizer';
 import { saveOfflineAttendance, getOfflineAttendances, syncOfflineAttendanceQueue } from '../../utils/offlineQueue';
+import { signRequest } from '../../utils/requestSigner';
+import { getAuthoritativeTime } from '../../utils/trueTime';
 
 // Toast Notification Component
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -503,7 +505,9 @@ const Attendance = () => {
         return;
       }
 
-      const res = await api.post('/participant/attendance/check-in', payload);
+      // Feature 2: Time-Stamped HMAC Request Signing (Anti-Replay Attack)
+      const signedHeaders = await signRequest('POST', '/api/participant/attendance/check-in', payload);
+      const res = await api.post('/participant/attendance/check-in', payload, { headers: signedHeaders });
 
       if (res.data?.success) {
         showToast('Presensi selfie & GPS berhasil dicatat!', 'success');

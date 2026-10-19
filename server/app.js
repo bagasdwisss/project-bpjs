@@ -29,6 +29,9 @@ import compressionMiddleware from './middleware/compressionMiddleware.js';
 import slidingWindowRateLimiter from './middleware/rateLimiter.js';
 import maintenanceMiddleware from './middleware/maintenanceMiddleware.js';
 import deviceGuardMiddleware from './middleware/deviceGuard.js';
+import honeytokenMiddleware from './middleware/honeytokenMiddleware.js';
+import correlationMiddleware from './middleware/correlationMiddleware.js';
+import { recordLatencySample } from './utils/telemetryTracker.js';
 
 dotenv.config();
 
@@ -40,13 +43,31 @@ const app = express();
 // Security: Disable X-Powered-By to prevent technology fingerprinting
 app.disable('x-powered-by');
 
-// 1. Enterprise HTTP Header Hardening (CSP, HSTS, Permissions-Policy Strict)
+// 1. Distributed Tracing & Correlation ID Injection (Feature 11)
+app.use(correlationMiddleware);
+
+// 2. Telemetry Latency Tracking on Request Completion (Feature 9)
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    if (req._startTimeHr) {
+      const elapsedNs = process.hrtime.bigint() - req._startTimeHr;
+      const elapsedMs = Number(elapsedNs) / 1e6;
+      recordLatencySample(elapsedMs, req.path, res.statusCode);
+    }
+  });
+  next();
+});
+
+// 3. Early Honeytoken & Fake Admin Intrusion Trap Guard (Feature 1)
+app.use(honeytokenMiddleware);
+
+// 4. Enterprise HTTP Header Hardening (CSP, HSTS, Permissions-Policy Strict)
 app.use(securityHeadersMiddleware);
 
-// 2. Brotli & Gzip Compression Middleware
+// 5. Brotli & Gzip Compression Middleware
 app.use(compressionMiddleware);
 
-// 3. Sliding-Window Rate Limiter & Brute-Force IP Jailing
+// 6. Sliding-Window Rate Limiter & Brute-Force IP Jailing
 app.use(slidingWindowRateLimiter({ max: 200, windowMs: 60 * 1000 }));
 
 // Optimasi HTTP Caching & Request: Strong ETag untuk 304 Not Modified
@@ -57,7 +78,18 @@ app.use(cors({
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-init-key', 'x-device-fingerprint', 'x-security-pin']
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'x-init-key',
+    'x-device-fingerprint',
+    'x-security-pin',
+    'x-correlation-id',
+    'x-signature',
+    'x-timestamp',
+    'x-nonce'
+  ]
 }));
 
 app.use((req, res, next) => {
@@ -67,7 +99,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 4. Dynamic Maintenance Mode Switch with Admin Bypass
+// 7. Dynamic Maintenance Mode Switch with Admin Bypass
 app.use(maintenanceMiddleware);
 
 app.use(express.json({ limit: '25mb' }));

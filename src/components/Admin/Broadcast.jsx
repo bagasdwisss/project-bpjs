@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import NeoDatePicker from '../Common/NeoDatePicker';
 import NeoSelect from '../Common/NeoSelect';
+import { useAutoSaveForm } from '../../hooks/useAutoSaveForm';
 
 const formatLocalDatetime = (date) => {
   const pad = (n) => String(n).padStart(2, '0');
@@ -51,6 +52,24 @@ const Broadcast = () => {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
   const [alertMsg, setAlertMsg] = useState(null);
+
+  // Feature 12: Graceful Browser Crash Recovery (State Auto-Save)
+  const { hasSavedDraft, restoreDraft, discardDraft, clearDraft } = useAutoSaveForm(
+    'admin_broadcast_form',
+    { title, message, target, priority },
+    !loading
+  );
+
+  const handleRestoreDraft = () => {
+    const d = restoreDraft();
+    if (d) {
+      if (d.title) setTitle(d.title);
+      if (d.message) setMessage(d.message);
+      if (d.target) setTarget(d.target);
+      if (d.priority) setPriority(d.priority);
+      toast.info('Draf siaran berhasil dipulihkan dari sesi sebelumnya.');
+    }
+  };
 
   const loadHistory = async () => {
     try {
@@ -110,6 +129,7 @@ const Broadcast = () => {
         });
         setTitle('');
         setMessage('');
+        clearDraft();
         loadHistory();
 
         // Clear cache and trigger immediate popup
@@ -237,6 +257,32 @@ const Broadcast = () => {
               </div>
               <span className="text-xs font-semibold text-[#8A8985]">BPJSTK</span>
             </div>
+
+            {/* Feature 12: Browser Crash Recovery Draft Banner */}
+            {hasSavedDraft && (
+              <div className="bg-[#FAF9F6] border-2 border-[#121214] rounded-xl p-3 flex items-center justify-between gap-2 shadow-xs">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#121214]">
+                  <Sparkles className="w-4 h-4 text-[#FCE373] shrink-0" />
+                  <span>Draf siaran yang belum terkirim ditemukan dari sesi browser sebelumnya.</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleRestoreDraft}
+                    className="px-2.5 py-1 bg-[#121214] text-white rounded-lg text-xs font-bold hover:bg-black transition"
+                  >
+                    Pulihkan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={discardDraft}
+                    className="px-2.5 py-1 border border-[#121214] text-[#121214] rounded-lg text-xs font-bold hover:bg-gray-100 transition"
+                  >
+                    Abaikan
+                  </button>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
