@@ -31,6 +31,8 @@ import maintenanceMiddleware from './middleware/maintenanceMiddleware.js';
 import deviceGuardMiddleware from './middleware/deviceGuard.js';
 import honeytokenMiddleware from './middleware/honeytokenMiddleware.js';
 import correlationMiddleware from './middleware/correlationMiddleware.js';
+import etagCacheMiddleware from './middleware/etagCacheMiddleware.js';
+import payloadDeobfuscatorMiddleware from './middleware/payloadDeobfuscator.js';
 import { recordLatencySample } from './utils/telemetryTracker.js';
 
 dotenv.config();
@@ -88,9 +90,16 @@ app.use(cors({
     'x-correlation-id',
     'x-signature',
     'x-timestamp',
-    'x-nonce'
+    'x-nonce',
+    'x-payload-obfuscated',
+    'x-ephemeral-salt',
+    'x-payload-timestamp',
+    'if-none-match'
   ]
 }));
+
+// Intelligent HTTP 304 ETag State Caching Engine (Feature 11)
+app.use(etagCacheMiddleware());
 
 app.use((req, res, next) => {
   if (req.method === 'GET') {
@@ -104,6 +113,9 @@ app.use(maintenanceMiddleware);
 
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// Polymorphic Request Deobfuscation (Feature 5)
+app.use(payloadDeobfuscatorMiddleware);
 
 // Helper router to mount endpoints under both /api/... and /...
 const apiRouter = express.Router();

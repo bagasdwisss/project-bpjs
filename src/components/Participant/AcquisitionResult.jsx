@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import { TableSkeleton } from '../Common/Skeleton';
 import NeoDatePicker from '../Common/NeoDatePicker';
 import NeoSelect from '../Common/NeoSelect';
+import { extractReceiptData } from '../../utils/clientOcrExtractor';
 
 // Komponen Toast Berwarna Sistem Intelly Soft Neo-Brutalism
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -107,6 +108,10 @@ const AcquisitionResult = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const { user } = useContext(AuthContext);
+
+  // Client-Side OCR & Anti-Nota Palsu State (Feature 13)
+  const [ocrAnalysis, setOcrAnalysis] = useState(null);
+  const [isAnalyzingOcr, setIsAnalyzingOcr] = useState(false);
 
   // State untuk toast
   const [toasts, setToasts] = useState([]);
@@ -318,8 +323,35 @@ const AcquisitionResult = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handlePaymentProofChange = (e) => {
-    setPaymentProofFile(e.target.files[0]);
+  const handlePaymentProofChange = async (e) => {
+    const file = e.target.files[0];
+    setPaymentProofFile(file);
+
+    if (file && file.type.startsWith('image/')) {
+      setIsAnalyzingOcr(true);
+      try {
+        const ocr = await extractReceiptData(file);
+        setOcrAnalysis(ocr);
+
+        // Auto-fill biaya if empty or zero
+        if (!formData.biaya || parseFloat(formData.biaya) === 0) {
+          setFormData(prev => ({
+            ...prev,
+            biaya: String(ocr.nominal)
+          }));
+        }
+
+        if (ocr.isSuspectedFake) {
+          showToast(`Peringatan Anti-Nota Palsu: ${ocr.warnings.join(', ')}`, 'warning');
+        } else {
+          showToast(`OCR Berhasil: Terdeteksi ${ocr.bank} - Rp ${ocr.nominal.toLocaleString('id-ID')} (Ref: ${ocr.refNumber})`, 'success');
+        }
+      } catch (err) {
+        console.error('OCR Extraction error:', err);
+      } finally {
+        setIsAnalyzingOcr(false);
+      }
+    }
   };
 
   const handleSocializationProofChange = (e) => {
@@ -1043,6 +1075,40 @@ const AcquisitionResult = () => {
                   <p className="text-[10px] text-[#121214]/60 font-medium mt-1">
                     JPG, PNG, PDF (Maks. 5MB)
                   </p>
+
+                  {isAnalyzingOcr && (
+                    <div className="mt-2 p-2.5 bg-[#FAF9F6] border border-[#121214] rounded-xl text-xs flex items-center gap-2 text-[#121214]/70">
+                      <div className="w-3.5 h-3.5 border-2 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
+                      <span>Menganalisis piksel & OCR bukti transfer...</span>
+                    </div>
+                  )}
+
+                  {ocrAnalysis && !isAnalyzingOcr && (
+                    <div className={`mt-2 p-3 rounded-xl border-2 text-xs space-y-1.5 ${
+                      ocrAnalysis.isSuspectedFake
+                        ? 'bg-rose-50 border-rose-500 text-rose-800'
+                        : 'bg-[#B8C96E]/20 border-[#B8C96E] text-[#2C380C]'
+                    }`}>
+                      <div className="flex items-center justify-between font-black">
+                        <span className="flex items-center gap-1.5">
+                          {ocrAnalysis.isSuspectedFake ? <AlertCircle className="w-4 h-4 text-rose-600" /> : <CheckCircle className="w-4 h-4 text-[#627514]" />}
+                          {ocrAnalysis.isSuspectedFake ? 'Deteksi Anomali Bukti Transfer' : 'OCR Bukti Transfer Terverifikasi'}
+                        </span>
+                        <span className="text-[10px] uppercase px-2 py-0.5 rounded-full border border-current font-bold">
+                          {ocrAnalysis.bank}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 text-[11px] font-medium">
+                        <div>Nominal: <strong>Rp {ocrAnalysis.nominal.toLocaleString('id-ID')}</strong></div>
+                        <div>No. Ref: <strong>{ocrAnalysis.refNumber}</strong></div>
+                      </div>
+                      {ocrAnalysis.warnings.length > 0 && (
+                        <p className="text-[10px] font-bold text-rose-600">
+                          {ocrAnalysis.warnings.join(' ')}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">

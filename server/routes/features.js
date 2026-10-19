@@ -14,6 +14,13 @@ import { applyPdpMasking } from '../utils/pdpMasking.js';
 import { unbanIp } from '../middleware/honeytokenMiddleware.js';
 import { getTelemetryMetrics } from '../utils/telemetryTracker.js';
 import { decompressPayload } from '../utils/payloadCompressor.js';
+import { getToastDiagnostics } from '../utils/toastManager.js';
+import { getPoolHealthMetrics } from '../db.js';
+import { refreshMaterializedView, getMaterializedViewData } from '../utils/materializedViewScheduler.js';
+import { getOverflowStats } from '../utils/jsonbNormalizer.js';
+import { dispatchIncidentAlert } from '../utils/incidentNotifier.js';
+import { searchEntitiesFuzzy } from '../utils/fuzzySearch.js';
+import { getSriManifest } from '../utils/sriGenerator.js';
 
 const router = Router();
 
@@ -2185,6 +2192,133 @@ router.get('/admin/database/brin-status', authenticateToken, requireRole('Admini
         message: 'Indeks BRIN (Block Range Index) aktif untuk optimasi query time-series pada Neon DB.'
       }
     });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 31. POSTGRESQL TOAST COMPRESSION & INLINING POLICY DIAGNOSTICS
+// =========================================================================
+router.get(['/database/toast-stats', '/admin/database/toast-stats'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const data = await getToastDiagnostics();
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 32. SELF-HEALING POSTGRESQL POOL HEALTH & LEAK DETECTOR METRICS
+// =========================================================================
+router.get(['/database/pool-health', '/admin/database/pool-health'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const metrics = getPoolHealthMetrics();
+    return res.json({ success: true, data: metrics });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 33. AGGREGATED MATERIALIZED VIEWS (BATCH PERFORMANCE) & SCHEDULER
+// =========================================================================
+router.get(['/database/mv-summary', '/admin/database/mv-summary'], authenticateToken, async (req, res) => {
+  try {
+    const data = await getMaterializedViewData();
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post(['/database/refresh-mv', '/admin/database/refresh-mv'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const concurrently = req.body?.concurrently !== false;
+    const result = await refreshMaterializedView(concurrently);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 34. ADAPTIVE JSONB COLUMN NORMALIZATION & LEAN FOOTPRINT STORAGE
+// =========================================================================
+router.get(['/database/overflow-stats', '/admin/database/overflow-stats'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const stats = await getOverflowStats();
+    return res.json(stats);
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 35. SECURITY INCIDENT ALERTS & WEBHOOK DISPATCH LOGS
+// =========================================================================
+router.get(['/incident-alerts', '/admin/incident-alerts'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const result = await query(
+      `SELECT * FROM security_incident_alerts ORDER BY created_at DESC LIMIT $1`,
+      [limit]
+    );
+    return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post(['/incident-test', '/admin/incident-test'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const alert = await dispatchIncidentAlert({
+      alertType: 'TEST_MANUAL_ALERT',
+      severity: req.body?.severity || 'MEDIUM',
+      sourceIp: req.ip || req.connection?.remoteAddress || '127.0.0.1',
+      userId: req.user.user_id,
+      details: {
+        testedBy: req.user.full_name || req.user.email,
+        note: req.body?.note || 'Uji coba pengiriman alert webhook insiden keamanan'
+      }
+    });
+    return res.json({ success: true, message: 'Test incident alert dispatched successfully.', data: alert });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 36. TYPO-TOLERANT FUZZY SEARCH (LEVENSHTEIN DISTANCE)
+// =========================================================================
+router.get(['/search/fuzzy', '/search-fuzzy'], authenticateToken, async (req, res) => {
+  try {
+    const { q, entity, threshold, limit } = req.query;
+    if (!q) {
+      return res.status(400).json({ success: false, message: 'Parameter query q diperlukan.' });
+    }
+
+    const results = await searchEntitiesFuzzy({
+      searchTerm: q,
+      entityType: entity || 'peserta',
+      threshold: threshold ? parseFloat(threshold) : 0.45,
+      limit: limit ? parseInt(limit, 10) : 20
+    });
+
+    return res.json({ success: true, query: q, count: results.length, data: results });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 37. DYNAMIC SUBRESOURCE INTEGRITY (SRI) HASH MANIFEST
+// =========================================================================
+router.get(['/security/sri-manifest', '/sri-manifest'], (req, res) => {
+  try {
+    const manifest = getSriManifest();
+    return res.json(manifest);
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

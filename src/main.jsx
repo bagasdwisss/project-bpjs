@@ -2,6 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { initRuntimeIntegrityGuard } from './utils/runtimeIntegrityGuard.js'
+
+// Initialize Client-Side Runtime Anti-Tamper & DOM Integrity Guard (Feature 2)
+initRuntimeIntegrityGuard();
 
 // Auto-recover from stale chunks after a new Vercel production deployment
 window.addEventListener('vite:preloadError', (event) => {

@@ -30,6 +30,68 @@ pool.on('error', (err) => {
 });
 
 // =========================================================================
+// FEATURE 16: SELF-HEALING POSTGRESQL CONNECTION POOLER (LEAK DETECTOR & AUTO-DRAIN)
+// =========================================================================
+const activeLeasedClients = new Map();
+let totalLeakedRecovered = 0;
+const LEAK_THRESHOLD_MS = 20000; // 20 seconds lease limit before auto-drain
+
+pool.on('acquire', (client) => {
+  activeLeasedClients.set(client, { acquiredAt: Date.now() });
+});
+
+pool.on('release', (err, client) => {
+  if (client) {
+    activeLeasedClients.delete(client);
+  }
+});
+
+pool.on('remove', (client) => {
+  if (client) {
+    activeLeasedClients.delete(client);
+  }
+});
+
+// Periodic self-healing monitor (every 10s)
+const leakDetectorInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [client, entry] of activeLeasedClients.entries()) {
+    const elapsed = now - entry.acquiredAt;
+    if (elapsed > LEAK_THRESHOLD_MS) {
+      console.warn(`🚨 [Self-Healing Pooler] Leaked client detected (leased ${elapsed}ms > ${LEAK_THRESHOLD_MS}ms). Auto-draining connection.`);
+      try {
+        if (typeof client.release === 'function') {
+          client.release(true); // Destroy socket to recover slot
+        }
+        totalLeakedRecovered++;
+      } catch (e) {
+        console.error('Error during auto-drain release:', e.message);
+      }
+      activeLeasedClients.delete(client);
+    }
+  }
+}, 10000);
+
+if (leakDetectorInterval.unref) {
+  leakDetectorInterval.unref(); // Don't block process exit
+}
+
+export const getPoolHealthMetrics = () => {
+  const total = pool.totalCount || 10;
+  const active = activeLeasedClients.size;
+  return {
+    totalConnections: pool.totalCount || 0,
+    idleConnections: pool.idleCount || 0,
+    waitingRequests: pool.waitingCount || 0,
+    activeLeased: active,
+    totalLeakedRecovered,
+    leakThresholdMs: LEAK_THRESHOLD_MS,
+    status: active >= Math.max(1, total * 0.9) ? 'CONGESTED' : 'HEALTHY'
+  };
+};
+
+
+// =========================================================================
 // FEATURE 21: CIRCUIT BREAKER PATTERN FOR CLOUD DATABASE
 // =========================================================================
 class DatabaseCircuitBreaker {

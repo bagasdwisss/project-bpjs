@@ -1,5 +1,6 @@
 // server/middleware/honeytokenMiddleware.js - Early Intrusion Detection & Honeytoken Trap Guard
 import { query } from '../db.js';
+import { dispatchIncidentAlert } from '../utils/incidentNotifier.js';
 
 // Pre-defined honeytoken trap endpoints targeted by automated bot scanners
 const HONEYTOKEN_PATHS = new Set([
@@ -14,7 +15,12 @@ const HONEYTOKEN_PATHS = new Set([
   '/actuator/health',
   '/server-status',
   '/database_dump.sql',
-  '/.git/config'
+  '/.git/config',
+  '/api/v1/shadow-tokens',
+  '/api/shadow-tokens',
+  '/api/admin/pg_shadow_tokens',
+  '/api/pg_shadow_tokens',
+  '/api/v1/pg_shadow_tokens'
 ]);
 
 // In-memory set for zero-overhead fast-rejection of jailed IPs
@@ -61,9 +67,12 @@ export const honeytokenMiddleware = async (req, res, next) => {
     });
   }
 
-  // 2. Check if request matches any honeytoken trap path
+  // 2. Check if request matches any honeytoken trap path or SQL injection probing shadow tokens
+  const rawUrl = (req.originalUrl || req.url || '').toLowerCase();
+  const hasShadowTokenInQuery = rawUrl.includes('pg_shadow_tokens') || rawUrl.includes('shadow_token');
   const isTrap = HONEYTOKEN_PATHS.has(reqPath) || 
-                 Array.from(HONEYTOKEN_PATHS).some(p => reqPath.startsWith(p));
+                 Array.from(HONEYTOKEN_PATHS).some(p => reqPath.startsWith(p)) ||
+                 hasShadowTokenInQuery;
 
   if (isTrap) {
     const jailDurationMs = 24 * 60 * 60 * 1000; // 24 hours
@@ -86,6 +95,21 @@ export const honeytokenMiddleware = async (req, res, next) => {
          ON CONFLICT (ip) DO UPDATE SET jailed_until = $3, is_active = TRUE`,
         [clientIp, `Menyentuh honeytoken trap path: ${reqPath}`, unjailTime]
       );
+
+      // Trigger high-priority incident webhook alert
+      dispatchIncidentAlert({
+        alertType: hasShadowTokenInQuery ? 'AUTONOMOUS_SQLI_SHADOW_TOKENS_PROBE' : 'HONEYTOKEN_INTRUSION_TRAP',
+        severity: 'CRITICAL',
+        sourceIp: clientIp,
+        userId: req.user?.user_id || null,
+        details: {
+          path: reqPath,
+          rawUrl,
+          method: req.method,
+          userAgent: req.headers['user-agent'],
+          jailedUntil: unjailTime.toISOString()
+        }
+      }).catch(() => {});
     } catch (dbErr) {
       console.error('Honeytoken trap persistence warning:', dbErr.message);
     }
@@ -102,3 +126,4 @@ export const honeytokenMiddleware = async (req, res, next) => {
 };
 
 export default honeytokenMiddleware;
+

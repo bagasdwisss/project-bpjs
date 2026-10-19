@@ -17,6 +17,7 @@ import { sanitizeAndWatermarkSelfie, SensorMotionChecker } from '../../utils/pho
 import { saveOfflineAttendance, getOfflineAttendances, syncOfflineAttendanceQueue } from '../../utils/offlineQueue';
 import { signRequest } from '../../utils/requestSigner';
 import { getAuthoritativeTime } from '../../utils/trueTime';
+import { captureNetworkProximityTelemetry } from '../../utils/networkProximity';
 
 // Toast Notification Component
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
@@ -479,6 +480,13 @@ const Attendance = () => {
 
       // Feature 1: Anti-Mock Sensor Telemetry Cross-Check
       const telemetry = sensorCheckerRef.current.getTelemetry(currentCoords);
+      // Feature: Network BSSID & Wi-Fi Proximity Triangulation Validator
+      let netTelemetry = null;
+      try {
+        netTelemetry = await captureNetworkProximityTelemetry();
+      } catch (netErr) {
+        console.warn('Network proximity telemetry error:', netErr);
+      }
 
       const payload = {
         status,
@@ -492,6 +500,7 @@ const Attendance = () => {
         is_mock_location: isMockLocation || telemetry.mock_detected,
         watermark_signature: watermarkSig,
         sensor_telemetry: telemetry,
+        network_telemetry: netTelemetry,
         client_timestamp: new Date().toISOString()
       };
 

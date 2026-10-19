@@ -5,6 +5,7 @@ import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { checkSubmissionVelocity, checkDuplicateNikRecent } from '../utils/velocityDetector.js';
 import { applyPdpMasking } from '../utils/pdpMasking.js';
 import { logActivity } from '../utils/logger.js';
+import { computeBlindIndex } from '../utils/blindIndex.js';
 
 const router = Router();
 
@@ -237,6 +238,9 @@ router.post('/peserta', authenticateToken, async (req, res) => {
 
     const clientIp = (req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '127.0.0.1').trim();
 
+    // UU PDP Compliance: Compute HMAC Blind Index for confidential exact matching
+    const nikBlindIndex = nik ? computeBlindIndex(nik) : null;
+
     // 1. Anti-Fraud & Spike Input Velocity Detector (Feature 13)
     const velocity = checkSubmissionVelocity(userId, 5, 15);
     let fraudFlag = 'NORMAL';
@@ -255,15 +259,16 @@ router.post('/peserta', authenticateToken, async (req, res) => {
 
     const result = await query(
       `INSERT INTO peserta (
-         user_id, nama_peserta, nik, tanggal_pendaftaran, no_telepon, pekerjaan, email,
+         user_id, nama_peserta, nik, nik_blind_index, tanggal_pendaftaran, no_telepon, pekerjaan, email,
          status_pendaftaran, periode_pelatihan, biaya, program_terdaftar, bukti_pembayaran_link,
          bukti_sosialisasi_link, fraud_flag, submission_velocity_ip, created_at, updated_at
-       ) VALUES ($1, $2, $3, COALESCE($4, CURRENT_DATE), $5, $6, $7, COALESCE($8, 'BARU DAFTAR'), $9, COALESCE($10, 0), $11, $12, $13, $14, $15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ) VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_DATE), $6, $7, $8, COALESCE($9, 'BARU DAFTAR'), $10, COALESCE($11, 0), $12, $13, $14, $15, $16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING *`,
       [
         userId,
         nama_peserta || null,
         nik || null,
+        nikBlindIndex,
         tanggal_pendaftaran || null,
         no_telepon || null,
         pekerjaan || null,
@@ -373,25 +378,28 @@ router.put('/peserta/:id', authenticateToken, async (req, res) => {
       bukti_sosialisasi_link
     } = req.body;
 
+    const nikBlindIndex = nik ? computeBlindIndex(nik) : undefined;
+
     const result = await query(
       `UPDATE peserta
        SET nama_peserta = COALESCE($1, nama_peserta),
            nik = COALESCE($2, nik),
-           tanggal_pendaftaran = COALESCE($3, tanggal_pendaftaran),
-           no_telepon = COALESCE($4, no_telepon),
-           pekerjaan = COALESCE($5, pekerjaan),
-           email = COALESCE($6, email),
-           status_pendaftaran = COALESCE($7, status_pendaftaran),
-           periode_pelatihan = COALESCE($8, periode_pelatihan),
-           biaya = COALESCE($9, biaya),
-           program_terdaftar = COALESCE($10, program_terdaftar),
-           bukti_pembayaran_link = COALESCE($11, bukti_pembayaran_link),
-           bukti_sosialisasi_link = COALESCE($12, bukti_sosialisasi_link),
+           nik_blind_index = COALESCE($3, nik_blind_index),
+           tanggal_pendaftaran = COALESCE($4, tanggal_pendaftaran),
+           no_telepon = COALESCE($5, no_telepon),
+           pekerjaan = COALESCE($6, pekerjaan),
+           email = COALESCE($7, email),
+           status_pendaftaran = COALESCE($8, status_pendaftaran),
+           periode_pelatihan = COALESCE($9, periode_pelatihan),
+           biaya = COALESCE($10, biaya),
+           program_terdaftar = COALESCE($11, program_terdaftar),
+           bukti_pembayaran_link = COALESCE($12, bukti_pembayaran_link),
+           bukti_sosialisasi_link = COALESCE($13, bukti_sosialisasi_link),
            updated_at = CURRENT_TIMESTAMP
-       WHERE peserta_id = $13
+       WHERE peserta_id = $14
        RETURNING *`,
       [
-        nama_peserta, nik, tanggal_pendaftaran, no_telepon, pekerjaan, email,
+        nama_peserta, nik, nikBlindIndex, tanggal_pendaftaran, no_telepon, pekerjaan, email,
         status_pendaftaran, periode_pelatihan, biaya, program_terdaftar,
         bukti_pembayaran_link, bukti_sosialisasi_link, id
       ]
@@ -469,6 +477,39 @@ router.put('/acquisition-result/:id/confirm-payment', authenticateToken, async (
       [id]
     );
     return res.json({ success: true, message: 'Status pembayaran berhasil dikonfirmasi.', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/participant/peserta/search-blind-index
+ * Blind index exact search compliant with UU PDP No. 27/2022
+ */
+router.get('/search-blind-index', authenticateToken, async (req, res) => {
+  try {
+    const { nik } = req.query;
+    if (!nik) {
+      return res.status(400).json({ success: false, message: 'Parameter query NIK wajib diisi.' });
+    }
+
+    const blindHash = computeBlindIndex(nik);
+
+    const result = await query(
+      `SELECT p.*, u.full_name as intern_name 
+       FROM peserta p 
+       JOIN users u ON p.user_id = u.user_id 
+       WHERE p.nik_blind_index = $1`,
+      [blindHash]
+    );
+
+    const masked = applyPdpMasking(result.rows, req.user.role);
+    return res.json({
+      success: true,
+      blindIndexUsed: true,
+      matchCount: result.rows.length,
+      data: masked
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

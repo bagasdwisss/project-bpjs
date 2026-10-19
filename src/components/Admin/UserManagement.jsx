@@ -8,6 +8,7 @@ import {
   Users, UserPlus, Upload, Search, Filter, 
   Edit3, Trash2, CheckCircle2, AlertCircle, X, Shield, Sparkles
 } from 'lucide-react';
+import { filterWithTypoTolerance } from '../../utils/fuzzySearch';
 
 // Toast Notification in Intelly Style
 const Toast = ({ message, type = 'success', onClose, duration = 3500 }) => {
@@ -192,13 +193,13 @@ const UserManagement = () => {
     return c ? c.full_name : '-';
   };
 
-  const filteredUsers = (Array.isArray(users) ? users : []).filter(u => {
-    const name = u?.full_name || '';
-    const uid = u?.unique_id || '';
-    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || uid.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u?.role_id?.toString() === roleFilter;
-    return matchesSearch && matchesRole;
+  const roleFiltered = (Array.isArray(users) ? users : []).filter(u => {
+    return roleFilter === 'all' || u?.role_id?.toString() === roleFilter;
   });
+
+  const filteredUsers = searchTerm.trim()
+    ? filterWithTypoTolerance(roleFiltered, searchTerm, ['full_name', 'unique_id', 'email'], 0.45)
+    : roleFiltered;
 
   return (
     <Layout>

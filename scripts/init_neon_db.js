@@ -47,16 +47,29 @@ async function initDatabase() {
     console.log('📄 Membaca neon_schema.sql...');
     const sqlContent = fs.readFileSync(sqlPath, 'utf8');
 
-    console.log('⚙️ Menjalankan migrasi dan seeding database ke Neon...');
-    await client.query(sqlContent);
+    console.log('🔒 Meminta PostgreSQL Advisory Lock (84729104) untuk mencegah race condition migrasi...');
+    const lockRes = await client.query('SELECT pg_try_advisory_lock(84729104) AS acquired');
+    const hasLock = lockRes.rows[0]?.acquired;
 
-    console.log('\n🎉 Inisialisasi Database Neon PostgreSQL Berhasil!');
-    console.log('Semua tabel, view, dan data awal (roles, users, batches, progress, dll) telah terpasang.');
-    console.log('\nAkun default untuk login (Password: password123):');
-    console.log('- Administrator : ADM001');
-    console.log('- Koordinator   : KO001 (Fedro), KO002 (Afiyah), KO003 (Fizka), KO004 (Paramitha)');
-    console.log('- Peserta       : PES001 (Arthur), PES002 (Widi), PES003 (Adinda), PES004 (Novita)\n');
+    if (!hasLock) {
+      console.warn('⚠️ Gagal memperoleh advisory lock! Migrasi lain sedang berjalan.');
+      return;
+    }
 
+    try {
+      console.log('⚙️ Menjalankan migrasi dan seeding database ke Neon...');
+      await client.query(sqlContent);
+
+      console.log('\n🎉 Inisialisasi Database Neon PostgreSQL Berhasil!');
+      console.log('Semua tabel, view, dan data awal (roles, users, batches, progress, dll) telah terpasang.');
+      console.log('\nAkun default untuk login (Password: password123):');
+      console.log('- Administrator : ADM001');
+      console.log('- Koordinator   : KO001 (Fedro), KO002 (Afiyah), KO003 (Fizka), KO004 (Paramitha)');
+      console.log('- Peserta       : PES001 (Arthur), PES002 (Widi), PES003 (Adinda), PES004 (Novita)\n');
+    } finally {
+      await client.query('SELECT pg_advisory_unlock(84729104)');
+      console.log('🔓 Advisory lock (84729104) berhasil dilepaskan.');
+    }
   } catch (err) {
     console.error('❌ Terjadi kesalahan saat inisialisasi database:', err.message);
   } finally {
@@ -66,3 +79,4 @@ async function initDatabase() {
 }
 
 initDatabase();
+

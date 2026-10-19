@@ -7,7 +7,6 @@ import ArchivalAlertModal from '../Admin/ArchivalAlertModal';
 const TanyaBPJSBot = lazy(() => import('../Common/TanyaBPJSBot'));
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 const WhistleblowingModal = lazy(() => import('../Common/WhistleblowingModal'));
-const ForensicWatermark = lazy(() => import('../Common/ForensicWatermark'));
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,11 +38,6 @@ const Layout = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-[#F5F4F0] overflow-hidden font-sans relative">
-      {/* Forensic Screen Leak Dynamic Watermark */}
-      <Suspense fallback={null}>
-        <ForensicWatermark />
-      </Suspense>
-
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       

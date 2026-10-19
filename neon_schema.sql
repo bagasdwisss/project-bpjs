@@ -588,3 +588,76 @@ CREATE TABLE IF NOT EXISTS system_telemetry_logs (
     details JSONB,
     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 31. AUTONOMOUS SQL INJECTION HONEYPOT TRAP TABLE
+CREATE TABLE IF NOT EXISTS pg_shadow_tokens (
+    id SERIAL PRIMARY KEY,
+    admin_key VARCHAR(120) NOT NULL UNIQUE,
+    token_secret VARCHAR(255) NOT NULL,
+    fake_role VARCHAR(50) DEFAULT 'SUPER_ADMIN_ROOT',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed Honeytokens
+INSERT INTO pg_shadow_tokens (id, admin_key, token_secret, fake_role) VALUES
+(1, 'ADM_PROD_SHADOW_ROOT_84291', 'sec_neon_live_b749d01f82e848a6', 'SUPER_ADMIN_ROOT'),
+(2, 'SYSTEM_RECOVERY_KEY_9921A', 'sec_master_db_48e71c990b72a1cd', 'GLOBAL_AUDITOR')
+ON CONFLICT (id) DO NOTHING;
+
+-- 32. ADAPTIVE JSONB OVERFLOW ATTRIBUTES
+CREATE TABLE IF NOT EXISTS jsonb_overflow_attributes (
+    overflow_id SERIAL PRIMARY KEY,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id BIGINT NOT NULL,
+    attribute_key VARCHAR(100) NOT NULL,
+    attribute_value JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_jsonb_overflow_entity ON jsonb_overflow_attributes(entity_type, entity_id);
+
+-- 33. AUTOMATED INCIDENT WEBHOOK ALERTS TABLE
+CREATE TABLE IF NOT EXISTS security_incident_alerts (
+    alert_id SERIAL PRIMARY KEY,
+    alert_type VARCHAR(100) NOT NULL,
+    severity VARCHAR(20) DEFAULT 'HIGH',
+    source_ip VARCHAR(45),
+    user_id INT REFERENCES users(user_id) ON DELETE SET NULL,
+    details JSONB NOT NULL,
+    webhook_dispatched BOOLEAN DEFAULT FALSE,
+    webhook_status VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 34. SCHEMA COLUMNS FOR BLIND INDEXING & IMPOSSIBLE TRAVEL
+ALTER TABLE users ADD COLUMN IF NOT EXISTS nik_blind_index VARCHAR(64);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_latitude NUMERIC(10, 7);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_longitude NUMERIC(10, 7);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
+
+ALTER TABLE peserta ADD COLUMN IF NOT EXISTS nik_blind_index VARCHAR(64);
+CREATE INDEX IF NOT EXISTS idx_peserta_nik_blind ON peserta(nik_blind_index);
+
+-- 35. KEYSET CURSOR PAGINATION INDEX
+CREATE INDEX IF NOT EXISTS idx_attendance_id_desc ON attendance_records (attendance_id DESC);
+
+-- 36. AGGREGATED MATERIALIZED VIEW FOR BATCH PERFORMANCE
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_batch_performance_summary AS
+SELECT 
+    ub.batch_id,
+    COALESCE(u.coordinator_id, 0) as coordinator_id,
+    COUNT(DISTINCT u.user_id) as total_participants,
+    COALESCE(AVG(p.nilai), 0)::NUMERIC(5,2) as avg_score,
+    COALESCE(SUM(p.hasil_akuisisi_bpu), 0) as total_akuisisi_bpu,
+    COALESCE(SUM(p.total_poin), 0) as total_points,
+    CURRENT_TIMESTAMP as refreshed_at
+FROM user_batches ub
+JOIN users u ON ub.user_id = u.user_id
+LEFT JOIN progress p ON u.user_id = p.user_id
+GROUP BY ub.batch_id, u.coordinator_id;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_batch_perf ON mv_batch_performance_summary(batch_id, coordinator_id);
+
+-- 37. POSTGRESQL TOAST COMPRESSION TUNING
+ALTER TABLE activity_logs ALTER COLUMN details SET STORAGE EXTENDED;
+ALTER TABLE documents ALTER COLUMN file_path SET STORAGE EXTENDED;
+ALTER TABLE whistleblowing_reports ALTER COLUMN description SET STORAGE EXTENDED;

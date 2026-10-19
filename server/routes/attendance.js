@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
+import { validateNetworkProximity } from '../utils/networkProximityValidator.js';
 
 const router = Router();
 
@@ -178,6 +179,71 @@ router.get('/holidays', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/participant/attendance/cursor
+ * Keyset Cursor Pagination (Zero-Offset Streaming)
+ * Uses indexed attendance_id DESC for O(log N) zero-offset query performance.
+ */
+router.get('/cursor', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 15, 1), 100);
+    const rawCursor = req.query.cursor;
+
+    let cursorId = null;
+    if (rawCursor) {
+      if (!isNaN(Number(rawCursor))) {
+        cursorId = parseInt(rawCursor, 10);
+      } else {
+        try {
+          const decoded = Buffer.from(rawCursor, 'base64').toString('ascii');
+          cursorId = parseInt(decoded, 10);
+        } catch {
+          cursorId = null;
+        }
+      }
+    }
+
+    let sql = `
+      SELECT a.attendance_id, a.user_id, a.attendance_date, a.check_in_time, a.status, a.notes,
+             a.location_coordinates, a.location_address, a.created_at,
+             a.selfie_image_url, a.distance_meters, a.is_mock_location,
+             g.name as geofence_name
+      FROM attendance_records a
+      LEFT JOIN geofence_locations g ON a.geofence_id = g.id
+      WHERE a.user_id = $1
+    `;
+    const params = [userId];
+
+    if (cursorId) {
+      params.push(cursorId);
+      sql += ` AND a.attendance_id < $${params.length}`;
+    }
+
+    params.push(limit + 1);
+    sql += ` ORDER BY a.attendance_id DESC LIMIT $${params.length}`;
+
+    const result = await query(sql, params);
+    const hasMore = result.rows.length > limit;
+    const records = hasMore ? result.rows.slice(0, limit) : result.rows;
+    const nextCursor = records.length > 0 && hasMore ? records[records.length - 1].attendance_id : null;
+
+    return res.json({
+      success: true,
+      data: records,
+      pagination: {
+        keysetCursor: nextCursor ? Buffer.from(String(nextCursor)).toString('base64') : null,
+        nextCursorId: nextCursor,
+        hasMore,
+        limit,
+        strategy: 'KEYSET_INDEX_SCAN_ZERO_OFFSET'
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * POST /api/participant/attendance/check-in
  */
 router.post('/check-in', authenticateToken, async (req, res) => {
@@ -195,6 +261,7 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       is_mock_location,
       watermark_signature,
       sensor_telemetry,
+      network_telemetry,
       is_offline_sync,
       client_timestamp
     } = req.body;
@@ -219,6 +286,20 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       } else if (sensor_telemetry.accuracy !== undefined && (sensor_telemetry.accuracy <= 0 || sensor_telemetry.accuracy > 150)) {
         mockDetected = true;
         mockReason = `Akurasi GPS tidak wajar (${sensor_telemetry.accuracy}m). Kemungkinan emulator atau injeksi koordinat statis.`;
+      }
+    }
+
+    // Network BSSID & Wi-Fi Proximity Triangulation Validator (Feature 14)
+    if (network_telemetry) {
+      const netValidation = validateNetworkProximity({
+        coordinates,
+        distanceMeters: distance_meters ? Number(distance_meters) : null,
+        networkTelemetry: network_telemetry,
+        clientIp: req.ip || '127.0.0.1'
+      });
+      if (netValidation.isSpoofed) {
+        mockDetected = true;
+        mockReason = (mockReason ? mockReason + '; ' : '') + netValidation.reason;
       }
     }
 

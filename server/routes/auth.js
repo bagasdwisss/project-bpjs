@@ -13,6 +13,7 @@ import {
   getActiveSessionFingerprint 
 } from '../middleware/deviceGuard.js';
 import { logActivity } from '../utils/logger.js';
+import { checkImpossibleTravel } from '../utils/velocityDetector.js';
 
 const router = Router();
 
@@ -130,6 +131,15 @@ router.post('/login', async (req, res) => {
     if (deviceFp) {
       broadcastInstantKickout(user.user_id, deviceFp, clientIp);
       registerSessionFingerprint(user.user_id, deviceFp, req.headers['user-agent'], clientIp, sessionToken);
+    }
+
+    // 2. Impossible Travel & Geographical Anomaly Velocity Guard
+    let travelStatus = 'NORMAL';
+    if (req.body.latitude !== undefined && req.body.longitude !== undefined) {
+      const travelRes = await checkImpossibleTravel(user.user_id, req.body.latitude, req.body.longitude, clientIp);
+      if (travelRes?.isImpossible) {
+        travelStatus = 'ANOMALOUS_VELOCITY_FLAGGED';
+      }
     }
 
     await query(
@@ -417,6 +427,21 @@ router.get('/session-check', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, valid: true });
+  }
+});
+
+/**
+ * POST /geo-heartbeat
+ * Heartbeat from mobile/client updating location and evaluating impossible travel velocity
+ */
+router.post('/geo-heartbeat', authenticateToken, async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+    const result = await checkImpossibleTravel(req.user.user_id, latitude, longitude, clientIp);
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
