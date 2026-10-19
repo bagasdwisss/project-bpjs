@@ -29,7 +29,12 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
   const messagesEndRef = useRef(null);
   const pollIntervalRef = useRef(null);
 
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  let currentUser = {};
+  try {
+    currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    currentUser = {};
+  }
 
   // Fetch contacts
   const fetchContacts = async () => {

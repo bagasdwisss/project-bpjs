@@ -24,6 +24,15 @@ const BroadcastPopup = () => {
   const urgentRef = useRef(null);
   urgentRef.current = urgentBroadcast;
 
+  const getSessionDismissed = () => {
+    try {
+      const data = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  };
+
   const fetchActiveBroadcasts = async () => {
     if (!user) return;
     try {
@@ -32,7 +41,7 @@ const BroadcastPopup = () => {
         const list = res.data.data;
         
         // Filter out broadcasts already dismissed in this current browser session
-        const sessionDismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
+        const sessionDismissed = getSessionDismissed();
         const visibleBroadcasts = list.filter(b => !sessionDismissed.includes(b.broadcast_id));
         
         // 1. Separate "Sangat Penting" vs "Biasa"
@@ -120,7 +129,7 @@ const BroadcastPopup = () => {
     if (!broadcast) return;
 
     // Record dismissal in sessionStorage
-    const sessionDismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
+    const sessionDismissed = getSessionDismissed();
     if (!sessionDismissed.includes(broadcast.broadcast_id)) {
       sessionDismissed.push(broadcast.broadcast_id);
       sessionStorage.setItem('dismissed_broadcasts', JSON.stringify(sessionDismissed));
@@ -149,7 +158,7 @@ const BroadcastPopup = () => {
   const handleDismissBiasa = async (broadcast) => {
     if (!broadcast) return;
 
-    const sessionDismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
+    const sessionDismissed = getSessionDismissed();
     if (!sessionDismissed.includes(broadcast.broadcast_id)) {
       sessionDismissed.push(broadcast.broadcast_id);
       sessionStorage.setItem('dismissed_broadcasts', JSON.stringify(sessionDismissed));

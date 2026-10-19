@@ -160,12 +160,23 @@ apiRouter.use('/admin', adminRoutes);
 
 // Coordinator routes
 apiRouter.use('/coordinator/certificates', adminRoutes);
+apiRouter.use('/coordinator/analysis', scoreRoutes);
+apiRouter.use('/coordinator', adminRoutes);
 apiRouter.use('/coordinator/participants', userRoutes);
 apiRouter.use('/coordinator/scores', scoreRoutes);
 apiRouter.use('/coordinator', pesertaRoutes);
 
-// System Version & Live Update Tracker
 // Direct shortcuts often called by frontend
+apiRouter.use('/progress', (req, res, next) => {
+  req.url = '/progress' + (req.url === '/' ? '' : req.url);
+  userRoutes(req, res, next);
+});
+
+apiRouter.use('/visits', (req, res, next) => {
+  req.url = '/visits' + (req.url === '/' ? '' : req.url);
+  userRoutes(req, res, next);
+});
+
 apiRouter.get('/coordinators', (req, res, next) => {
   req.url = '/coordinators';
   userRoutes(req, res, next);

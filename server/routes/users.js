@@ -260,6 +260,65 @@ router.get('/progress', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/users/visits or /api/visits
+ */
+router.get(['/visits', '/user-visits'], authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const isParticipant = req.user.role === 'Peserta' || req.user.role_id === 1;
+
+    let sql = `
+      SELECT p.id, p.user_id, u.full_name, u.unique_id, p.kunjungan_bpu, p.kunjungan_pu,
+             p.hasil_akuisisi_bpu, p.updated_at
+      FROM progress p
+      JOIN users u ON p.user_id = u.user_id
+    `;
+    const params = [];
+    if (isParticipant) {
+      params.push(userId);
+      sql += ` WHERE p.user_id = $1`;
+    } else if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      params.push(userId);
+      sql += ` WHERE u.coordinator_id = $1`;
+    }
+    sql += ` ORDER BY p.updated_at DESC`;
+
+    const result = await query(sql, params);
+    return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * PUT /api/users/visits/:id or /api/visits/:id
+ */
+router.put(['/visits/:id', '/user-visits/:id'], authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { kunjungan_bpu, kunjungan_pu } = req.body;
+
+    const result = await query(
+      `UPDATE progress
+       SET kunjungan_bpu = COALESCE($1, kunjungan_bpu),
+           kunjungan_pu = COALESCE($2, kunjungan_pu),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3 OR user_id = $3
+       RETURNING *`,
+      [kunjungan_bpu, kunjungan_pu, id]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Data kunjungan berhasil diperbarui.',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * GET /api/users/:id/progress
  */
 router.get('/:id/progress', authenticateToken, async (req, res) => {

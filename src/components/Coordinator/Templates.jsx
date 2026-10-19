@@ -53,8 +53,13 @@ const defaultTemplates = [
 const Templates = () => {
   const { toast, confirm } = useToast();
   const [templates, setTemplates] = useState(() => {
-    const saved = localStorage.getItem('bpjs_templates');
-    return saved ? JSON.parse(saved) : defaultTemplates;
+    try {
+      const saved = localStorage.getItem('bpjs_templates');
+      return saved ? JSON.parse(saved) : defaultTemplates;
+    } catch (e) {
+      console.warn('Failed to parse saved templates:', e);
+      return defaultTemplates;
+    }
   });
 
   const [selectedCategory, setSelectedCategory] = useState('all');

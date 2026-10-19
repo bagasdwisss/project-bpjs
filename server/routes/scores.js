@@ -152,4 +152,48 @@ router.delete('/:id', authenticateToken, requireRole('Koordinator', 'Administrat
   }
 });
 
+/**
+ * GET /api/coordinator/analysis/performance or /api/coordinator/scores/performance
+ */
+router.get(['/analysis/performance', '/performance'], authenticateToken, async (req, res) => {
+  try {
+    const statsResult = await query(`
+      SELECT 
+        m.module_name,
+        COALESCE(AVG(s.score_value), 0) as avg_score,
+        COUNT(s.score_id) as total_submissions
+      FROM modules m
+      LEFT JOIN scores s ON m.module_id = s.module_id
+      GROUP BY m.module_id, m.module_name
+      ORDER BY m.module_id ASC
+    `);
+
+    const summaryResult = await query(`
+      SELECT
+        COALESCE(AVG(score_value), 0) as overall_average,
+        COUNT(DISTINCT user_id) as total_graded_participants,
+        COUNT(score_id) as total_scores_recorded
+      FROM scores
+    `);
+
+    return res.json({
+      success: true,
+      data: {
+        modules: statsResult.rows.map(r => ({
+          module_name: r.module_name,
+          avg_score: parseFloat(parseFloat(r.avg_score).toFixed(1)),
+          total_submissions: parseInt(r.total_submissions, 10)
+        })),
+        summary: {
+          overallAverage: parseFloat(parseFloat(summaryResult.rows[0]?.overall_average || 0).toFixed(1)),
+          totalGradedParticipants: parseInt(summaryResult.rows[0]?.total_graded_participants || 0, 10),
+          totalScoresRecorded: parseInt(summaryResult.rows[0]?.total_scores_recorded || 0, 10)
+        }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

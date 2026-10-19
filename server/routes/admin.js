@@ -184,6 +184,28 @@ router.post('/backup/:id/restore', authenticateToken, requireRole('Administrator
   }
 });
 
+/**
+ * GET /api/admin/reports/:id/download
+ */
+router.get(['/reports/:id/download', '/:id/download'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(`SELECT * FROM report_logs WHERE log_id = $1`, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Laporan tidak ditemukan.' });
+    }
+    const report = result.rows[0];
+    return res.json({
+      success: true,
+      message: 'Laporan siap diunduh.',
+      data: report,
+      downloadUrl: report.file_path || `/reports/${report.report_name}.pdf`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ========================================================
 // COORDINATOR CERTIFICATES
 // ========================================================
@@ -191,7 +213,7 @@ router.post('/backup/:id/restore', authenticateToken, requireRole('Administrator
 /**
  * GET /api/coordinator/certificates/history
  */
-router.get('/coordinator/certificates/history', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
+router.get(['/coordinator/certificates/history', '/certificates/history', '/history'], authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const result = await query(
       `SELECT r.log_id as id, r.report_name, r.generated_at as "issueDate", r.file_path,
@@ -211,7 +233,7 @@ router.get('/coordinator/certificates/history', authenticateToken, requireRole('
 /**
  * POST /api/coordinator/certificates/generate
  */
-router.post('/coordinator/certificates/generate', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
+router.post(['/coordinator/certificates/generate', '/certificates/generate', '/generate'], authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { participant_id, type } = req.body;
     const certType = type || 'Completion';
