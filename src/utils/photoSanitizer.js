@@ -1,4 +1,5 @@
 // src/utils/photoSanitizer.js - Client-Side Canvas Sanitization, Cryptographic Watermark & Anti-Mock Telemetry
+import { getNetworkProfile } from './adaptiveCamera.js';
 
 /**
  * Computes a client-side cryptographic hash string for watermarking
@@ -24,23 +25,27 @@ export const sanitizeAndWatermarkSelfie = async ({
   userNim,
   coordinates,
   distanceMeters,
-  maxDimension = 640
+  maxDimension
 }) => {
   return new Promise((resolve, reject) => {
     try {
+      const netProfile = getNetworkProfile();
+      const effectiveMaxDimension = maxDimension || netProfile.targetWidth || 640;
+      const compressionQuality = netProfile.quality || 0.82;
+
       const canvas = document.createElement('canvas');
       const srcW = imageSource.videoWidth || imageSource.naturalWidth || imageSource.width || 480;
       const srcH = imageSource.videoHeight || imageSource.naturalHeight || imageSource.height || 480;
 
       let w = srcW;
       let h = srcH;
-      if (w > maxDimension || h > maxDimension) {
+      if (w > effectiveMaxDimension || h > effectiveMaxDimension) {
         if (w > h) {
-          h = Math.round((h * maxDimension) / w);
-          w = maxDimension;
+          h = Math.round((h * effectiveMaxDimension) / w);
+          w = effectiveMaxDimension;
         } else {
-          w = Math.round((w * maxDimension) / h);
-          h = maxDimension;
+          w = Math.round((w * effectiveMaxDimension) / h);
+          h = effectiveMaxDimension;
         }
       }
 
@@ -98,16 +103,18 @@ export const sanitizeAndWatermarkSelfie = async ({
       ctx.fillText(`SIG: ${wmSignature} | SANITIZED-WEBP-INTEGRITY`, 10, h - 9);
 
       // 5. Re-encode to sanitized WebP format (or fallback to JPEG if WebP not supported)
-      let sanitizedDataUri = canvas.toDataURL('image/webp', 0.82);
+      let sanitizedDataUri = canvas.toDataURL('image/webp', compressionQuality);
       if (!sanitizedDataUri.startsWith('data:image/webp')) {
-        sanitizedDataUri = canvas.toDataURL('image/jpeg', 0.82);
+        sanitizedDataUri = canvas.toDataURL('image/jpeg', compressionQuality);
       }
 
       resolve({
         dataUri: sanitizedDataUri,
         watermarkSignature: wmSignature,
         timestamp: nowWIB,
-        format: sanitizedDataUri.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg'
+        format: sanitizedDataUri.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg',
+        networkTier: netProfile.tier,
+        adaptiveQuality: compressionQuality
       });
     } catch (err) {
       reject(err);

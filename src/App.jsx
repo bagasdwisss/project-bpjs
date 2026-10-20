@@ -25,6 +25,7 @@ const ParticipantDocuments = lazyRetry(() => import('./components/Participant/Do
 const ParticipantForum = lazyRetry(() => import('./components/Participant/Forum'));
 const ParticipantNotifications = lazyRetry(() => import('./components/Participant/Notifications'));
 const ParticipantAcquisitionResult = lazyRetry(() => import('./components/Participant/AcquisitionResult'));
+const ParticipantDigitalIdCard = lazyRetry(() => import('./pages/DigitalIdCardPage'));
 
 // Coordinator Components (Lazy Loaded with Auto-Retry on Stale Chunks)
 const CoordinatorDashboard = lazyRetry(() => import('./components/Coordinator/Dashboard'));
@@ -36,6 +37,7 @@ const CoordinatorCertificates = lazyRetry(() => import('./components/Coordinator
 const CoordinatorForum = lazyRetry(() => import('./components/Coordinator/Forum'));
 const CoordinatorReminders = lazyRetry(() => import('./components/Coordinator/Reminders'));
 const CoordinatorBpuAcquisitions = lazyRetry(() => import('./components/Coordinator/BpuAcquisitions'));
+const CoordinatorPresenceRadar = lazyRetry(() => import('./pages/PresenceRadarPage'));
 
 // Admin Components (Lazy Loaded with Auto-Retry on Stale Chunks)
 const AdminDashboard = lazyRetry(() => import('./components/Admin/Dashboard'));
@@ -119,11 +121,21 @@ function App() {
                 <DigitalBrochureCatalog />
               </ProtectedRoute>
             } />
+            <Route path="/participant/id-card" element={
+              <ProtectedRoute allowedRoles={['Peserta']}>
+                <ParticipantDigitalIdCard />
+              </ProtectedRoute>
+            } />
 
             {/* Coordinator Routes */}
             <Route path="/coordinator/dashboard" element={
               <ProtectedRoute allowedRoles={['Koordinator']}>
                 <CoordinatorDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/coordinator/presence-radar" element={
+              <ProtectedRoute allowedRoles={['Koordinator']}>
+                <CoordinatorPresenceRadar />
               </ProtectedRoute>
             } />
             <Route path="/coordinator/participants" element={

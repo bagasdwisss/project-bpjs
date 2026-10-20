@@ -173,4 +173,5 @@ export const query = async (text, params) => {
   }
 };
 
+export { pool };
 export default pool;

@@ -22,7 +22,7 @@ const openDb = () => {
 
 export const saveOfflineAttendance = async (payload) => {
   const db = await openDb();
-  return new Promise((resolve, reject) => {
+  const savePromise = new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     const record = {
@@ -35,6 +35,18 @@ export const saveOfflineAttendance = async (payload) => {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+
+  const recordId = await savePromise;
+
+  // Feature 17: Smart PWA Background Sync API Registration
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'SyncManager' in window) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.sync.register('sync-attendance-queue');
+    } catch (_) {}
+  }
+
+  return recordId;
 };
 
 export const getOfflineAttendances = async () => {

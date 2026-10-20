@@ -661,3 +661,104 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_batch_perf ON mv_batch_performance_summ
 ALTER TABLE activity_logs ALTER COLUMN details SET STORAGE EXTENDED;
 ALTER TABLE documents ALTER COLUMN file_path SET STORAGE EXTENDED;
 ALTER TABLE whistleblowing_reports ALTER COLUMN description SET STORAGE EXTENDED;
+
+-- ========================================================
+-- 38. PARTIAL INDEXES UNTUK STATUS DATA AKTIF (INDEX SHRINKAGE)
+-- ========================================================
+CREATE INDEX IF NOT EXISTS idx_peserta_menunggu_bayar ON peserta (user_id) WHERE status_pendaftaran = 'MENUNGGU PEMBAYARAN';
+CREATE INDEX IF NOT EXISTS idx_users_active_intern ON users (user_id) WHERE role_id = 1 AND status = 'Aktif';
+CREATE INDEX IF NOT EXISTS idx_attendance_hadir_recent ON attendance_records (user_id, attendance_date) WHERE status = 'Hadir';
+
+-- ========================================================
+-- 39. DECOY FILE CANARY TRAPS (STORAGE TAMPER & EXFILTRATION DETECTOR)
+-- ========================================================
+CREATE TABLE IF NOT EXISTS storage_canary_traps (
+    canary_id SERIAL PRIMARY KEY,
+    filename VARCHAR(150) NOT NULL UNIQUE,
+    file_path VARCHAR(255) NOT NULL,
+    fake_description TEXT,
+    secret_token VARCHAR(64) NOT NULL,
+    access_count INT DEFAULT 0,
+    last_accessed_at TIMESTAMPTZ,
+    triggered_by_ip VARCHAR(45),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO storage_canary_traps (canary_id, filename, file_path, fake_description, secret_token) VALUES
+(1, 'SALINAN_ANGGARAN_BPJSTK_2026.pdf', '/storage/confidential/SALINAN_ANGGARAN_BPJSTK_2026.pdf', 'Dokumen umpan anggaran rahasia untuk menangkap penyerang storage', 'canary_sec_b749d01f82e8'),
+(2, 'DATABASE_KARYAWAN_RAHASIA.xlsx', '/storage/confidential/DATABASE_KARYAWAN_RAHASIA.xlsx', 'Umpan data karyawan sensitif canary', 'canary_sec_48e71c990b72')
+ON CONFLICT (canary_id) DO NOTHING;
+
+-- ========================================================
+-- 40. IDEMPOTENCY KEY ENGINE (ANTI-DUPLIKASI DATA TRANSAKSI)
+-- ========================================================
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+    idempotency_key VARCHAR(64) PRIMARY KEY,
+    user_id INT,
+    route VARCHAR(150) NOT NULL,
+    response_status INT NOT NULL,
+    response_body JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_idempotency_expires ON idempotency_keys(expires_at);
+
+-- ========================================================
+-- 41. CSP (CONTENT SECURITY POLICY) VIOLATION REPORTS TABLE
+-- ========================================================
+CREATE TABLE IF NOT EXISTS csp_violation_reports (
+    id SERIAL PRIMARY KEY,
+    document_uri TEXT,
+    blocked_uri TEXT,
+    violated_directive TEXT,
+    source_ip VARCHAR(45),
+    user_agent TEXT,
+    raw_report JSONB,
+    reported_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ========================================================
+-- 42. TIERED STORAGE LIFECYCLE AUDIT & TRANSITION REGISTRY
+-- ========================================================
+CREATE TABLE IF NOT EXISTS tiered_storage_registry (
+    file_id SERIAL PRIMARY KEY,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id BIGINT NOT NULL,
+    original_path TEXT NOT NULL,
+    current_tier VARCHAR(20) DEFAULT 'HOT' CHECK (current_tier IN ('HOT', 'WARM', 'COLD_GLACIER')),
+    original_size_bytes BIGINT NOT NULL,
+    compressed_size_bytes BIGINT,
+    storage_savings_pct NUMERIC(5,2) DEFAULT 0.00,
+    migrated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ========================================================
+-- 43. DEAD DATA TOMBSTONING & BATCH PURGE AUDIT LOGS
+-- ========================================================
+CREATE TABLE IF NOT EXISTS tombstone_purge_logs (
+    purge_id SERIAL PRIMARY KEY,
+    table_name VARCHAR(64) NOT NULL,
+    purged_count INT NOT NULL,
+    duration_ms INT NOT NULL,
+    freed_space_estimate VARCHAR(30),
+    purged_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ========================================================
+-- 44. ATTENDANCE RANGE PARTITIONING REGISTRY
+-- ========================================================
+CREATE TABLE IF NOT EXISTS attendance_partition_registry (
+    partition_id SERIAL PRIMARY KEY,
+    partition_name VARCHAR(64) NOT NULL UNIQUE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    total_records INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO attendance_partition_registry (partition_name, start_date, end_date, total_records, is_active) VALUES
+('attendance_records_2025_q4', '2025-10-01', '2025-12-31', 45, FALSE),
+('attendance_records_2026_q1', '2026-01-01', '2026-03-31', 120, FALSE),
+('attendance_records_2026_q2', '2026-04-01', '2026-06-30', 85, TRUE)
+ON CONFLICT (partition_name) DO NOTHING;

@@ -21,6 +21,20 @@ import { getOverflowStats } from '../utils/jsonbNormalizer.js';
 import { dispatchIncidentAlert } from '../utils/incidentNotifier.js';
 import { searchEntitiesFuzzy } from '../utils/fuzzySearch.js';
 import { getSriManifest } from '../utils/sriGenerator.js';
+import { generatePqcHybridSignature, verifyPqcHybridSignature } from '../utils/pqcCrypto.js';
+import { getCanaryTrapsStatus } from '../utils/canaryStorage.js';
+import { createPowChallenge, verifyPowSolution } from '../middleware/powRateLimiter.js';
+import { setupRlsPolicies, getRlsStatus } from '../utils/rlsManager.js';
+import { globalBloomFilter } from '../utils/bloomFilter.js';
+import { getAttendancePartitions, createAttendancePartition } from '../utils/partitionManager.js';
+import { generateColumnarExport } from '../utils/columnarExport.js';
+import { transcodeToAvifProfile, getStorageOptimizationMetrics } from '../utils/avifTranscoder.js';
+import { executeTombstonePurge, getTombstonePurgeHistory } from '../utils/tombstonePurger.js';
+import { runBudgetedQuery, getQueryBudgetMetrics } from '../utils/queryCostGuard.js';
+import { runTieredStorageMigration, getTieredStorageStatus } from '../utils/tieredStorage.js';
+import { generateDynamicIdCardPayload, verifyDynamicIdQr } from '../utils/dynamicIdQr.js';
+import { compileEvaluationDossier } from '../utils/pdfDossierGenerator.js';
+import { getCachedFallback, setCachedFallback } from '../utils/cacheFallback.js';
 
 const router = Router();
 
@@ -2323,6 +2337,458 @@ router.get(['/security/sri-manifest', '/sri-manifest'], (req, res) => {
     return res.json(manifest);
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// =========================================================================
+// 38. AUTOMATED CSP (CONTENT SECURITY POLICY) VIOLATION REPORT GUARD
+// =========================================================================
+router.post(['/security/csp-report', '/csp-report'], async (req, res) => {
+  try {
+    const reportData = req.body?.['csp-report'] || req.body || {};
+    const documentUri = reportData['document-uri'] || reportData.documentUri || req.headers['referer'] || '';
+    const blockedUri = reportData['blocked-uri'] || reportData.blockedUri || '';
+    const violatedDirective = reportData['violated-directive'] || reportData.violatedDirective || '';
+    const sourceIp = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || '';
+
+    // Record violation to database
+    await query(`
+      INSERT INTO csp_violation_reports (document_uri, blocked_uri, violated_directive, source_ip, user_agent, raw_report)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [documentUri, blockedUri, violatedDirective, sourceIp, userAgent, JSON.stringify(reportData)]);
+
+    // Check for high-severity XSS / script injection indicators
+    if (violatedDirective.includes('script-src') || blockedUri.startsWith('data:') || blockedUri.includes('eval')) {
+      dispatchIncidentAlert({
+        alertType: 'CSP_XSS_ATTEMPT_DETECTED',
+        severity: 'HIGH',
+        sourceIp,
+        details: { blockedUri, violatedDirective, documentUri }
+      }).catch(() => {});
+    }
+
+    return res.status(204).end(); // CSP standard expects 204 No Content
+  } catch (err) {
+    return res.status(204).end();
+  }
+});
+
+router.get(['/admin/csp-reports', '/csp-reports'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const result = await query(`
+      SELECT * FROM csp_violation_reports ORDER BY reported_at DESC LIMIT $1
+    `, [limit]);
+    return res.json({ success: true, count: result.rows.length, data: result.rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 39. POST-QUANTUM CRYPTOGRAPHY (PQC) HYBRID E-CERTIFICATE SIGNING
+// =========================================================================
+router.post(['/certificates/pqc-sign', '/pqc-sign'], authenticateToken, async (req, res) => {
+  try {
+    const certData = req.body;
+    if (!certData || !certData.certNumber) {
+      return res.status(400).json({ success: false, message: 'Data sertifikat (certNumber, recipientName, finalScore) diperlukan.' });
+    }
+
+    const pqcSignature = generatePqcHybridSignature(certData);
+    return res.json({ success: true, ...pqcSignature });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/certificates/pqc-verify', '/pqc-verify'], async (req, res) => {
+  try {
+    const { certData, hybridSignature } = req.body;
+    if (!certData || !hybridSignature) {
+      return res.status(400).json({ success: false, message: 'certData dan hybridSignature diperlukan untuk verifikasi.' });
+    }
+
+    const result = verifyPqcHybridSignature(certData, hybridSignature);
+    return res.json({ success: result.valid, ...result });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 40. STORAGE CANARY DECOY TRAPS STATUS
+// =========================================================================
+router.get(['/admin/canary-traps', '/canary-traps'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const traps = await getCanaryTrapsStatus();
+    return res.json({ success: true, data: traps });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 41. CRYPTOGRAPHIC PROOF OF WORK (PoW) CHALLENGE ENGINE
+// =========================================================================
+router.get('/security/pow/challenge', (req, res) => {
+  try {
+    const difficulty = parseInt(req.query.difficulty, 10) || 4;
+    const challenge = createPowChallenge(difficulty);
+    return res.json({ success: true, ...challenge });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/security/pow/verify', (req, res) => {
+  try {
+    const { challengeId, nonce } = req.body;
+    const verification = verifyPowSolution(challengeId, nonce);
+    if (!verification.valid) {
+      return res.status(400).json({ success: false, ...verification });
+    }
+    return res.json({ success: true, ...verification });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 42. NATIVE POSTGRESQL ROW-LEVEL SECURITY (RLS) POLICY ENFORCEMENT
+// =========================================================================
+router.get(['/admin/database/rls-status', '/database/rls-status'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const status = await getRlsStatus();
+    return res.json(status);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/admin/database/rls-setup', '/database/rls-setup'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const setupResults = await setupRlsPolicies();
+    return res.json({ success: true, results: setupResults });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 43. BLOOM FILTER FAST DUPLICATE CHECK (NIK / NIM)
+// =========================================================================
+router.get('/participant/check-duplicate-fast', async (req, res) => {
+  try {
+    const { identifier } = req.query;
+    if (!identifier) {
+      return res.status(400).json({ success: false, message: 'Parameter identifier (NIK / NIM) diperlukan.' });
+    }
+
+    const mightContain = globalBloomFilter.mightContain(identifier);
+
+    if (!mightContain) {
+      // 100% guarantee NOT in database, 0ms DB query
+      return res.json({
+        success: true,
+        isDuplicate: false,
+        confidence: '100% (Bloom Filter Disjoint Match)',
+        queriedDatabase: false
+      });
+    }
+
+    // Fallback targeted query only for positive filter hit
+    const dbCheck = await query(`
+      SELECT user_id, unique_id FROM users WHERE unique_id = $1
+      UNION
+      SELECT user_id, nik as unique_id FROM peserta WHERE nik = $1
+      LIMIT 1
+    `, [identifier]);
+
+    const isActualDuplicate = dbCheck.rows.length > 0;
+    return res.json({
+      success: true,
+      isDuplicate: isActualDuplicate,
+      confidence: isActualDuplicate ? '100% (Database Confirmed)' : 'False Positive Cleared',
+      queriedDatabase: true
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/bloom-filter/stats', '/bloom-filter/stats'], authenticateToken, requireRole('Administrator'), (req, res) => {
+  try {
+    return res.json({ success: true, ...globalBloomFilter.getStats() });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 44. PARTIAL INDEXES STATUS INSPECTOR
+// =========================================================================
+router.get(['/admin/database/partial-indexes', '/database/partial-indexes'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const indexesRes = await query(`
+      SELECT 
+        schemaname,
+        tablename,
+        indexname,
+        indexdef
+      FROM pg_indexes
+      WHERE indexname IN ('idx_peserta_menunggu_bayar', 'idx_users_active_intern', 'idx_attendance_hadir_recent')
+      ORDER BY tablename ASC
+    `);
+
+    return res.json({
+      success: true,
+      count: indexesRes.rows.length,
+      indexes: indexesRes.rows,
+      optimizationBenefit: 'Reduces index disk space footprint by indexing only active/pending dataset subsets.'
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 45. AUTOMATED RANGE PARTITIONING REGISTRY
+// =========================================================================
+router.get(['/admin/database/partitions', '/database/partitions'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const partitions = await getAttendancePartitions();
+    return res.json(partitions);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/admin/database/partitions/create', '/database/partitions/create'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { year, quarter } = req.body;
+    if (!year || !quarter) {
+      return res.status(400).json({ success: false, message: 'Parameter year dan quarter diperlukan.' });
+    }
+    const result = await createAttendancePartition(year, quarter);
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 46. VECTORISED PARQUET / DUCKDB COLUMNAR EXPORT
+// =========================================================================
+router.get(['/reports/columnar-export', '/columnar-export'], authenticateToken, async (req, res) => {
+  try {
+    const entity = req.query.entity || 'attendance';
+    const result = await generateColumnarExport(entity);
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 47. ADAPTIVE AVIF TRANSCODING ENGINE
+// =========================================================================
+router.post(['/media/transcode-avif', '/transcode-avif'], authenticateToken, (req, res) => {
+  try {
+    const { imagePayload, quality } = req.body;
+    if (!imagePayload) {
+      return res.status(400).json({ success: false, message: 'imagePayload (base64 string) diperlukan.' });
+    }
+
+    const result = transcodeToAvifProfile(imagePayload, { quality: quality || 'standard' });
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/storage/compression-metrics', '/storage/compression-metrics'], authenticateToken, (req, res) => {
+  try {
+    const metrics = getStorageOptimizationMetrics();
+    return res.json({ success: true, ...metrics });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 48. DEAD DATA TOMBSTONING & BATCH PURGE
+// =========================================================================
+router.post(['/admin/database/purge-tombstones', '/database/purge-tombstones'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { table, batchSize, retentionDays } = req.body;
+    const result = await executeTombstonePurge({
+      targetTable: table || 'notifications',
+      batchSize: parseInt(batchSize, 10) || 50,
+      retentionDays: parseInt(retentionDays, 10) || 90
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/database/purge-logs', '/database/purge-logs'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const logs = await getTombstonePurgeHistory();
+    return res.json({ success: true, data: logs });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 49. QUERY COST BUDGETING & SLOW QUERY AUTO-CANCEL GUARD
+// =========================================================================
+router.get(['/admin/database/query-budget-metrics', '/database/query-budget-metrics'], authenticateToken, requireRole('Administrator'), (req, res) => {
+  try {
+    const metrics = getQueryBudgetMetrics();
+    return res.json({ success: true, ...metrics });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/admin/database/query-budget-test', '/database/query-budget-test'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const timeoutMs = parseInt(req.body.timeoutMs, 10) || 2000;
+    // Fast budgeted query
+    const result = await runBudgetedQuery('SELECT COUNT(*) as count FROM users', [], timeoutMs);
+    return res.json({ success: true, rowCount: result.rows[0]?.count, timeoutBudgetMs: timeoutMs });
+  } catch (err) {
+    return res.status(err.code === 'QUERY_BUDGET_EXCEEDED' ? 408 : 500).json({
+      success: false,
+      error: err.message,
+      code: err.code
+    });
+  }
+});
+
+// =========================================================================
+// 50. TIERED STORAGE LIFECYCLE MIGRATION
+// =========================================================================
+router.post(['/admin/storage/tier-migration', '/storage/tier-migration'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const result = await runTieredStorageMigration();
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/storage/tier-status', '/storage/tier-status'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const result = await getTieredStorageStatus();
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 51. SSE HEARTBEAT PRESENCE RADAR STREAM
+// =========================================================================
+const ssePresenceClients = new Set();
+
+router.get(['/coordinator/presence-stream', '/presence-stream'], (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+
+  const clientInfo = { id: Date.now(), res };
+  ssePresenceClients.add(clientInfo);
+
+  // Send initial welcome event
+  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', message: 'SSE Live Presence Radar Active', timestamp: new Date().toISOString() })}\n\n`);
+
+  // Send periodic heartbeat every 15 seconds
+  const heartbeatTimer = setInterval(() => {
+    res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT', time: new Date().toISOString() })}\n\n`);
+  }, 15000);
+
+  req.on('close', () => {
+    clearInterval(heartbeatTimer);
+    ssePresenceClients.delete(clientInfo);
+  });
+});
+
+// Helper to broadcast presence updates
+export function broadcastPresenceEvent(eventData) {
+  const payload = `data: ${JSON.stringify({ type: 'PRESENCE_EVENT', ...eventData })}\n\n`;
+  for (const client of ssePresenceClients) {
+    try {
+      client.res.write(payload);
+    } catch (_) {
+      ssePresenceClients.delete(client);
+    }
+  }
+}
+
+// =========================================================================
+// 52. STATELESS CACHE-FIRST OFFLINE FALLBACK
+// =========================================================================
+router.get('/system/cache-fallback/:key', (req, res) => {
+  const { key } = req.params;
+  const fallback = getCachedFallback(key);
+  if (!fallback) {
+    return res.status(404).json({ success: false, message: `Snapshot fallback untuk key '${key}' tidak tersedia.` });
+  }
+  res.setHeader('X-System-Degraded', 'TRUE');
+  return res.json({ success: true, ...fallback });
+});
+
+// =========================================================================
+// 53. DYNAMIC ROTATING INTERN DIGITAL ID CARD
+// =========================================================================
+router.get('/participant/digital-id-card', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const cardData = await generateDynamicIdCardPayload(userId);
+    return res.json(cardData);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/coordinator/digital-id-card/verify', '/digital-id-card/verify'], authenticateToken, (req, res) => {
+  try {
+    const { qrPayload } = req.body;
+    if (!qrPayload) {
+      return res.status(400).json({ success: false, message: 'qrPayload diperlukan untuk verifikasi.' });
+    }
+
+    const verification = verifyDynamicIdQr(qrPayload);
+    return res.json({ success: verification.valid, ...verification });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 54. ONE-CLICK BATCH PDF EVALUATION DOSSIER GENERATOR
+// =========================================================================
+router.get('/coordinator/dossier/generate/:userId', authenticateToken, async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.userId, 10);
+    const dossier = await compileEvaluationDossier(targetUserId);
+
+    if (req.query.format === 'html') {
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(dossier.htmlContent);
+    }
+
+    return res.json({ success: true, ...dossier });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 

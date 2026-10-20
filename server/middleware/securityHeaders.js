@@ -12,7 +12,8 @@ export const securityHeadersMiddleware = (req, res, next) => {
       "connect-src 'self' https: wss: ws:",
       "frame-ancestors 'self'",
       "base-uri 'self'",
-      "form-action 'self'"
+      "form-action 'self'",
+      "report-uri /api/security/csp-report"
     ].join('; ')
   );
 

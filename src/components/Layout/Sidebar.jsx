@@ -5,7 +5,7 @@ import {
   FolderOpen, Bell, Users, Award, 
   BarChart3, Download, Clock,
   Database, Radio, LogOut, X, ChevronRight, Sparkles, MessageSquare,
-  MapPin, Target, Calculator
+  MapPin, Target, Calculator, ShieldCheck
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
@@ -54,6 +54,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { path: '/coordinator/analysis', icon: BarChart3, label: 'Analisis Metrik' },
         ],
         tools: [
+          { path: '/coordinator/presence-radar', icon: Radio, label: 'Radar Presensi Live' },
           { path: '/coordinator/calendar', icon: Calendar, label: 'Agenda & Jadwal' },
           { path: '/coordinator/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
           { path: '/coordinator/reminders', icon: Bell, label: 'Pengingat' },
@@ -64,6 +65,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       // Peserta
       const generalItems = [
         { path: '/participant/dashboard', icon: Home, label: 'Dashboard' },
+        { path: '/participant/id-card', icon: ShieldCheck, label: 'ID Card Digital' },
         { path: '/participant/attendance', icon: ClipboardList, label: 'Absensi Harian' },
         { path: '/participant/calendar', icon: Calendar, label: 'Jadwal & Kalender' },
         { path: '/participant/progress', icon: TrendingUp, label: 'Progress Saya' },

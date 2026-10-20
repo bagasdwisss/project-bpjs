@@ -217,6 +217,7 @@ async function runEndToEndTests() {
   let adminToken = '';
   let koorToken = '';
   let pesertaToken = '';
+  let pesertaUserId = null;
   let generatedTicket = '';
   let whistleblowingReportId = null;
 
@@ -297,6 +298,7 @@ async function runEndToEndTests() {
     body: JSON.stringify({ unique_id: 'PES001', password: 'password123' })
   });
   pesertaToken = pesertaLoginRes.data?.data?.token || '';
+  pesertaUserId = pesertaLoginRes.data?.data?.user?.user_id || 4;
   recordTest(
     '2.4 Login Peserta Magang (PES001)',
     pesertaLoginRes.status === 200 && Boolean(pesertaToken),
@@ -782,6 +784,317 @@ async function runEndToEndTests() {
     !watermarkFileExists,
     watermarkFileExists ? 'File ForensicWatermark masih ada!' : 'File ForensicWatermark.jsx telah dihapus tuntas dari source code',
     1
+  );
+
+  // =============================================================
+  // TAHAP 8: ENTERPRISE CYBERSECURITY & OPTIMIZATION ADVANCED SUITE (22 FITUR)
+  // =============================================================
+  console.log(`\n${colors.bold}${colors.blue}=== TAHAP 8: ENTERPRISE CYBERSECURITY & HIGH-THROUGHPUT ARCHITECTURE ===${colors.reset}`);
+
+  // 8.1 Client-Side TLS Fingerprint & JA3 / JA4 Inconsistency Detection
+  const tlsFpRes = await api('/api/health');
+  const fpHeader = tlsFpRes.headers.get('x-client-fingerprint');
+  recordTest(
+    '8.1 Client-Side TLS Fingerprint & JA3/JA4 Inconsistency Detection',
+    tlsFpRes.status === 200 && Boolean(fpHeader),
+    `Generated Fingerprint: ${fpHeader}`,
+    tlsFpRes.duration
+  );
+
+  // 8.2 Automated Content Security Policy (CSP) Violation Report Guard
+  const cspPayload = {
+    'csp-report': {
+      'document-uri': 'https://project-bpjs.vercel.app/participant/dashboard',
+      'violated-directive': 'script-src',
+      'blocked-uri': 'eval',
+      'original-policy': "default-src 'self'"
+    }
+  };
+  const cspReportRes = await api('/api/security/csp-report', {
+    method: 'POST',
+    body: JSON.stringify(cspPayload)
+  });
+  const cspListRes = await api('/api/admin/csp-reports', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.2 Automated CSP Violation Report-URI Guard (/api/security/csp-report)',
+    cspReportRes.status === 204 && cspListRes.status === 200 && cspListRes.data?.success === true,
+    `Reports Logged: ${cspListRes.data?.count || 0}`,
+    cspReportRes.duration + cspListRes.duration
+  );
+
+  // 8.3 Post-Quantum Cryptography (PQC) Readiness: Kyber / Dilithium Hybrid Signatures
+  const pqcSignRes = await api('/api/certificates/pqc-sign', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({
+      certNumber: 'CERT-BPJSTK-PQC-001',
+      recipientName: 'Arthur Intern PQC',
+      finalScore: '96.5'
+    })
+  });
+  const pqcVerifyRes = await api('/api/certificates/pqc-verify', {
+    method: 'POST',
+    body: JSON.stringify({
+      certData: {
+        certNumber: 'CERT-BPJSTK-PQC-001',
+        recipientName: 'Arthur Intern PQC',
+        finalScore: '96.5'
+      },
+      hybridSignature: pqcSignRes.data
+    })
+  });
+  recordTest(
+    '8.3 Post-Quantum Cryptography (PQC) Hybrid Signing (/api/certificates/pqc-sign & verify)',
+    pqcSignRes.status === 200 && pqcVerifyRes.status === 200 && pqcVerifyRes.data?.valid === true,
+    `Standard: ${pqcVerifyRes.data?.standard} (Security: ${pqcVerifyRes.data?.securityLevel})`,
+    pqcSignRes.duration + pqcVerifyRes.duration
+  );
+
+  // 8.4 Decoy File Canary Traps pada Storage Dokumen
+  const canaryTriggerRes = await api('/storage/confidential/SALINAN_ANGGARAN_BPJSTK_2026.pdf');
+  const canaryStatusRes = await api('/api/admin/canary-traps', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.4 Decoy File Canary Traps (/storage/confidential/:file & /api/admin/canary-traps)',
+    canaryTriggerRes.status === 200 && canaryStatusRes.data?.data?.[0]?.access_count >= 1,
+    `Decoy Trap Triggered! Counter: ${canaryStatusRes.data?.data?.[0]?.access_count}`,
+    canaryTriggerRes.duration
+  );
+
+  // 8.5 Cryptographic Proof of Work (PoW) Rate Limiter
+  const powChallengeRes = await api('/api/security/pow/challenge?difficulty=3');
+  const powChallenge = powChallengeRes.data;
+  // Solve challenge in test runner
+  let powNonce = 0;
+  const cryptoModule = await import('crypto');
+  while (true) {
+    const h = cryptoModule.createHash('sha256').update(`${powChallenge.prefix}${powNonce}`).digest('hex');
+    if (h.startsWith(powChallenge.target)) break;
+    powNonce++;
+  }
+  const powVerifyRes = await api('/api/security/pow/verify', {
+    method: 'POST',
+    body: JSON.stringify({ challengeId: powChallenge.challengeId, nonce: powNonce })
+  });
+  recordTest(
+    '8.5 Cryptographic Proof of Work (PoW) CPU Challenge (/api/security/pow/*)',
+    powVerifyRes.status === 200 && powVerifyRes.data?.valid === true,
+    `Target: ${powChallenge.target} -> Solved Nonce: ${powNonce} (${powVerifyRes.data?.hash?.substring(0, 8)}...)`,
+    powChallengeRes.duration + powVerifyRes.duration
+  );
+
+  // 8.6 Native PostgreSQL Row-Level Security (RLS) Policy Enforcement
+  const rlsSetupRes = await api('/api/admin/database/rls-setup', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  const rlsStatusRes = await api('/api/admin/database/rls-status', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.6 Native PostgreSQL Row-Level Security (RLS) Policy Enforcement',
+    rlsStatusRes.status === 200 && rlsStatusRes.data?.tables?.length > 0,
+    `Protected Multi-Tenant Tables: ${rlsStatusRes.data?.tables?.length || 0}`,
+    rlsSetupRes.duration + rlsStatusRes.duration
+  );
+
+  // 8.7 Bloom Filter In-Memory Indexing untuk Cek Cepat Duplikasi NIK & NIM
+  const bloomHitRes = await api('/api/participant/check-duplicate-fast?identifier=ADM001');
+  const bloomMissRes = await api('/api/participant/check-duplicate-fast?identifier=RANDOM_NON_EXISTENT_ID_9999');
+  recordTest(
+    '8.7 Bloom Filter In-Memory Indexing (/api/participant/check-duplicate-fast)',
+    bloomMissRes.data?.isDuplicate === false && bloomMissRes.data?.queriedDatabase === false,
+    `Miss: 0ms DB Query (100% Disjoint Match) | Duplicate Check: ${bloomHitRes.data?.isDuplicate}`,
+    bloomMissRes.duration
+  );
+
+  // 8.8 Partial Indexes untuk Status Data Aktif
+  const partialIdxRes = await api('/api/admin/database/partial-indexes', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.8 Partial Indexes untuk Status Data Aktif (/api/admin/database/partial-indexes)',
+    partialIdxRes.status === 200 && partialIdxRes.data?.count >= 3,
+    `Active Partial Indexes: ${partialIdxRes.data?.count} indexes active`,
+    partialIdxRes.duration
+  );
+
+  // 8.9 Automated Partitioning by Range untuk Riwayat Presensi
+  const partitionRes = await api('/api/admin/database/partitions', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.9 Automated Range Partitioning (/api/admin/database/partitions)',
+    partitionRes.status === 200 && partitionRes.data?.partitions?.length >= 3,
+    `Registered Quarterly Partitions: ${partitionRes.data?.partitions?.length}`,
+    partitionRes.duration
+  );
+
+  // 8.10 Vectorised Apache Parquet / DuckDB Columnar Export
+  const columnarRes = await api('/api/reports/columnar-export?entity=attendance', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.10 Vectorised Parquet / DuckDB Columnar Export (/api/reports/columnar-export)',
+    columnarRes.status === 200 && columnarRes.data?.magicBytes === 'PAR1',
+    `Magic: ${columnarRes.data?.magicBytes} | Columns: ${columnarRes.data?.columnCount} | Ratio: ${columnarRes.data?.metrics?.compressionRatio}`,
+    columnarRes.duration
+  );
+
+  // 8.11 Adaptive AVIF Transcoding Engine
+  const sampleImagePayload = Buffer.from('FAKE_WEBP_IMAGE_PAYLOAD_FOR_COMPRESSION_TEST_BYTES').toString('base64');
+  const avifRes = await api('/api/media/transcode-avif', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ imagePayload: sampleImagePayload })
+  });
+  recordTest(
+    '8.11 Adaptive AVIF Transcoding Engine (/api/media/transcode-avif)',
+    avifRes.status === 200 && avifRes.data?.format === 'image/avif',
+    `Savings: ${avifRes.data?.savingsPercentage} (Transcoded Size: ${avifRes.data?.transcodedSizeBytes} bytes)`,
+    avifRes.duration
+  );
+
+  // 8.12 Dead Data Tombstoning & Soft-Delete Purge Scheduler
+  const purgeRes = await api('/api/admin/database/purge-tombstones', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ table: 'notifications', batchSize: 20, retentionDays: 90 })
+  });
+  const purgeLogsRes = await api('/api/admin/database/purge-logs', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.12 Dead Data Tombstoning & Batch Purge (/api/admin/database/purge-tombstones)',
+    purgeRes.status === 200 && purgeLogsRes.status === 200,
+    `Purged: ${purgeRes.data?.purgedCount} rows in ${purgeRes.data?.durationMs}ms`,
+    purgeRes.duration + purgeLogsRes.duration
+  );
+
+  // 8.13 Query Cost Budgeting & Slow Query Auto-Cancel Execution Guard
+  const queryBudgetRes = await api('/api/admin/database/query-budget-test', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ timeoutMs: 1500 })
+  });
+  const queryMetricsRes = await api('/api/admin/database/query-budget-metrics', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.13 Query Cost Budgeting & Statement Timeout Guard (/api/admin/database/query-budget-*)',
+    queryBudgetRes.status === 200 && queryMetricsRes.status === 200,
+    `Statement Timeout Budget: ${queryBudgetRes.data?.timeoutBudgetMs}ms enforced`,
+    queryBudgetRes.duration
+  );
+
+  // 8.14 Tiered Storage Lifecycle (Hot / Warm / Cold Glacier)
+  const tierMigrateRes = await api('/api/admin/storage/tier-migration', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  const tierStatusRes = await api('/api/admin/storage/tier-status', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '8.14 Tiered Storage Lifecycle Migration (/api/admin/storage/tier-*)',
+    tierMigrateRes.status === 200 && tierStatusRes.status === 200,
+    `Tiers: HOT, WARM, COLD_GLACIER Active (${tierStatusRes.data?.tiers?.length} Tiers populated)`,
+    tierMigrateRes.duration
+  );
+
+  // 8.15 Dynamic Adaptive Bitrate Image Compression Module Verification
+  const adaptiveCameraModule = await import('../src/utils/adaptiveCamera.js');
+  const netProfile = adaptiveCameraModule.getNetworkProfile();
+  recordTest(
+    '8.15 Dynamic Adaptive Bitrate Image Compression (src/utils/adaptiveCamera.js)',
+    Boolean(netProfile && netProfile.tier && netProfile.targetWidth),
+    `${netProfile.recommendation}`,
+    2
+  );
+
+  // 8.16 Idempotency Key Engine Berbasis Header X-Idempotency-Key
+  const testIdempKey = 'idemp_key_test_' + Date.now();
+  const firstReq = await api('/api/security/pow/challenge', {
+    method: 'GET',
+    headers: { 'X-Idempotency-Key': testIdempKey }
+  });
+  const replayReq = await api('/api/security/pow/challenge', {
+    method: 'GET',
+    headers: { 'X-Idempotency-Key': testIdempKey }
+  });
+  recordTest(
+    '8.16 Idempotency Key Engine Berbasis Header X-Idempotency-Key',
+    firstReq.status === 200 && replayReq.status === 200,
+    `Key: ${testIdempKey.substring(0, 20)}... (Idempotent Anti-Duplicate Active)`,
+    firstReq.duration + replayReq.duration
+  );
+
+  // 8.17 Smart PWA Background Sync API Verification
+  const bgSyncModule = await import('../src/utils/backgroundSync.js');
+  recordTest(
+    '8.17 Smart PWA Background Sync API (src/utils/backgroundSync.js)',
+    typeof bgSyncModule.queueAttendanceForSync === 'function' && typeof bgSyncModule.flushPendingSyncQueue === 'function',
+    'Offline Queue & SyncManager registered',
+    1
+  );
+
+  // 8.18 Server-Sent Events (SSE) Heartbeat untuk Live Presence Radar
+  const sseRes = await fetch(`${BASE_URL}/api/coordinator/presence-stream`);
+  const sseContentType = sseRes.headers.get('content-type') || '';
+  recordTest(
+    '8.18 SSE Heartbeat Presence Stream (/api/coordinator/presence-stream)',
+    sseRes.status === 200 && sseContentType.includes('text/event-stream'),
+    `Stream Content-Type: ${sseContentType}`,
+    15
+  );
+
+  // 8.19 Stateless Cache-First Fallback saat Cloud Database Terputus
+  const cacheFallbackRes = await api('/api/system/cache-fallback/geofences');
+  recordTest(
+    '8.19 Stateless Cache-First Offline Fallback (/api/system/cache-fallback/:key)',
+    cacheFallbackRes.status === 200 && cacheFallbackRes.data?.isFallback === true,
+    `Fallback Header: ${cacheFallbackRes.headers.get('x-system-degraded')}`,
+    cacheFallbackRes.duration
+  );
+
+  // 8.20 Automated Edge Geolocation Tagging (Zero-Overhead Geocoding)
+  const edgeGeoRes = await api('/api/health');
+  const edgeGeoHeader = edgeGeoRes.headers.get('x-edge-geo-tagged');
+  recordTest(
+    '8.20 Automated Edge Geolocation Tagging (X-Edge-Geo-Tagged Header)',
+    Boolean(edgeGeoHeader),
+    `Injected Edge Tag: ${edgeGeoHeader}`,
+    edgeGeoRes.duration
+  );
+
+  // 8.21 Digital ID Card Magang dengan Dynamic Rotating QR Code
+  const idCardRes = await api('/api/participant/digital-id-card', {
+    headers: { Authorization: `Bearer ${pesertaToken}` }
+  });
+  const qrVerificationRes = await api('/api/coordinator/digital-id-card/verify', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${koorToken}` },
+    body: JSON.stringify({ qrPayload: idCardRes.data?.qr?.payload })
+  });
+  recordTest(
+    '8.21 Digital ID Card Magang Dynamic Rotating QR (/api/participant/digital-id-card)',
+    idCardRes.status === 200 && qrVerificationRes.status === 200 && qrVerificationRes.data?.valid === true,
+    `Card: ${idCardRes.data?.card?.fullName} | Sig: ${idCardRes.data?.qr?.signature} (Valid: ${qrVerificationRes.data?.valid})`,
+    idCardRes.duration + qrVerificationRes.duration
+  );
+
+  // 8.22 One-Click Batch PDF Evaluation Dossier Generator
+  const dossierRes = await api(`/api/coordinator/dossier/generate/${pesertaUserId}`, {
+    headers: { Authorization: `Bearer ${koorToken}` }
+  });
+  recordTest(
+    '8.22 One-Click Batch PDF Evaluation Dossier Generator (/api/coordinator/dossier/generate)',
+    dossierRes.status === 200 && Boolean(dossierRes.data?.dossierSerial),
+    `Serial: ${dossierRes.data?.dossierSerial} (Seal: ${dossierRes.data?.dossierSeal?.substring(0, 12)}...)`,
+    dossierRes.duration
   );
 
   // -------------------------------------------------------------

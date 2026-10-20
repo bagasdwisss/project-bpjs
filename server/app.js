@@ -33,6 +33,10 @@ import honeytokenMiddleware from './middleware/honeytokenMiddleware.js';
 import correlationMiddleware from './middleware/correlationMiddleware.js';
 import etagCacheMiddleware from './middleware/etagCacheMiddleware.js';
 import payloadDeobfuscatorMiddleware from './middleware/payloadDeobfuscator.js';
+import tlsFingerprintMiddleware from './middleware/tlsFingerprintMiddleware.js';
+import edgeGeoTaggerMiddleware from './middleware/edgeGeoTagger.js';
+import idempotencyMiddleware from './middleware/idempotencyMiddleware.js';
+import { triggerCanaryAccess } from './utils/canaryStorage.js';
 import { recordLatencySample } from './utils/telemetryTracker.js';
 
 dotenv.config();
@@ -94,9 +98,21 @@ app.use(cors({
     'x-payload-obfuscated',
     'x-ephemeral-salt',
     'x-payload-timestamp',
-    'if-none-match'
+    'if-none-match',
+    'x-idempotency-key',
+    'x-pow-challenge-id',
+    'x-pow-nonce',
+    'x-client-fingerprint',
+    'x-strict-enforce-tls',
+    'x-bypass-pow'
   ]
 }));
+
+// Client-Side TLS Fingerprint & JA3 / JA4 Inconsistency Detection (Feature 1)
+app.use(tlsFingerprintMiddleware);
+
+// Automated Edge Geolocation Tagging (Feature 20)
+app.use(edgeGeoTaggerMiddleware);
 
 // Intelligent HTTP 304 ETag State Caching Engine (Feature 11)
 app.use(etagCacheMiddleware());
@@ -108,14 +124,34 @@ app.use((req, res, next) => {
   next();
 });
 
-// 7. Dynamic Maintenance Mode Switch with Admin Bypass
+// Dynamic Maintenance Mode Switch with Admin Bypass
 app.use(maintenanceMiddleware);
 
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Polymorphic Request Deobfuscation (Feature 5)
+// Polymorphic Request Deobfuscation
 app.use(payloadDeobfuscatorMiddleware);
+
+// Anti-Duplicate Transaction Idempotency Key Engine (Feature 16)
+app.use(idempotencyMiddleware);
+
+// Direct Decoy File Canary Traps Route (Feature 4)
+app.get(['/storage/confidential/:filename', '/api/storage/canary/:filename'], async (req, res) => {
+  const result = await triggerCanaryAccess({
+    filename: req.params.filename,
+    ip: req.ip || req.connection?.remoteAddress || '127.0.0.1',
+    userAgent: req.headers['user-agent']
+  });
+
+  if (!result) {
+    return res.status(404).json({ success: false, message: 'Berkas tidak ditemukan.' });
+  }
+
+  res.setHeader('Content-Type', result.contentType);
+  res.setHeader('Content-Disposition', `inline; filename="${result.canary.filename}"`);
+  return res.send(result.content);
+});
 
 // Helper router to mount endpoints under both /api/... and /...
 const apiRouter = express.Router();

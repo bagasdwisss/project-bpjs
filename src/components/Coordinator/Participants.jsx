@@ -4,7 +4,7 @@ import userService from '../../services/userService';
 import progressService from '../../services/progressService';
 import ParticipantDetails from './ParticipantDetails';
 import { TableSkeleton } from '../Common/Skeleton';
-import { Users, Search, RefreshCw, Eye, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Users, Search, RefreshCw, Eye, ArrowUpRight, CheckCircle2, FileDown } from 'lucide-react';
 
 const Participants = () => {
   const [participants, setParticipants] = useState([]);
@@ -270,12 +270,24 @@ const Participants = () => {
                           </span>
                         </td>
                         <td className="px-5 py-4 whitespace-nowrap text-right">
-                          <button
-                            onClick={() => handleViewDetails(p)}
-                            className="px-3.5 py-1.5 bg-[#121214] text-white rounded-full text-[11px] font-bold hover:bg-neutral-800 transition-colors shadow-sm"
-                          >
-                            Detail Profil
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                window.open(`/api/coordinator/dossier/generate/${p.user_id}?format=html`, '_blank');
+                              }}
+                              className="px-2.5 py-1.5 bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214] rounded-full text-[11px] font-bold hover:bg-[#F0EFEA] transition-colors flex items-center gap-1 shadow-sm"
+                              title="Cetak Bundel Berkas Penilaian Resmi Magang (Dossier PDF)"
+                            >
+                              <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Dossier</span>
+                            </button>
+                            <button
+                              onClick={() => handleViewDetails(p)}
+                              className="px-3.5 py-1.5 bg-[#121214] text-white rounded-full text-[11px] font-bold hover:bg-neutral-800 transition-colors shadow-sm"
+                            >
+                              Detail Profil
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
