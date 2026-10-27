@@ -47,7 +47,7 @@ export async function generateDynamicIdCardPayload(userId) {
     .digest('hex')
     .substring(0, 24);
 
-  const coordinatorName = user.coordinator_name || 'Pembina Operasional Cabang BPJSTK';
+  const coordinatorName = user.coordinator_name || 'Fedro (Koordinator Lapangan)';
 
   // Human-readable scan text: When scanned by any camera, immediately proves authenticity
   const scanText = [

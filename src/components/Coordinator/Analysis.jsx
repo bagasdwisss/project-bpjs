@@ -271,12 +271,6 @@ const Analysis = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Analisis Performa Peserta</h1>
             <p className="text-sm text-[#121214]/60 mt-1">Evaluasi capaian rata-rata, distribusi grade, dan perbandingan performa peserta binaan</p>
           </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="px-3.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] text-xs font-bold text-[#121214]">
-              Koordinator: {user?.full_name || 'Internal'}
-            </span>
-          </div>
         </div>
 
         {error && (

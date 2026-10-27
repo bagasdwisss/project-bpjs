@@ -9,7 +9,7 @@ import api from '../../services/api';
 import { StatRowSkeleton, TableSkeleton } from '../Common/Skeleton';
 
 const Scores = () => {
-  const { user } = useContext(AuthContext);
+  const { user, coordinator } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedType, setSelectedType] = useState('all');
@@ -52,7 +52,7 @@ const Scores = () => {
         type: score.score_type || 'assessment',
         module: score.module_name || score.module?.module_name || `Modul #${score.module_id}`,
         date: score.graded_at || score.created_at,
-        gradedBy: score.coordinator_name || score.grader_name || `Koordinator`,
+        gradedBy: score.coordinator_name || score.grader_name || user?.coordinator_name || coordinator?.full_name || 'Fedro',
         feedback: score.comments || 'Belum ada catatan pembimbing',
         weight: 25
       }));

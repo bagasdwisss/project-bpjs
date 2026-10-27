@@ -300,7 +300,7 @@ INSERT INTO users (user_id, unique_id, full_name, password_hash, role_id, coordi
 (5, 'KO002', 'Afiyah', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (6, 'KO003', 'Fizka', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (7, 'KO004', 'Paramitha', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 2, NULL, 'Aktif', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(1, 'PES001', 'Arthur', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 5, 'Aktif', 'Lapangan', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 'PES001', 'Arthur', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 2, 'Aktif', 'Lapangan', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (4, 'PES002', 'Widi Iskandar Rangkuti', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 2, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (8, 'PES003', 'Adinda Putri Anggraini', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 6, 'Aktif', 'Kantor', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (9, 'PES004', 'Novita Monic Simanungkalit', '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK', 1, 2, 'Aktif', 'Lapangan', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

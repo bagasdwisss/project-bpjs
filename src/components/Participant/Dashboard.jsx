@@ -18,7 +18,7 @@ const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 import { DashboardSkeleton } from '../Common/Skeleton';
 
 const ParticipantDashboard = () => {
-  const { user } = useContext(AuthContext);
+  const { user, coordinator } = useContext(AuthContext);
   const { dashboardState, markAsRefreshed } = useDashboard();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -133,8 +133,12 @@ const ParticipantDashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               {getTimeGreeting()}, {user?.full_name?.split(' ')[0] || 'Peserta'}
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
-              Penempatan: <span className="font-bold text-[#121214] capitalize">{user?.penempatan || 'Kantor Cabang'}</span> • Capaian akuisisi kamu saat ini mencapai <span className="font-bold text-[#121214]">{progressPct}%</span>.
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 flex flex-wrap items-center gap-x-2">
+              <span>Penempatan: <span className="font-bold text-[#121214] capitalize">{user?.penempatan || 'Kantor Cabang'}</span></span>
+              <span>•</span>
+              <span>Koordinator: <span className="font-bold text-[#121214]">{dashboardData?.coordinator?.full_name || coordinator?.full_name || user?.coordinator_name || 'Fedro'}</span></span>
+              <span>•</span>
+              <span>Akuisisi: <span className="font-bold text-[#121214]">{progressPct}%</span></span>
             </p>
           </div>
 

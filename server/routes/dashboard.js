@@ -134,9 +134,20 @@ router.get('/participant', authenticateToken, requireRole('Peserta'), async (req
       [userId]
     );
 
+    // 8. Assigned Coordinator Details
+    const coordRes = await query(
+      `SELECT c.user_id, c.unique_id, c.full_name, c.penempatan
+       FROM users u
+       JOIN users c ON u.coordinator_id = c.user_id
+       WHERE u.user_id = $1`,
+      [userId]
+    );
+    const coordinator = coordRes.rows[0] || null;
+
     return res.json({
       success: true,
       data: {
+        coordinator,
         stats: {
           attendance: attendanceStats,
           averageScore: scoreStats.average,

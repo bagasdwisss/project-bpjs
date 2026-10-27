@@ -56,7 +56,7 @@ const ParticipantDetails = ({ participant, onClose }) => {
         nama: participant.full_name,
         unique_id: participant.unique_id,
         email: participant.email || '-',
-        koordinator: participant.coordinator_name || '-',
+        penempatan: participant.penempatan || 'Kantor Cabang BPJSTK',
         grade: grade
       },
       metrics: {
@@ -160,8 +160,8 @@ const ParticipantDetails = ({ participant, onClose }) => {
                       <span className="font-bold text-[#121214]">{progressData.userInfo.email}</span>
                     </div>
                     <div className="flex justify-between py-1">
-                      <span className="text-[#6E6D6A]">Koordinator:</span>
-                      <span className="font-bold text-[#121214]">{progressData.userInfo.koordinator}</span>
+                      <span className="text-[#6E6D6A]">Penempatan:</span>
+                      <span className="font-bold text-[#121214] capitalize">{progressData.userInfo.penempatan || 'Kantor Cabang'}</span>
                     </div>
                   </div>
                 </div>

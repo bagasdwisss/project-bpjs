@@ -57,9 +57,10 @@ router.post('/login', async (req, res) => {
     }
 
     const userRes = await query(
-      `SELECT u.*, r.role_name
+      `SELECT u.*, r.role_name, c.full_name AS coordinator_name, c.unique_id AS coordinator_code
        FROM users u
        LEFT JOIN roles r ON u.role_id = r.role_id
+       LEFT JOIN users c ON u.coordinator_id = c.user_id
        WHERE LOWER(u.unique_id) = LOWER($1)`,
       [unique_id.trim()]
     );
@@ -179,7 +180,8 @@ router.post('/login', async (req, res) => {
           role_id: user.role_id,
           status: user.status,
           penempatan: user.penempatan,
-          coordinator_id: user.coordinator_id
+          coordinator_id: user.coordinator_id,
+          coordinator_name: user.coordinator_name || null
         }
       }
     });
@@ -397,6 +399,68 @@ router.get('/session-stream', async (req, res) => {
     });
   } catch (err) {
     res.status(500).end();
+  }
+});
+
+/**
+ * GET /coordinator
+ * Returns the logged-in user's coordinator if participant, or own info if coordinator
+ */
+router.get(['/coordinator', '/api/coordinator'], authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+
+    const userRes = await query(
+      `SELECT u.user_id, u.unique_id, u.full_name, u.role_id, u.coordinator_id,
+              c.user_id as coordinator_user_id, c.unique_id as coordinator_unique_id,
+              c.full_name as coordinator_name, c.email as coordinator_email,
+              c.penempatan as coordinator_penempatan
+       FROM users u
+       LEFT JOIN users c ON u.coordinator_id = c.user_id
+       WHERE u.user_id = $1`,
+      [userId]
+    );
+
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan.' });
+    }
+
+    const row = userRes.rows[0];
+
+    // If caller is coordinator or admin, return self
+    if (row.role_id === 2 || row.role_id === 3) {
+      return res.json({
+        success: true,
+        data: {
+          user_id: row.user_id,
+          unique_id: row.unique_id,
+          full_name: row.full_name,
+          role_id: row.role_id
+        }
+      });
+    }
+
+    // Caller is participant: return coordinator details
+    if (!row.coordinator_name) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'Belum ada koordinator yang ditugaskan.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        user_id: row.coordinator_user_id,
+        unique_id: row.coordinator_unique_id,
+        full_name: row.coordinator_name,
+        email: row.coordinator_email || `${row.coordinator_unique_id}@bpjsketenagakerjaan.go.id`,
+        penempatan: row.coordinator_penempatan || 'Kantor Cabang BPJSTK'
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 

@@ -202,10 +202,10 @@ const Header = ({ toggleSidebar }) => {
             )}
 
             {/* Koordinator Info Pill for Participant */}
-            {isParticipant && coordinator && (
+            {isParticipant && (coordinator?.full_name || user?.coordinator_name) && (
               <div className="hidden xl:flex items-center text-xs bg-[#FFFFFF] border border-[#EAE9E4] px-3 py-1.5 rounded-full text-[#121214] shadow-sm">
                 <span className="text-[#6E6D6A] mr-1">Koordinator:</span>
-                <span className="font-bold text-[#121214]">{coordinator.full_name}</span>
+                <span className="font-bold text-[#121214]">{coordinator?.full_name || user?.coordinator_name}</span>
               </div>
             )}
 

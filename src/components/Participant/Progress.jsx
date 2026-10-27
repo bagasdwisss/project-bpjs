@@ -12,7 +12,7 @@ import {
 import api from '../../services/api';
 
 const Progress = () => {
-  const { user } = useContext(AuthContext);
+  const { user, coordinator } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [progressData, setProgressData] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -70,7 +70,7 @@ const Progress = () => {
         nama: data.full_name || user.full_name,
         nim: data.unique_id || user.unique_id,
         email: data.email || user.email || '-',
-        koordinator: data.coordinator_name || '-',
+        koordinator: data.coordinator_name || user?.coordinator_name || coordinator?.full_name || 'Fedro',
         grade: grade
       },
       metrics: {
@@ -164,7 +164,7 @@ const Progress = () => {
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               NIM/ID: {progressData.userInfo?.nim || user?.unique_id}
               <span className="text-[#8A8985]">•</span>
-              Koordinator: {progressData.userInfo?.koordinator || 'Pembimbing BPJSTK'}
+              Koordinator: {progressData.userInfo?.koordinator && progressData.userInfo?.koordinator !== '-' ? progressData.userInfo?.koordinator : (user?.coordinator_name || coordinator?.full_name || 'Fedro')}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Progress & Capaian Magang

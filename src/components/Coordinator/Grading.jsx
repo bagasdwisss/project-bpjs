@@ -393,20 +393,22 @@ const Grading = () => {
             />
           </div>
 
-          <div className="md:w-64">
-            <select 
-              value={coordinatorFilter} 
-              onChange={(e) => setCoordinatorFilter(e.target.value)} 
-              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
-            >
-              <option value="">Semua Koordinator</option>
-              {(coordinators || []).map((coordinator) => (
-                <option key={coordinator.user_id} value={coordinator.user_id}>
-                  {coordinator.full_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {(user?.role === 'Administrator' || user?.role_id === 3) && (
+            <div className="md:w-64">
+              <select 
+                value={coordinatorFilter} 
+                onChange={(e) => setCoordinatorFilter(e.target.value)} 
+                className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
+              >
+                <option value="">Semua Koordinator</option>
+                {(coordinators || []).map((coordinator) => (
+                  <option key={coordinator.user_id} value={coordinator.user_id}>
+                    {coordinator.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Assignment Table */}
@@ -442,12 +444,7 @@ const Grading = () => {
                           {/* PARTICIPANT */}
                           <td className="px-5 py-4 whitespace-nowrap">
                             <div className="text-xs font-bold text-[#121214]">{participant.participant_name}</div>
-                            <div className="text-[11px] text-[#6E6D6A]">{participant.coordinator_name}</div>
-                            {isMyParticipant && (
-                              <span className="text-[10px] font-bold bg-[#F5C6EC] text-[#121214] px-2 py-0.5 rounded-full mt-1 inline-block">
-                                Peserta Anda
-                              </span>
-                            )}
+                            <div className="text-[11px] font-mono text-[#6E6D6A]">ID: {participant.unique_id || participant.nim || participant.participant_nim || `PES-00${participant.id}`}</div>
                           </td>
 
                           {/* ASSIGNMENT */}
@@ -870,8 +867,8 @@ const Grading = () => {
                         <strong className="text-[#121214]">{selectedParticipant.participant.unique_id}</strong>
                       </div>
                       <div>
-                        <span className="text-[#121214]/50">Koordinator Pembimbing:</span>{' '}
-                        <strong className="text-[#121214]">{selectedParticipant.participant.coordinator?.name || 'Belum diatur'}</strong>
+                        <span className="text-[#121214]/50">Status Bimbingan:</span>{' '}
+                        <strong className="text-emerald-800 font-bold">Peserta Binaan Aktif</strong>
                       </div>
                     </div>
                   </div>
