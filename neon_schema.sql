@@ -784,25 +784,6 @@ INSERT INTO time_bank_ledger (user_id, transaction_type, hours_amount, event_des
 ON CONFLICT DO NOTHING;
 
 -- ========================================================
--- 46. ANTI-PHISHING PERSONAL SECURITY PHRASE & ICON
--- ========================================================
-CREATE TABLE IF NOT EXISTS user_anti_phishing_tokens (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
-    security_phrase VARCHAR(100) NOT NULL,
-    icon_symbol VARCHAR(50) NOT NULL,
-    border_color_hex VARCHAR(10) NOT NULL DEFAULT '#10B981',
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT INTO user_anti_phishing_tokens (user_id, security_phrase, icon_symbol, border_color_hex) VALUES
-(1, 'GARUDA EMAS PERKASA', 'shield-check', '#10B981'),
-(2, 'KOORDINATOR INTEGRIAS 2026', 'award', '#3B82F6'),
-(3, 'ADMIN UTAMA BPJSTK RESMI', 'lock', '#8B5CF6'),
-(4, 'BAGAS PEJUANG BPU LAPANGAN', 'star', '#F59E0B')
-ON CONFLICT (user_id) DO NOTHING;
-
--- ========================================================
 -- 47. CERTIFICATE REVOCATION LIST (OCSP STAMPING & CRL)
 -- ========================================================
 CREATE TABLE IF NOT EXISTS certificate_revocation_list (

@@ -27,7 +27,6 @@ const ParticipantForum = lazyRetry(() => import('./components/Participant/Forum'
 const ParticipantNotifications = lazyRetry(() => import('./components/Participant/Notifications'));
 const ParticipantAcquisitionResult = lazyRetry(() => import('./components/Participant/AcquisitionResult'));
 const ParticipantDigitalIdCard = lazyRetry(() => import('./pages/DigitalIdCardPage'));
-const ParticipantVirtualTour = lazyRetry(() => import('./pages/VirtualTourPage'));
 
 // Coordinator Components (Lazy Loaded with Auto-Retry on Stale Chunks)
 const CoordinatorDashboard = lazyRetry(() => import('./components/Coordinator/Dashboard'));
@@ -127,11 +126,6 @@ function App() {
             <Route path="/participant/id-card" element={
               <ProtectedRoute allowedRoles={['Peserta']}>
                 <ParticipantDigitalIdCard />
-              </ProtectedRoute>
-            } />
-            <Route path="/participant/virtual-tour" element={
-              <ProtectedRoute allowedRoles={['Peserta']}>
-                <ParticipantVirtualTour />
               </ProtectedRoute>
             } />
 

@@ -570,6 +570,13 @@ const Attendance = () => {
       return;
     }
 
+    const isCutiOrIzin = leaveType === 'Cuti' || leaveType === 'Izin';
+    const remainingQuota = leaveSettings.remaining_monthly_quota !== undefined ? leaveSettings.remaining_monthly_quota : leaveSettings.remaining_leave_days;
+    if (isCutiOrIzin && remainingQuota <= 0) {
+      showToast('Batas kuota pengajuan cuti/izin Anda untuk bulan ini telah habis (Maksimal 3 kali per bulan).', 'error');
+      return;
+    }
+
     setSubmittingLeave(true);
 
     try {
@@ -1061,14 +1068,32 @@ const Attendance = () => {
 
               <form onSubmit={handleLeaveSubmit} className="space-y-3.5">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
                     <label className="block text-xs font-black uppercase text-[#121214]">
                       Jenis Permohonan:
                     </label>
-                    <span className="text-[10px] font-black bg-[#FCE373] text-[#121214] px-2 py-0.5 rounded border border-[#121214]">
-                      Sisa Kuota Cuti: {leaveSettings.remaining_leave_days} / {leaveSettings.max_leave_days} hari
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded border border-[#121214] shadow-[1px_1px_0px_#121214] ${
+                      (leaveSettings.remaining_monthly_quota ?? leaveSettings.remaining_leave_days) > 0
+                        ? 'bg-[#FCE373] text-[#121214]'
+                        : 'bg-rose-200 text-rose-900 border-rose-500'
+                    }`}>
+                      Sisa Kuota Cuti & Izin Bulan Ini: {leaveSettings.remaining_monthly_quota ?? leaveSettings.remaining_leave_days ?? 3} / {leaveSettings.max_monthly_quota ?? 3} kali
                     </span>
                   </div>
+
+                  {/* Quota Exhausted Warning Message */}
+                  {(leaveType === 'Cuti' || leaveType === 'Izin') && (leaveSettings.remaining_monthly_quota ?? leaveSettings.remaining_leave_days) <= 0 && (
+                    <div className="mb-2 p-3 bg-rose-50 border-2 border-rose-400 rounded-xl text-rose-800 text-xs font-bold flex items-start gap-2 shadow-[2px_2px_0px_#f43f5e]">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-black uppercase tracking-wide text-[10px] text-rose-900">Batas Kuota Tercapai</div>
+                        <p className="mt-0.5 text-[11px] leading-relaxed">
+                          Anda telah menggunakan batas maksimal 3 kali pengajuan cuti/izin untuk bulan ini. Kuota akan diperbarui kembali di awal bulan berikutnya.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {(leaveSettings.allowed_types || ['Sakit', 'Izin', 'Cuti']).map((t) => (
                       <button
@@ -1142,10 +1167,14 @@ const Attendance = () => {
 
                 <button
                   type="submit"
-                  disabled={submittingLeave}
-                  className="w-full py-3 px-4 bg-[#B8C96E] hover:bg-[#a6b85c] disabled:opacity-50 text-[#121214] font-black rounded-xl text-xs border-2 border-[#121214] shadow-[3px_3px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                  disabled={submittingLeave || ((leaveType === 'Cuti' || leaveType === 'Izin') && (leaveSettings.remaining_monthly_quota ?? leaveSettings.remaining_leave_days) <= 0)}
+                  className="w-full py-3 px-4 bg-[#B8C96E] hover:bg-[#a6b85c] disabled:opacity-50 disabled:cursor-not-allowed text-[#121214] font-black rounded-xl text-xs border-2 border-[#121214] shadow-[3px_3px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
                 >
-                  {submittingLeave ? 'Mengirim Pengajuan...' : 'Kirim Permohonan ke Koordinator'}
+                  {submittingLeave 
+                    ? 'Mengirim Pengajuan...' 
+                    : (leaveType === 'Cuti' || leaveType === 'Izin') && (leaveSettings.remaining_monthly_quota ?? leaveSettings.remaining_leave_days) <= 0
+                    ? 'Batas Kuota Bulan Ini Telah Habis (0/3)'
+                    : 'Kirim Permohonan ke Koordinator'}
                 </button>
               </form>
             </div>

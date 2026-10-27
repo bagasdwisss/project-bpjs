@@ -1,6 +1,7 @@
 // scripts/test_e2e.js - Complete End-to-End Test Suite for BPJSTK Absensi & Nilai
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +12,7 @@ const TEST_PORT = 5000;
 import app from '../server/app.js';
 import { query } from '../server/db.js';
 import { unbanIp } from '../server/middleware/honeytokenMiddleware.js';
+import { rebuildAuditChain } from '../server/utils/merkleAudit.js';
 
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 
@@ -1133,24 +1135,28 @@ async function runEndToEndTests() {
     mbkmRes.duration
   );
 
-  // 9.3 Interactive 360° Virtual Tour Onboarding Kantor Cabang
-  const fsModuleV2 = await import('fs');
-  const tourComponentExists = fsModuleV2.existsSync(path.resolve(__dirname, '../src/components/Common/VirtualTour360.jsx'));
-  const tourPageExists = fsModuleV2.existsSync(path.resolve(__dirname, '../src/pages/VirtualTourPage.jsx'));
+  // 9.3 Batas Kuota Cuti & Izin (Maksimal 3 Kali Per Bulan)
+  const leaveSettingsRes = await api('/api/leaves/settings', {
+    headers: { Authorization: `Bearer ${pesertaToken}` }
+  });
+  const quotaData = leaveSettingsRes.data?.data || leaveSettingsRes.data || {};
   recordTest(
-    '9.3 Interactive 360° Virtual Tour Onboarding Kantor Cabang (VirtualTour360.jsx)',
-    tourComponentExists && tourPageExists,
-    'Komponen VirtualTour360 & VirtualTourPage terpasang aktif di rute /participant/virtual-tour',
-    1
+    '9.3 Batas Kuota Cuti & Izin 3x Per Bulan (/api/leaves/settings)',
+    leaveSettingsRes.status === 200 && quotaData.max_monthly_quota === 3,
+    `Kuota Bulanan: ${quotaData.remaining_monthly_quota} / ${quotaData.max_monthly_quota} kali tersisa`,
+    leaveSettingsRes.duration
   );
 
-  // 9.4 Anti-Phishing Personal Security Phrase & Icon Lookup
-  const antiPhishingRes = await api('/api/auth/anti-phishing-lookup?unique_id=ADM001');
+  // 9.4 Penegakan Auto-Absen (Alfa) Saat Jam Absen Selesai
+  const autoAbsenceRes = await api('/api/attendance/trigger-auto-absence', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
   recordTest(
-    '9.4 Anti-Phishing Personal Security Phrase & Icon (/api/auth/anti-phishing-lookup)',
-    antiPhishingRes.status === 200 && antiPhishingRes.data?.found === true,
-    `Frasa: "${antiPhishingRes.data?.securityPhrase}" | Simbol: ${antiPhishingRes.data?.iconSymbol} (Verified Site)`,
-    antiPhishingRes.duration
+    '9.4 Penegakan Auto-Absen (Alfa) Saat Jam Absen Selesai (/api/attendance/trigger-auto-absence)',
+    autoAbsenceRes.status === 200 && autoAbsenceRes.data?.success === true,
+    `Status Engine: Aktif (${autoAbsenceRes.data?.message})`,
+    autoAbsenceRes.duration
   );
 
   // 9.5 Online Certificate Status Protocol (OCSP) Stamping & Real-Time CRL
@@ -1303,7 +1309,7 @@ async function runEndToEndTests() {
   );
 
   // 9.14 PWA Smart Update Nudge & Non-Intrusive Service Worker Reload
-  const pwaNudgeExists = fsModuleV2.existsSync(path.resolve(__dirname, '../src/components/Common/PwaUpdateNudge.jsx'));
+  const pwaNudgeExists = fs.existsSync(path.resolve(__dirname, '../src/components/Common/PwaUpdateNudge.jsx'));
   recordTest(
     '9.14 PWA Smart Update Nudge (src/components/Common/PwaUpdateNudge.jsx)',
     pwaNudgeExists,
@@ -1319,6 +1325,22 @@ async function runEndToEndTests() {
     'Modul extractKtmMetadata terpasang aktif dengan High-Pass Contrast Canvas OCR',
     1
   );
+
+  // -------------------------------------------------------------
+  // AUTOMATED TEST DATA CLEANUP (ANTI-SAMPAH DATABASE GUARANTEE)
+  // -------------------------------------------------------------
+  try {
+    await query(`DELETE FROM broadcast_messages WHERE title ILIKE '%Uji Coba%' OR title ILIKE '%Test%' OR content ILIKE '%End to End%'`);
+    await query(`DELETE FROM whistleblowing_reports WHERE subject ILIKE '%Uji Coba%' OR subject ILIKE '%Test%' OR ticket_code ILIKE 'WB-%'`);
+    await query(`DELETE FROM certificates WHERE certificate_number = 'BPJSTK/MAGANG/2026/012'`);
+    await query(`DELETE FROM certificate_revocation_list WHERE cert_number ILIKE '%012%' OR reason ILIKE '%Pengujian E2E%'`);
+    await query(`DELETE FROM jailed_ips WHERE ip IN ('::ffff:127.0.0.1', '127.0.0.1')`);
+    await query(`DELETE FROM staging_sandbox_snapshots WHERE snapshot_name ILIKE 'sandbox_test_%'`);
+    await query(`DELETE FROM activity_logs WHERE details ILIKE '%E2E%' OR details ILIKE '%Uji Coba%' OR ip_address IN ('::ffff:127.0.0.1', '127.0.0.1')`);
+    await rebuildAuditChain();
+  } catch (cleanErr) {
+    // Ignore cleanup non-critical warnings
+  }
 
   // -------------------------------------------------------------
   // REKAPITULASI HASIL PENGUJIAN

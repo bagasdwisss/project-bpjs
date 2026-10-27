@@ -4,14 +4,23 @@ import { query } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 import { validateNetworkProximity } from '../utils/networkProximityValidator.js';
+import { runAutoAbsenceCheck } from '../utils/autoAbsenceManager.js';
 
 const router = Router();
+
+// Automatic background interval: evaluate absence cutoff every 2 minutes
+setInterval(() => {
+  runAutoAbsenceCheck().catch(err => console.error('Interval auto-absence check failed:', err.message));
+}, 2 * 60 * 1000);
 
 /**
  * GET /api/participant/attendance
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
+    // Proactively evaluate any missing attendance past cutoff
+    await runAutoAbsenceCheck().catch(() => {});
+
     const userId = req.user.user_id;
     const { month, year } = req.query;
 
@@ -570,6 +579,19 @@ router.get('/participant/:id', authenticateToken, async (req, res) => {
       [targetUserId]
     );
     return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/attendance/trigger-auto-absence
+ * Admin / Coordinator manual trigger for auto-absence cutoff evaluation
+ */
+router.post('/trigger-auto-absence', authenticateToken, async (req, res) => {
+  try {
+    const result = await runAutoAbsenceCheck();
+    return res.json(result);
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

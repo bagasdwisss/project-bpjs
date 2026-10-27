@@ -80,7 +80,6 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       return {
         general: filteredGeneral,
         tools: [
-          { path: '/participant/virtual-tour', icon: Compass, label: 'Virtual Tour 360°' },
           { path: '/participant/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
           { path: '/participant/documents', icon: FolderOpen, label: 'Basis Dokumen' },
           { path: '/participant/notifications', icon: Bell, label: 'Notifikasi' },

@@ -222,6 +222,7 @@ apiRouter.use('/dashboard', dashboardRoutes);
 apiRouter.use('/grading', gradingRoutes);
 apiRouter.use('/users', userRoutes);
 apiRouter.use('/participant/attendance', attendanceRoutes);
+apiRouter.use('/attendance', attendanceRoutes);
 apiRouter.use('/participant/scores', scoreRoutes);
 apiRouter.use('/participant', pesertaRoutes);
 apiRouter.use('/events', eventRoutes);

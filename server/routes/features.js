@@ -37,7 +37,6 @@ import { compileEvaluationDossier } from '../utils/pdfDossierGenerator.js';
 import { getCachedFallback, setCachedFallback } from '../utils/cacheFallback.js';
 import { getTimeBankBalance, recordOvertimeHours, claimCompTimeLeave, getTimeBankLedger } from '../utils/timeBankManager.js';
 import { generateMbkmDossier } from '../utils/mbkmConverter.js';
-import { getAntiPhishingProfile, setAntiPhishingProfile } from '../utils/antiPhishingManager.js';
 import { checkOcspStatus, revokeCertificate, getCrlList } from '../utils/ocspManager.js';
 import { startImpersonationSession, terminateImpersonationSession, getActiveImpersonationSessions } from '../utils/ephemeralImpersonation.js';
 import { getEmailComplianceProfile, generateVerifiedEmailHeaders } from '../utils/emailBimiManager.js';
@@ -145,13 +144,20 @@ router.get('/leaves/settings', authenticateToken, async (req, res) => {
     };
 
     const maxDays = parseInt(settings.max_leave_days_per_batch, 10) || 3;
-    const usedCutiRes = await query(
+    const maxMonthlyQuota = 3;
+
+    // Monthly quota calculation for Cuti & Izin (Strict max 3 per month)
+    const monthlyQuotaRes = await query(
       `SELECT COUNT(*) as count FROM leave_requests 
-       WHERE user_id = $1 AND LOWER(leave_type) = 'cuti' AND status IN ('Pending', 'Disetujui')`,
+       WHERE user_id = $1 
+         AND LOWER(leave_type) IN ('cuti', 'izin') 
+         AND status IN ('Pending', 'Disetujui')
+         AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+         AND EXTRACT(MONTH FROM start_date) = EXTRACT(MONTH FROM CURRENT_DATE)`,
       [userId]
     );
-    const usedDays = parseInt(usedCutiRes.rows[0].count, 10) || 0;
-    const remainingDays = Math.max(0, maxDays - usedDays);
+    const usedThisMonth = parseInt(monthlyQuotaRes.rows[0].count, 10) || 0;
+    const remainingMonthlyQuota = Math.max(0, maxMonthlyQuota - usedThisMonth);
 
     const types = (settings.allowed_leave_types || 'Sakit,Izin,Cuti,Keperluan Mendesak')
       .split(',')
@@ -160,9 +166,12 @@ router.get('/leaves/settings', authenticateToken, async (req, res) => {
     return res.json({
       success: true,
       data: {
-        max_leave_days: maxDays,
-        used_leave_days: usedDays,
-        remaining_leave_days: remainingDays,
+        max_monthly_quota: maxMonthlyQuota,
+        used_this_month: usedThisMonth,
+        remaining_monthly_quota: remainingMonthlyQuota,
+        max_leave_days: maxMonthlyQuota,
+        used_leave_days: usedThisMonth,
+        remaining_leave_days: remainingMonthlyQuota,
         allowed_types: types,
         raw: settings
       }
@@ -215,21 +224,29 @@ router.post('/leaves', authenticateToken, async (req, res) => {
       });
     }
 
-    // Dynamic leave quota validation
-    const lSetRes = await query(`SELECT * FROM leave_settings ORDER BY id ASC LIMIT 1`);
-    const maxDays = lSetRes.rows.length > 0 ? parseInt(lSetRes.rows[0].max_leave_days_per_batch, 10) : 3;
+    // Strict monthly quota validation: Maksimal 3 kali per bulan untuk Cuti & Izin
+    const normalizedType = String(leave_type).trim().toLowerCase();
+    if (normalizedType === 'cuti' || normalizedType === 'izin') {
+      const reqDate = new Date(start_date);
+      const reqYear = isNaN(reqDate.getFullYear()) ? new Date().getFullYear() : reqDate.getFullYear();
+      const reqMonth = isNaN(reqDate.getMonth()) ? (new Date().getMonth() + 1) : (reqDate.getMonth() + 1);
 
-    if (leave_type.toLowerCase() === 'cuti') {
-      const usedCutiRes = await query(
+      const monthCheckRes = await query(
         `SELECT COUNT(*) as count FROM leave_requests 
-         WHERE user_id = $1 AND LOWER(leave_type) = 'cuti' AND status IN ('Pending', 'Disetujui')`,
-        [userId]
+         WHERE user_id = $1 
+           AND LOWER(leave_type) IN ('cuti', 'izin') 
+           AND status IN ('Pending', 'Disetujui')
+           AND EXTRACT(YEAR FROM start_date) = $2
+           AND EXTRACT(MONTH FROM start_date) = $3`,
+        [userId, reqYear, reqMonth]
       );
-      const usedDays = parseInt(usedCutiRes.rows[0].count, 10) || 0;
-      if (usedDays >= maxDays) {
+      const usedCount = parseInt(monthCheckRes.rows[0].count, 10) || 0;
+      const MAX_MONTHLY = 3;
+
+      if (usedCount >= MAX_MONTHLY) {
         return res.status(400).json({
           success: false,
-          message: `Batas kuota cuti magang (${maxDays} hari per gelombang) Anda telah habis. Pengajuan cuti tidak dapat diproses.`
+          message: `Batas maksimal pengajuan cuti/izin Anda untuk bulan ini (${reqMonth}/${reqYear}) adalah 3 kali dan kuota Anda telah habis. Pengajuan tidak dapat diproses.`
         });
       }
     }
@@ -2885,32 +2902,6 @@ router.get(['/participant/my-mbkm-logbook', '/my-mbkm-logbook'], authenticateTok
   try {
     const dossier = await generateMbkmDossier(req.user.user_id);
     return res.json({ success: true, ...dossier });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// =========================================================================
-// 57. ANTI-PHISHING PERSONAL SECURITY PHRASE & ICON LOOKUP
-// =========================================================================
-router.get(['/auth/anti-phishing-lookup', '/anti-phishing-lookup'], async (req, res) => {
-  try {
-    const { unique_id } = req.query;
-    const profile = await getAntiPhishingProfile(unique_id);
-    return res.json(profile);
-  } catch (err) {
-    return res.status(500).json({ found: false, message: err.message });
-  }
-});
-
-router.post(['/participant/anti-phishing-setup', '/anti-phishing-setup'], authenticateToken, async (req, res) => {
-  try {
-    const { phrase, icon, color } = req.body;
-    if (!phrase) {
-      return res.status(400).json({ success: false, message: 'Frasa keamanan anti-phishing diperlukan.' });
-    }
-    const updated = await setAntiPhishingProfile(req.user.user_id, { phrase, icon, color });
-    return res.json({ success: true, data: updated });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

@@ -20,10 +20,13 @@ export function getCurrentTimeStep() {
  */
 export async function generateDynamicIdCardPayload(userId) {
   const userRes = await query(`
-    SELECT u.user_id, u.unique_id, u.full_name, u.status, u.role_id,
+    SELECT u.user_id, u.unique_id, u.full_name, u.status, u.role_id, u.penempatan,
            p.program_terdaftar, p.status_pendaftaran,
-           b.batch_name
+           b.batch_name,
+           c.full_name as coordinator_name,
+           c.unique_id as coordinator_id_code
     FROM users u
+    LEFT JOIN users c ON u.coordinator_id = c.user_id
     LEFT JOIN peserta p ON u.user_id = p.user_id
     LEFT JOIN user_batches ub ON u.user_id = ub.user_id
     LEFT JOIN batches b ON ub.batch_id = b.batch_id
@@ -44,10 +47,27 @@ export async function generateDynamicIdCardPayload(userId) {
     .digest('hex')
     .substring(0, 24);
 
+  const coordinatorName = user.coordinator_name || 'Pembina Operasional Cabang BPJSTK';
+
+  // Human-readable scan text: When scanned by any camera, immediately proves authenticity
+  const scanText = [
+    `[BUKTI RESMI BPJS KETENAGAKERJAAN]`,
+    `Status Keaslian : TERVERIFIKASI SAH`,
+    `Nama Peserta    : ${user.full_name}`,
+    `ID / NIM Magang : ${user.unique_id}`,
+    `Koordinator     : ${coordinatorName}`,
+    `Penempatan      : ${user.penempatan || 'Kantor Cabang'}`,
+    `Gelombang       : ${user.batch_name || 'Magang Aktif 2026'}`,
+    `Kode Keaslian   : ${rollingSignature.toUpperCase()}`,
+    `Verifikasi      : https://bpjsketenagakerjaan.go.id/portal`
+  ].join('\n');
+
   const qrPayload = JSON.stringify({
     uid: user.user_id,
     nim: user.unique_id,
     name: user.full_name,
+    coordinator: coordinatorName,
+    placement: user.penempatan || 'Kantor Cabang',
     step,
     sig: rollingSignature,
     exp: Date.now() + (secondsRemaining * 1000)
@@ -59,14 +79,18 @@ export async function generateDynamicIdCardPayload(userId) {
       userId: user.user_id,
       uniqueId: user.unique_id,
       fullName: user.full_name,
-      institution: 'BPJS Ketenagakerjaan Magang',
+      coordinatorName,
+      penempatan: user.penempatan || 'Kantor Cabang BPJSTK',
+      institution: 'BPJS Ketenagakerjaan',
       major: user.program_terdaftar || 'Operasional & Pelayanan BPU',
-      batch: user.batch_name || 'Gelombang Aktif',
+      batch: user.batch_name || 'Gelombang Aktif 2026',
       status: user.status || 'Aktif',
+      barcodeValue: `BPJSTK-${user.unique_id}`,
       issuedAt: new Date().toISOString()
     },
     qr: {
       payload: qrPayload,
+      scanText,
       signature: rollingSignature,
       timeStep: step,
       secondsRemaining,
