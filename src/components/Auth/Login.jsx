@@ -25,9 +25,32 @@ const Login = () => {
   const [roleDetected, setRoleDetected] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState('');
+  const [antiPhishing, setAntiPhishing] = useState(null);
 
   const { user, login, error, clearError, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Anti-phishing lookup debounce
+  useEffect(() => {
+    if (uniqueId.trim().length >= 4) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/auth/anti-phishing-lookup?unique_id=${encodeURIComponent(uniqueId.trim())}`);
+          const data = await res.json();
+          if (data.found) {
+            setAntiPhishing(data);
+          } else {
+            setAntiPhishing(null);
+          }
+        } catch (_) {
+          setAntiPhishing(null);
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      setAntiPhishing(null);
+    }
+  }, [uniqueId]);
 
   // Redirect after authentication
   useEffect(() => {
@@ -212,6 +235,28 @@ const Login = () => {
                   disabled={loading}
                 />
               </div>
+
+              {/* Anti-Phishing Authenticity Badge */}
+              {antiPhishing && (
+                <div className="mt-2.5 p-2.5 rounded-2xl border-2 border-[#10B981] bg-[#ECFDF5] text-[#065F46] flex items-center justify-between text-xs shadow-[2px_2px_0px_#10B981] animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#10B981] text-white flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <div className="text-[9px] uppercase font-black text-[#047857] tracking-wider">
+                        Keaslian Situs Terverifikasi Resmi
+                      </div>
+                      <div className="font-extrabold font-mono text-[11px] text-[#064E3B]">
+                        "{antiPhishing.securityPhrase}"
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#10B981] text-white">
+                    ASLI
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Password Input */}

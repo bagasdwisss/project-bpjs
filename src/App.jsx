@@ -6,6 +6,7 @@ import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageLoader from './components/Common/PageLoader';
 import MaintenanceOverlay from './components/Common/MaintenanceOverlay';
+import PwaUpdateNudge from './components/Common/PwaUpdateNudge';
 import ChunkErrorBoundary from './components/Common/ChunkErrorBoundary';
 import lazyRetry from './utils/lazyRetry';
 import './App.css';
@@ -26,6 +27,7 @@ const ParticipantForum = lazyRetry(() => import('./components/Participant/Forum'
 const ParticipantNotifications = lazyRetry(() => import('./components/Participant/Notifications'));
 const ParticipantAcquisitionResult = lazyRetry(() => import('./components/Participant/AcquisitionResult'));
 const ParticipantDigitalIdCard = lazyRetry(() => import('./pages/DigitalIdCardPage'));
+const ParticipantVirtualTour = lazyRetry(() => import('./pages/VirtualTourPage'));
 
 // Coordinator Components (Lazy Loaded with Auto-Retry on Stale Chunks)
 const CoordinatorDashboard = lazyRetry(() => import('./components/Coordinator/Dashboard'));
@@ -61,6 +63,7 @@ function App() {
         <DashboardProvider>
           <Router>
             <MaintenanceOverlay />
+            <PwaUpdateNudge />
             <ChunkErrorBoundary>
               <Suspense fallback={<PageLoader />}>
               <Routes>
@@ -124,6 +127,11 @@ function App() {
             <Route path="/participant/id-card" element={
               <ProtectedRoute allowedRoles={['Peserta']}>
                 <ParticipantDigitalIdCard />
+              </ProtectedRoute>
+            } />
+            <Route path="/participant/virtual-tour" element={
+              <ProtectedRoute allowedRoles={['Peserta']}>
+                <ParticipantVirtualTour />
               </ProtectedRoute>
             } />
 

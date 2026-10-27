@@ -5,7 +5,7 @@ import {
   FolderOpen, Bell, Users, Award, 
   BarChart3, Download, Clock,
   Database, Radio, LogOut, X, ChevronRight, Sparkles, MessageSquare,
-  MapPin, Target, Calculator, ShieldCheck
+  MapPin, Target, Calculator, ShieldCheck, Compass
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
@@ -80,6 +80,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       return {
         general: filteredGeneral,
         tools: [
+          { path: '/participant/virtual-tour', icon: Compass, label: 'Virtual Tour 360°' },
           { path: '/participant/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
           { path: '/participant/documents', icon: FolderOpen, label: 'Basis Dokumen' },
           { path: '/participant/notifications', icon: Bell, label: 'Notifikasi' },

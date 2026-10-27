@@ -762,3 +762,163 @@ INSERT INTO attendance_partition_registry (partition_name, start_date, end_date,
 ('attendance_records_2026_q1', '2026-01-01', '2026-03-31', 120, FALSE),
 ('attendance_records_2026_q2', '2026-04-01', '2026-06-30', 85, TRUE)
 ON CONFLICT (partition_name) DO NOTHING;
+
+-- ========================================================
+-- 45. TIME-BANK OVERTIME & COMP-TIME LEDGER
+-- ========================================================
+CREATE TABLE IF NOT EXISTS time_bank_ledger (
+    ledger_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('EARNED_OVERTIME', 'CLAIMED_LEAVE', 'EXPIRED')),
+    hours_amount NUMERIC(4,2) NOT NULL,
+    event_description VARCHAR(200) NOT NULL,
+    approved_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    balance_after NUMERIC(5,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'APPROVED',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_time_bank_user ON time_bank_ledger(user_id);
+
+INSERT INTO time_bank_ledger (user_id, transaction_type, hours_amount, event_description, balance_after) VALUES
+(4, 'EARNED_OVERTIME', 4.00, 'Sosialisasi Akuisisi BPU Pasar Induk Akhir Pekan', 4.00)
+ON CONFLICT DO NOTHING;
+
+-- ========================================================
+-- 46. ANTI-PHISHING PERSONAL SECURITY PHRASE & ICON
+-- ========================================================
+CREATE TABLE IF NOT EXISTS user_anti_phishing_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
+    security_phrase VARCHAR(100) NOT NULL,
+    icon_symbol VARCHAR(50) NOT NULL,
+    border_color_hex VARCHAR(10) NOT NULL DEFAULT '#10B981',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO user_anti_phishing_tokens (user_id, security_phrase, icon_symbol, border_color_hex) VALUES
+(1, 'GARUDA EMAS PERKASA', 'shield-check', '#10B981'),
+(2, 'KOORDINATOR INTEGRIAS 2026', 'award', '#3B82F6'),
+(3, 'ADMIN UTAMA BPJSTK RESMI', 'lock', '#8B5CF6'),
+(4, 'BAGAS PEJUANG BPU LAPANGAN', 'star', '#F59E0B')
+ON CONFLICT (user_id) DO NOTHING;
+
+-- ========================================================
+-- 47. CERTIFICATE REVOCATION LIST (OCSP STAMPING & CRL)
+-- ========================================================
+CREATE TABLE IF NOT EXISTS certificate_revocation_list (
+    crl_id SERIAL PRIMARY KEY,
+    cert_number VARCHAR(100) NOT NULL UNIQUE,
+    revoked_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    reason VARCHAR(255) NOT NULL,
+    revoked_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    ocsp_digest VARCHAR(64) NOT NULL
+);
+
+INSERT INTO certificate_revocation_list (cert_number, reason, ocsp_digest) VALUES
+('BPJSTK/MAGANG/2025/REVOKED-SAMPLE', 'Pelanggaran Kode Etik Integritas Data Lapangan', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+ON CONFLICT (cert_number) DO NOTHING;
+
+-- ========================================================
+-- 48. ZERO-TRUST EPHEMERAL IMPERSONATION SESSIONS
+-- ========================================================
+CREATE TABLE IF NOT EXISTS ephemeral_impersonation_sessions (
+    session_id VARCHAR(64) PRIMARY KEY,
+    admin_user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    target_user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    reason TEXT NOT NULL,
+    consent_granted BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    session_audit_log JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ========================================================
+-- 49. WHATSAPP BUSINESS NOTIFICATION DISPATCHES
+-- ========================================================
+CREATE TABLE IF NOT EXISTS whatsapp_notification_dispatches (
+    dispatch_id SERIAL PRIMARY KEY,
+    recipient_phone VARCHAR(25) NOT NULL,
+    template_name VARCHAR(100) NOT NULL,
+    parameters JSONB,
+    status VARCHAR(20) DEFAULT 'SENT',
+    wamid VARCHAR(100),
+    delivered_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ========================================================
+-- 50. AUTOMATED DUPLICATE IDENTITY RESOLUTION CASES
+-- ========================================================
+CREATE TABLE IF NOT EXISTS identity_duplicate_cases (
+    case_id SERIAL PRIMARY KEY,
+    nik VARCHAR(25) NOT NULL,
+    existing_user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    conflicting_user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    match_score NUMERIC(5,2) NOT NULL,
+    conflict_details JSONB,
+    resolution_status VARCHAR(20) DEFAULT 'PENDING' CHECK (resolution_status IN ('PENDING', 'MERGED', 'SPLIT_CONFIRMED', 'REJECTED')),
+    resolution_notes TEXT,
+    resolved_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    resolved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO identity_duplicate_cases (nik, existing_user_id, conflicting_user_id, match_score, conflict_details) VALUES
+('3171012345670001', 4, 4, 98.50, '{"reason": "Deteksi NIK mirip pada pendaftaran ulang gelombang berbeda", "fields": ["nik", "full_name"]}')
+ON CONFLICT DO NOTHING;
+
+-- ========================================================
+-- 51. POSTGRESQL NATIVE FULL-TEXT SEARCH (KNOWLEDGE BASE)
+-- ========================================================
+CREATE TABLE IF NOT EXISTS knowledge_base_documents (
+    doc_id SERIAL PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    search_vector TSVECTOR,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_kb_search_vector ON knowledge_base_documents USING gin(search_vector);
+
+INSERT INTO knowledge_base_documents (title, category, content, search_vector) VALUES
+('Panduan Program Jaminan Kecelakaan Kerja (JKK) BPU', 'Regulasi', 'Jaminan Kecelakaan Kerja memberikan perlindungan atas risiko kecelakaan kerja bagi pekerja informal atau bukan penerima upah dengan santunan transportasi dan pengobatan tanpa batas biaya.', to_tsvector('simple', 'Panduan Program Jaminan Kecelakaan Kerja JKK BPU perlindungan risiko kecelakaan pekerja informal')),
+('Ketentuan Jaminan Kematian (JKM) dan Santunan Ahli Waris', 'Regulasi', 'Jaminan Kematian memberikan manfaat santunan uang tunai sebesar Rp42.000.000 kepada ahli waris dari pekerja bukan penerima upah yang meninggal dunia bukan karena kecelakaan kerja.', to_tsvector('simple', 'Ketentuan Jaminan Kematian JKM Santunan Ahli Waris manfaat santunan uang tunai pekerja')),
+('Standar Operasional Prosedur Edukasi Pasar dan Akuisisi', 'SOP Magang', 'Tata cara pendekatan persuasif kepada pedagang pasar tradisional, UMKM, dan pengemudi daring untuk pendaftaran program kepesertaan jaminan sosial ketenagakerjaan secara resmi.', to_tsvector('simple', 'Standar Operasional Prosedur Edukasi Pasar dan Akuisisi pendekatan persuasif pedagang UMKM kepesertaan'))
+ON CONFLICT DO NOTHING;
+
+-- ========================================================
+-- 52. STORAGE FILE DE-DUPLICATION REGISTRY
+-- ========================================================
+CREATE TABLE IF NOT EXISTS storage_deduplication_registry (
+    content_sha256 VARCHAR(64) PRIMARY KEY,
+    physical_storage_path TEXT NOT NULL,
+    file_size_bytes BIGINT NOT NULL,
+    mime_type VARCHAR(100),
+    reference_count INT DEFAULT 1,
+    first_uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    last_referenced_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO storage_deduplication_registry (content_sha256, physical_storage_path, file_size_bytes, mime_type, reference_count) VALUES
+('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9', '/storage/shared/BROSUR_RESMI_BPU_2026.pdf', 1048576, 'application/pdf', 14)
+ON CONFLICT (content_sha256) DO NOTHING;
+
+-- ========================================================
+-- 53. ZERO-COPY DATABASE STAGING SANDBOX SNAPSHOTS
+-- ========================================================
+CREATE TABLE IF NOT EXISTS staging_sandbox_snapshots (
+    snapshot_id SERIAL PRIMARY KEY,
+    snapshot_name VARCHAR(100) NOT NULL UNIQUE,
+    source_database VARCHAR(64) NOT NULL,
+    created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    table_count INT DEFAULT 45,
+    status VARCHAR(20) DEFAULT 'READY',
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO staging_sandbox_snapshots (snapshot_name, source_database, status, metadata) VALUES
+('sandbox_staging_q2_simulation', 'db_absen_nilai', 'READY', '{"simulation": "Uji coba bobot 60% praktik 40% teori", "isolation_mode": "copy_on_write"}')
+ON CONFLICT (snapshot_name) DO NOTHING;

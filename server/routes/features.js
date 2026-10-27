@@ -35,6 +35,18 @@ import { runTieredStorageMigration, getTieredStorageStatus } from '../utils/tier
 import { generateDynamicIdCardPayload, verifyDynamicIdQr } from '../utils/dynamicIdQr.js';
 import { compileEvaluationDossier } from '../utils/pdfDossierGenerator.js';
 import { getCachedFallback, setCachedFallback } from '../utils/cacheFallback.js';
+import { getTimeBankBalance, recordOvertimeHours, claimCompTimeLeave, getTimeBankLedger } from '../utils/timeBankManager.js';
+import { generateMbkmDossier } from '../utils/mbkmConverter.js';
+import { getAntiPhishingProfile, setAntiPhishingProfile } from '../utils/antiPhishingManager.js';
+import { checkOcspStatus, revokeCertificate, getCrlList } from '../utils/ocspManager.js';
+import { startImpersonationSession, terminateImpersonationSession, getActiveImpersonationSessions } from '../utils/ephemeralImpersonation.js';
+import { getEmailComplianceProfile, generateVerifiedEmailHeaders } from '../utils/emailBimiManager.js';
+import { verifyWhatsAppWebhookChallenge, dispatchWhatsAppTemplate, handleWhatsAppIncomingWebhook, getWhatsAppDispatches } from '../utils/whatsappNotifier.js';
+import { getDuplicateIdentityCases, resolveDuplicateCase } from '../utils/identityResolver.js';
+import { searchKnowledgeBase, indexDocument } from '../utils/indonesianFts.js';
+import { deduplicateAndRegisterFile, getDeduplicationMetrics } from '../utils/fileDeduplicator.js';
+import { createStagingSandbox, listStagingSandboxes, deleteStagingSandbox } from '../utils/sandboxManager.js';
+import { generatePrintReadySheet } from '../utils/batchQrPrintGenerator.js';
 
 const router = Router();
 
@@ -2787,6 +2799,404 @@ router.get('/coordinator/dossier/generate/:userId', authenticateToken, async (re
     }
 
     return res.json({ success: true, ...dossier });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 55. TIME-BANK OVERTIME & COMP-TIME LEDGER
+// =========================================================================
+router.get(['/time-bank/my-balance', '/api/time-bank/my-balance'], authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const balance = await getTimeBankBalance(userId);
+    return res.json({ success: true, userId, balanceHours: balance });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/time-bank/ledger/:userId', '/api/time-bank/ledger/:userId'], authenticateToken, async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.userId, 10);
+    const ledgerData = await getTimeBankLedger(targetUserId);
+    return res.json({ success: true, ...ledgerData });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/time-bank/record-overtime', '/api/time-bank/record-overtime'], authenticateToken, async (req, res) => {
+  try {
+    const { userId, hours, eventDesc } = req.body;
+    if (!userId || !hours || !eventDesc) {
+      return res.status(400).json({ success: false, message: 'Parameter userId, hours, dan eventDesc diperlukan.' });
+    }
+    const result = await recordOvertimeHours({
+      userId: parseInt(userId, 10),
+      hours: parseFloat(hours),
+      eventDesc,
+      approvedBy: req.user.user_id
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/time-bank/claim-leave', '/api/time-bank/claim-leave'], authenticateToken, async (req, res) => {
+  try {
+    const { hours, reason } = req.body;
+    if (!hours || !reason) {
+      return res.status(400).json({ success: false, message: 'Parameter hours dan reason diperlukan.' });
+    }
+    const result = await claimCompTimeLeave({
+      userId: req.user.user_id,
+      hours: parseFloat(hours),
+      reason
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 56. AUTOMATED MBKM / KEMENDIKBUDRISTEK LOGBOOK & GRADE CONVERTER
+// =========================================================================
+router.get(['/coordinator/mbkm-export/:userId', '/mbkm-export/:userId'], authenticateToken, async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.userId, 10);
+    const dossier = await generateMbkmDossier(targetUserId);
+
+    if (req.query.format === 'html') {
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(dossier.htmlTemplate);
+    }
+
+    return res.json({ success: true, ...dossier });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/participant/my-mbkm-logbook', '/my-mbkm-logbook'], authenticateToken, async (req, res) => {
+  try {
+    const dossier = await generateMbkmDossier(req.user.user_id);
+    return res.json({ success: true, ...dossier });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 57. ANTI-PHISHING PERSONAL SECURITY PHRASE & ICON LOOKUP
+// =========================================================================
+router.get(['/auth/anti-phishing-lookup', '/anti-phishing-lookup'], async (req, res) => {
+  try {
+    const { unique_id } = req.query;
+    const profile = await getAntiPhishingProfile(unique_id);
+    return res.json(profile);
+  } catch (err) {
+    return res.status(500).json({ found: false, message: err.message });
+  }
+});
+
+router.post(['/participant/anti-phishing-setup', '/anti-phishing-setup'], authenticateToken, async (req, res) => {
+  try {
+    const { phrase, icon, color } = req.body;
+    if (!phrase) {
+      return res.status(400).json({ success: false, message: 'Frasa keamanan anti-phishing diperlukan.' });
+    }
+    const updated = await setAntiPhishingProfile(req.user.user_id, { phrase, icon, color });
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 58. ONLINE CERTIFICATE STATUS PROTOCOL (OCSP) STAMPING & CRL
+// =========================================================================
+router.get(['/certificates/ocsp-check', '/ocsp-check', '/certificates/ocsp-check/:certNumber'], async (req, res) => {
+  try {
+    const certParam = req.query.certNumber || req.params.certNumber;
+    const status = await checkOcspStatus(certParam);
+    return res.json(status);
+  } catch (err) {
+    return res.status(500).json({ status: 'UNKNOWN', error: err.message });
+  }
+});
+
+router.post(['/admin/certificates/revoke', '/certificates/revoke'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { certNumber, reason } = req.body;
+    if (!certNumber || !reason) {
+      return res.status(400).json({ success: false, message: 'Parameter certNumber dan reason diperlukan.' });
+    }
+    const result = await revokeCertificate({
+      certNumber,
+      reason,
+      revokedBy: req.user.user_id
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/certificates/crl', '/certificates/crl'], async (req, res) => {
+  try {
+    const crlData = await getCrlList();
+    return res.json(crlData);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 59. ZERO-TRUST EPHEMERAL IMPERSONATION SESSIONS
+// =========================================================================
+router.post(['/admin/impersonate/start', '/impersonate/start'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { targetUserId, reason } = req.body;
+    const session = await startImpersonationSession({
+      adminUserId: req.user.user_id,
+      targetUserId: parseInt(targetUserId, 10),
+      reason
+    });
+    return res.json(session);
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/admin/impersonate/terminate', '/impersonate/terminate'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const result = await terminateImpersonationSession(sessionId);
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/impersonate/active', '/impersonate/active'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const sessions = await getActiveImpersonationSessions();
+    return res.json({ success: true, count: sessions.length, data: sessions });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 60. VERIFIED EMAIL DMARC, DKIM & BIMI BRAND AVATAR INTEGRATION
+// =========================================================================
+router.get(['/security/email-compliance-status', '/email-compliance-status'], (req, res) => {
+  try {
+    const profile = getEmailComplianceProfile();
+    return res.json({ success: true, ...profile });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/admin/email/dispatch-verified-test', '/email/dispatch-verified-test'], authenticateToken, requireRole('Administrator'), (req, res) => {
+  try {
+    const { recipient, subject, body } = req.body;
+    const headers = generateVerifiedEmailHeaders({
+      recipient: recipient || 'peserta@bpjsketenagakerjaan.go.id',
+      subject: subject || 'Pemberitahuan Resmi BPJS Ketenagakerjaan (Verified)',
+      body: body || 'Verifikasi digital DMARC, DKIM, dan BIMI aktif.'
+    });
+    return res.json({ success: true, message: 'Header terverifikasi berhasil digenerate.', headers });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 61. WHATSAPP BUSINESS OFFICIAL CLOUD API NOTIFICATION WEBHOOK
+// =========================================================================
+router.get(['/notifications/whatsapp/webhook', '/whatsapp/webhook'], (req, res) => {
+  const result = verifyWhatsAppWebhookChallenge(req.query);
+  if (result.verified) {
+    return res.status(200).send(result.challenge);
+  }
+  return res.status(403).json({ success: false, message: 'Verifikasi token webhook gagal.' });
+});
+
+router.post(['/notifications/whatsapp/webhook', '/whatsapp/webhook'], async (req, res) => {
+  try {
+    const result = await handleWhatsAppIncomingWebhook(req.body);
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(200).json({ processed: false, error: err.message });
+  }
+});
+
+router.post(['/admin/whatsapp/dispatch-test', '/whatsapp/dispatch-test'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { phone, templateName, parameters } = req.body;
+    const result = await dispatchWhatsAppTemplate({
+      phone: phone || '081234567890',
+      templateName: templateName || 'bpjstk_attendance_reminder',
+      parameters: parameters || { userName: 'Arthur' }
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/whatsapp/dispatches', '/whatsapp/dispatches'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const list = await getWhatsAppDispatches();
+    return res.json({ success: true, count: list.length, data: list });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 62. AUTOMATED DUPLICATE IDENTITY RESOLUTION WORKFLOW
+// =========================================================================
+router.get(['/admin/identity-duplicates', '/identity-duplicates'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const cases = await getDuplicateIdentityCases();
+    return res.json({ success: true, count: cases.length, data: cases });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/admin/identity-duplicates/resolve', '/identity-duplicates/resolve'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { caseId, action, notes } = req.body;
+    if (!caseId || !action) {
+      return res.status(400).json({ success: false, message: 'Parameter caseId dan action diperlukan.' });
+    }
+    const result = await resolveDuplicateCase({
+      caseId: parseInt(caseId, 10),
+      action,
+      notes,
+      resolvedBy: req.user.user_id
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 63. POSTGRESQL NATIVE FULL-TEXT SEARCH (KNOWLEDGE BASE)
+// =========================================================================
+router.get(['/search/knowledge-base', '/knowledge-base/search'], authenticateToken, async (req, res) => {
+  try {
+    const { q, category, limit } = req.query;
+    const searchRes = await searchKnowledgeBase(q || '', category || 'all', limit || 10);
+    return res.json({ success: true, ...searchRes });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post(['/admin/knowledge-base/index', '/knowledge-base/index'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { title, category, content } = req.body;
+    if (!title || !content) {
+      return res.status(400).json({ success: false, message: 'Parameter title dan content diperlukan.' });
+    }
+    const doc = await indexDocument({ title, category, content });
+    return res.json({ success: true, data: doc });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 64. STORAGE FILE DE-DUPLICATION VIA SHA-256 HASHING
+// =========================================================================
+router.post(['/storage/dedup-upload', '/dedup-upload'], authenticateToken, async (req, res) => {
+  try {
+    const { filePayload, filename, mimeType } = req.body;
+    if (!filePayload) {
+      return res.status(400).json({ success: false, message: 'filePayload (base64) diperlukan.' });
+    }
+    const result = await deduplicateAndRegisterFile({
+      buffer: filePayload,
+      originalFilename: filename,
+      mimeType: mimeType || 'application/pdf'
+    });
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/storage/dedup-metrics', '/storage/dedup-metrics'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const metrics = await getDeduplicationMetrics();
+    return res.json({ success: true, ...metrics });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 65. POSTGRESQL ZERO-COPY DATABASE STAGING SANDBOX
+// =========================================================================
+router.post(['/admin/database/sandbox/create', '/database/sandbox/create'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { snapshotName, metadata } = req.body;
+    const result = await createStagingSandbox({
+      snapshotName: snapshotName || 'sandbox_simulation_' + Date.now(),
+      createdBy: req.user.user_id,
+      metadata
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get(['/admin/database/sandbox/list', '/database/sandbox/list'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const list = await listStagingSandboxes();
+    return res.json({ success: true, count: list.length, data: list });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete(['/admin/database/sandbox/:snapshotId', '/database/sandbox/:snapshotId'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const result = await deleteStagingSandbox(parseInt(req.params.snapshotId, 10));
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =========================================================================
+// 66. PRINT-READY BATCH QR GENERATOR (A4/A3 DENGAN CROP MARKS)
+// =========================================================================
+router.get(['/admin/print/batch-qr-sheet', '/print/batch-qr-sheet'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { batchId, paper } = req.query;
+    const sheetData = await generatePrintReadySheet({
+      batchId: batchId ? parseInt(batchId, 10) : null,
+      paperSize: paper || 'A4'
+    });
+
+    if (req.query.format === 'html') {
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(sheetData.html);
+    }
+
+    return res.json({ success: true, ...sheetData });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
