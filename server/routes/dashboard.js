@@ -81,7 +81,7 @@ router.get('/participant', authenticateToken, requireRole('Peserta'), async (req
       totalParticipants
     };
 
-    // 3. Progress statistics
+    // 3. Progress statistics & Dynamic Grading Settings
     const progRes = await query(
       `SELECT * FROM progress WHERE user_id = $1 LIMIT 1`,
       [userId]
@@ -97,6 +97,17 @@ router.get('/participant', authenticateToken, requireRole('Peserta'), async (req
       total_poin: 0,
       nilai: 0,
       grade: 'E'
+    };
+
+    // Retrieve active grading settings dynamically from database
+    const gSetRes = await query(`SELECT * FROM grading_settings ORDER BY id ASC LIMIT 1`);
+    const gSettings = gSetRes.rows[0] || {
+      target_kunjungan_bpu: 30,
+      target_akuisisi_bpu: 20,
+      target_kunjungan_pu: 7,
+      target_video: 1,
+      target_seminar: 2,
+      target_sosialisasi: 1
     };
 
     // 4. Recent scores
@@ -160,7 +171,9 @@ router.get('/participant', authenticateToken, requireRole('Peserta'), async (req
           totalModules: modulesRes.rows.length,
           akuisisiBPU: progRow.hasil_akuisisi_bpu,
           hasilAkuisisiBPU: progRow.hasil_akuisisi_bpu,
+          targetAkuisisi: parseInt(gSettings.target_akuisisi_bpu, 10) || 20,
           kunjunganBPU: progRow.kunjungan_bpu,
+          targetKunjunganBPU: parseInt(gSettings.target_kunjungan_bpu, 10) || 30,
           kunjunganPU: progRow.kunjungan_pu,
           videoViralisasi: progRow.video_viralisasi,
           kehadiranSeminar: progRow.kehadiran_seminar,
@@ -169,6 +182,7 @@ router.get('/participant', authenticateToken, requireRole('Peserta'), async (req
           nilai: progRow.nilai,
           grade: progRow.grade
         },
+        gradingConfig: gSettings,
         recentScores: recentScoresRes.rows,
         upcomingEvents: eventsRes.rows,
         modules: modulesRes.rows,

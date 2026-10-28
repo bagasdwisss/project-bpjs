@@ -276,7 +276,7 @@ const Login = () => {
 
         {/* Footer */}
         <div className="text-center text-xs text-[#8A8985]">
-          <p>© 2026 Intelly BPJSTK. Seluruh hak cipta dilindungi.</p>
+          <p>© {new Date().getFullYear()} Intelly BPJSTK. Seluruh hak cipta dilindungi.</p>
         </div>
       </div>
     </div>

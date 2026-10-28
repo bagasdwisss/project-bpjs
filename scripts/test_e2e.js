@@ -1330,13 +1330,23 @@ async function runEndToEndTests() {
   // AUTOMATED TEST DATA CLEANUP (ANTI-SAMPAH DATABASE GUARANTEE)
   // -------------------------------------------------------------
   try {
-    await query(`DELETE FROM broadcast_messages WHERE title ILIKE '%Uji Coba%' OR title ILIKE '%Test%' OR content ILIKE '%End to End%'`);
+    await query(`DELETE FROM broadcast_messages WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR content ILIKE '%e2e%' OR content ILIKE '%end-to-end%' OR content ILIKE '%pengujian%'`);
+    await query(`DELETE FROM broadcast_dismissals WHERE broadcast_id NOT IN (SELECT broadcast_id FROM broadcast_messages)`);
+    await query(`DELETE FROM notifications WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR message ILIKE '%end-to-end%' OR message ILIKE '%e2e%' OR message ILIKE '%pengujian%' OR type = 'broadcast'`);
     await query(`DELETE FROM whistleblowing_reports WHERE subject ILIKE '%Uji Coba%' OR subject ILIKE '%Test%' OR ticket_code ILIKE 'WB-%'`);
     await query(`DELETE FROM certificates WHERE certificate_number = 'BPJSTK/MAGANG/2026/012'`);
-    await query(`DELETE FROM certificate_revocation_list WHERE cert_number ILIKE '%012%' OR reason ILIKE '%Pengujian E2E%'`);
+    await query(`DELETE FROM certificate_revocation_list WHERE cert_number ILIKE '%012%' OR reason ILIKE '%Pengujian E2E%' OR reason ILIKE '%E2E%'`);
     await query(`DELETE FROM jailed_ips WHERE ip IN ('::ffff:127.0.0.1', '127.0.0.1')`);
     await query(`DELETE FROM staging_sandbox_snapshots WHERE snapshot_name ILIKE 'sandbox_test_%'`);
-    await query(`DELETE FROM activity_logs WHERE details ILIKE '%E2E%' OR details ILIKE '%Uji Coba%' OR ip_address IN ('::ffff:127.0.0.1', '127.0.0.1')`);
+    await query(`DELETE FROM storage_deduplication_registry WHERE content_sha256 != 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'`);
+    await query(`DELETE FROM time_bank_ledger WHERE event_description ILIKE '%Pengujian E2E%' OR event_description ILIKE '%Test%' OR event_description ILIKE '%E2E%'`);
+    await query(`DELETE FROM ephemeral_impersonation_sessions WHERE reason ILIKE '%E2E%' OR reason ILIKE '%TEST%'`);
+    await query(`DELETE FROM whatsapp_notification_dispatches WHERE recipient_phone ILIKE '%08123456789%' OR template_name ILIKE '%test%'`);
+    await query(`DELETE FROM identity_duplicate_cases WHERE resolution_notes ILIKE '%E2E%' OR nik = '1271019900000001'`);
+    await query(`DELETE FROM csp_violation_reports WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1') OR document_uri ILIKE '%test%'`);
+    await query(`DELETE FROM honeytoken_traps WHERE ip_address IN ('::ffff:127.0.0.1', '127.0.0.1') OR user_agent = 'node'`);
+    await query(`DELETE FROM security_incident_alerts WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1') OR details::text ILIKE '%test%' OR details::text ILIKE '%e2e%'`);
+    await query(`DELETE FROM activity_logs WHERE details ILIKE '%E2E%' OR details ILIKE '%Uji Coba%' OR details ILIKE '%test%' OR ip_address IN ('::ffff:127.0.0.1', '127.0.0.1')`);
     await rebuildAuditChain();
   } catch (cleanErr) {
     // Ignore cleanup non-critical warnings

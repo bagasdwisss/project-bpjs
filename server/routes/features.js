@@ -144,7 +144,7 @@ router.get('/leaves/settings', authenticateToken, async (req, res) => {
     };
 
     const maxDays = parseInt(settings.max_leave_days_per_batch, 10) || 3;
-    const maxMonthlyQuota = 3;
+    const maxMonthlyQuota = maxDays;
 
     // Monthly quota calculation for Cuti & Izin (Strict max 3 per month)
     const monthlyQuotaRes = await query(
@@ -241,12 +241,13 @@ router.post('/leaves', authenticateToken, async (req, res) => {
         [userId, reqYear, reqMonth]
       );
       const usedCount = parseInt(monthCheckRes.rows[0].count, 10) || 0;
-      const MAX_MONTHLY = 3;
+      const lSetRes = await query(`SELECT max_leave_days_per_batch FROM leave_settings ORDER BY id ASC LIMIT 1`);
+      const MAX_MONTHLY = lSetRes.rows.length > 0 ? (parseInt(lSetRes.rows[0].max_leave_days_per_batch, 10) || 3) : 3;
 
       if (usedCount >= MAX_MONTHLY) {
         return res.status(400).json({
           success: false,
-          message: `Batas maksimal pengajuan cuti/izin Anda untuk bulan ini (${reqMonth}/${reqYear}) adalah 3 kali dan kuota Anda telah habis. Pengajuan tidak dapat diproses.`
+          message: `Batas maksimal pengajuan cuti/izin Anda untuk bulan ini (${reqMonth}/${reqYear}) adalah ${MAX_MONTHLY} kali dan kuota Anda telah habis. Pengajuan tidak dapat diproses.`
         });
       }
     }
@@ -3034,7 +3035,7 @@ router.post(['/admin/whatsapp/dispatch-test', '/whatsapp/dispatch-test'], authen
     const result = await dispatchWhatsAppTemplate({
       phone: phone || '081234567890',
       templateName: templateName || 'bpjstk_attendance_reminder',
-      parameters: parameters || { userName: 'Arthur' }
+      parameters: parameters || { userName: req.user?.full_name || 'Peserta BPJS' }
     });
     return res.json(result);
   } catch (err) {

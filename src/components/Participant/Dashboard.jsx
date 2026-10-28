@@ -105,7 +105,7 @@ const ParticipantDashboard = () => {
   const attLate = attendance.late ?? attendance.terlambat ?? 0;
   const attPercentage = attendance.rate ?? attendance.percentage ?? (attTotal > 0 ? Math.round((attPresent / attTotal) * 100) : 100);
 
-  const targetAkuisisi = 20;
+  const targetAkuisisi = Number(stats.targetAkuisisi || dashboardData?.gradingConfig?.target_akuisisi_bpu || 20);
   const akuisisiBPU = stats.hasilAkuisisiBPU ?? stats.akuisisiBPU ?? 0;
   const progressPct = Math.min(100, Math.round((akuisisiBPU / targetAkuisisi) * 100));
 
@@ -136,7 +136,7 @@ const ParticipantDashboard = () => {
             <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 flex flex-wrap items-center gap-x-2">
               <span>Penempatan: <span className="font-bold text-[#121214] capitalize">{user?.penempatan || 'Kantor Cabang'}</span></span>
               <span>•</span>
-              <span>Koordinator: <span className="font-bold text-[#121214]">{dashboardData?.coordinator?.full_name || coordinator?.full_name || user?.coordinator_name || 'Fedro'}</span></span>
+              <span>Koordinator: <span className="font-bold text-[#121214]">{dashboardData?.coordinator?.full_name || coordinator?.full_name || user?.coordinator_name || 'Belum Ditugaskan'}</span></span>
               <span>•</span>
               <span>Akuisisi: <span className="font-bold text-[#121214]">{progressPct}%</span></span>
             </p>

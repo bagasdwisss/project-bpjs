@@ -60,7 +60,7 @@ const Progress = () => {
     const grade = data.grade || '-';
 
     // Hitung progress akuisisi (dari target 20)
-    const targetAkuisisi = 20;
+    const targetAkuisisi = parseInt(data.target_akuisisi_bpu || data.target_akuisisi || '20', 10);
     const progressAkuisisi = hasilAkuisisiBPU;
     const progressPercentage = Math.min(100, Math.round((progressAkuisisi / targetAkuisisi) * 100));
 
@@ -70,7 +70,7 @@ const Progress = () => {
         nama: data.full_name || user.full_name,
         nim: data.unique_id || user.unique_id,
         email: data.email || user.email || '-',
-        koordinator: data.coordinator_name || user?.coordinator_name || coordinator?.full_name || 'Fedro',
+        koordinator: data.coordinator_name || user?.coordinator_name || coordinator?.full_name || 'Belum Ditugaskan',
         grade: grade
       },
       metrics: {
@@ -164,7 +164,7 @@ const Progress = () => {
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               NIM/ID: {progressData.userInfo?.nim || user?.unique_id}
               <span className="text-[#8A8985]">•</span>
-              Koordinator: {progressData.userInfo?.koordinator && progressData.userInfo?.koordinator !== '-' ? progressData.userInfo?.koordinator : (user?.coordinator_name || coordinator?.full_name || 'Fedro')}
+              Koordinator: {progressData.userInfo?.koordinator && progressData.userInfo?.koordinator !== '-' ? progressData.userInfo?.koordinator : (user?.coordinator_name || coordinator?.full_name || 'Belum Ditugaskan')}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Progress & Capaian Magang
@@ -183,7 +183,7 @@ const Progress = () => {
               <span>Segarkan</span>
             </button>
             <span className="text-xs font-bold bg-[#121214] text-white px-3.5 py-2 rounded-full shadow-sm">
-              Grade {progressData.userInfo?.grade || 'A'}
+              Grade {progressData.userInfo?.grade || '-'}
             </span>
           </div>
         </div>
@@ -236,7 +236,7 @@ const Progress = () => {
                   Total Poin & Nilai Akhir
                 </span>
                 <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                  Predikat: Grade {progressData.userInfo?.grade || 'A'}
+                  Predikat: Grade {progressData.userInfo?.grade || '-'}
                 </span>
               </div>
 

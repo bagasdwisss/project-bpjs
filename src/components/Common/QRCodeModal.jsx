@@ -8,7 +8,7 @@ const QRCodeModal = ({ isOpen, onClose, user }) => {
   const qrCanvasRef = useRef(null);
 
   const participantName = user?.full_name || 'Peserta Magang';
-  const participantNim = user?.unique_id || 'PES-001';
+  const participantNim = user?.unique_id || user?.nim || 'PESERTA';
   const referralCode = `BPJSTK-BPU-${participantNim}`;
   const referralUrl = `https://bpjsketenagakerjaan.go.id/bpu/daftar?ref=${referralCode}`;
 

@@ -317,7 +317,7 @@ const Monitoring = () => {
                             )}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-xs">
-                            <div className="font-mono font-bold text-[#121214]">{log.ip_address || '127.0.0.1'}</div>
+                            <div className="font-mono font-bold text-[#121214]">{log.ip_address || '-'}</div>
                             <div className="text-[10px] text-gray-500 truncate max-w-[200px]" title={log.user_agent}>
                               {log.user_agent ? (log.user_agent.includes('Mobile') ? 'Mobile Device' : 'Desktop Browser') : 'Direct API'}
                             </div>

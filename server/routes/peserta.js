@@ -27,6 +27,10 @@ router.get('/progress', authenticateToken, async (req, res) => {
       [userId]
     );
 
+    // Retrieve active grading settings dynamically
+    const gSetRes = await query(`SELECT * FROM grading_settings ORDER BY id ASC LIMIT 1`);
+    const gSettings = gSetRes.rows[0] || { target_akuisisi_bpu: 20, target_kunjungan_bpu: 30 };
+
     if (result.rows.length === 0) {
       // Auto-initialize progress row if not yet created
       let progRow;
@@ -56,12 +60,21 @@ router.get('/progress', authenticateToken, async (req, res) => {
         success: true,
         data: {
           ...(progRow || {}),
-          ...(userRes.rows[0] || {})
+          ...(userRes.rows[0] || {}),
+          target_akuisisi_bpu: parseInt(gSettings.target_akuisisi_bpu, 10) || 20,
+          target_kunjungan_bpu: parseInt(gSettings.target_kunjungan_bpu, 10) || 30
         }
       });
     }
 
-    return res.json({ success: true, data: result.rows[0] });
+    return res.json({ 
+      success: true, 
+      data: {
+        ...result.rows[0],
+        target_akuisisi_bpu: parseInt(gSettings.target_akuisisi_bpu, 10) || 20,
+        target_kunjungan_bpu: parseInt(gSettings.target_kunjungan_bpu, 10) || 30
+      } 
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

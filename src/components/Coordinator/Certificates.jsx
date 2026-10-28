@@ -272,7 +272,7 @@ const Certificates = () => {
                 </thead>
                 <tbody className="divide-y divide-[#EAE9E4]">
                   {filteredCertificates.map((cert) => {
-                    const certNum = cert.certificate_number || `BPJSTK/MAGANG/2026/${String(cert.id || 1).padStart(3, '0')}`;
+                    const certNum = cert.certificate_number || `BPJSTK/MAGANG/${new Date().getFullYear()}/${String(cert.id || 1).padStart(3, '0')}`;
                     const certName = cert.participant_name || cert.participant || cert.report_name;
                     return (
                       <tr key={cert.certificate_id || cert.id} className="hover:bg-[#FAF9F6]/60 transition-colors">

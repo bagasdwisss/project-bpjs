@@ -607,9 +607,10 @@ const WorkSchedule = () => {
                   className="px-3 py-2 bg-gray-50 border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] focus:outline-none shadow-[2px_2px_0px_#121214] cursor-pointer"
                 >
                   <option value="all">Semua Tahun</option>
-                  <option value="2025">Tahun 2025</option>
-                  <option value="2026">Tahun 2026</option>
-                  <option value="2027">Tahun 2027</option>
+                  {[-2, -1, 0, 1, 2].map(offset => {
+                    const yr = new Date().getFullYear() + offset;
+                    return <option key={yr} value={String(yr)}>Tahun {yr}</option>;
+                  })}
                 </select>
               </div>
 

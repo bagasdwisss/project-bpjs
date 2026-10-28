@@ -52,9 +52,9 @@ const Scores = () => {
         type: score.score_type || 'assessment',
         module: score.module_name || score.module?.module_name || `Modul #${score.module_id}`,
         date: score.graded_at || score.created_at,
-        gradedBy: score.coordinator_name || score.grader_name || user?.coordinator_name || coordinator?.full_name || 'Fedro',
+        gradedBy: score.coordinator_name || score.grader_name || user?.coordinator_name || coordinator?.full_name || 'Koordinator Pembimbing',
         feedback: score.comments || 'Belum ada catatan pembimbing',
-        weight: 25
+        weight: Number(score.weight || score.bobot || Math.round(100 / Math.max(1, scoresData.length)))
       }));
       
       setScores(transformedScores);

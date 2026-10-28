@@ -14,7 +14,7 @@ const VerifyCertificate = () => {
       setLoading(true);
       setError(null);
       try {
-        const queryId = certNumber || new URLSearchParams(window.location.search).get('id') || 'BPJSTK/MAGANG/2026/001';
+        const queryId = certNumber || new URLSearchParams(window.location.search).get('id') || `BPJSTK/MAGANG/${new Date().getFullYear()}/001`;
         const res = await axios.get(`/api/certificates/verify/${encodeURIComponent(queryId)}`);
         if (res.data?.success && res.data?.valid) {
           setCertData(res.data.data);
