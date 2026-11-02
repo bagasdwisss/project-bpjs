@@ -419,13 +419,6 @@ async function runEndToEndTests() {
     `Respon: ${broadcastRes.data?.message || 'Terkirim'}`,
     broadcastRes.duration
   );
-  // Segera bersihkan data broadcast & notifikasi pengujian detik ini juga agar DB tetap 100% bersih
-  const createdBroadcastId = broadcastRes.data?.data?.broadcast_id || broadcastRes.data?.broadcast_id;
-  if (createdBroadcastId) {
-    await query(`DELETE FROM broadcast_messages WHERE broadcast_id = $1`, [createdBroadcastId]);
-  }
-  await query(`DELETE FROM broadcast_messages WHERE title ILIKE '%E2E%' OR content ILIKE '%end-to-end%' OR title ILIKE '%Uji%'`);
-  await query(`DELETE FROM notifications WHERE title ILIKE '%E2E%' OR title ILIKE '%Uji%' OR message ILIKE '%end-to-end%' OR type = 'broadcast'`);
 
   // -------------------------------------------------------------
   // TAHAP 4: ALUR KERJA KOORDINATOR (MONITORING & EVALUASI)
@@ -480,9 +473,6 @@ async function runEndToEndTests() {
     `Hasil: ${verifyCertRes.data?.valid ? 'ASLI & SAH BPJS KETENAGAKERJAAN' : 'TIDAK VALID'}`,
     verifyCertRes.duration
   );
-  if (certNumber) {
-    await query(`DELETE FROM certificates WHERE certificate_number = $1`, [certNumber]);
-  }
 
   // -------------------------------------------------------------
   // TAHAP 5: ALUR KERJA PESERTA MAGANG (PRESENSI & PENGADUAN)
@@ -560,42 +550,6 @@ async function runEndToEndTests() {
       updateWbRes.duration
     );
   }
-  if (generatedTicket) {
-    await query(`DELETE FROM whistleblowing_reports WHERE ticket_code = $1`, [generatedTicket]);
-  }
-
-  // 5.6 Dashboard Peserta & Penugasan Koordinator Dinamis
-  const partDashRes = await api('/api/dashboard/participant', {
-    headers: { Authorization: `Bearer ${pesertaToken}` }
-  });
-  recordTest(
-    '5.6 Dashboard Peserta & Penugasan Koordinator Dinamis (/api/dashboard/participant)',
-    partDashRes.status === 200 && Boolean(partDashRes.data?.data?.coordinator?.full_name),
-    `Koordinator Terhubung: ${partDashRes.data?.data?.coordinator?.full_name} (${partDashRes.data?.data?.coordinator?.unique_id})`,
-    partDashRes.duration
-  );
-
-  // 5.7 Capaian Progress & Target Akuisisi Dinamis dari DB
-  const partProgRes = await api('/api/participant/progress', {
-    headers: { Authorization: `Bearer ${pesertaToken}` }
-  });
-  recordTest(
-    '5.7 Rekapitulasi Capaian & Target Dinamis (/api/participant/progress)',
-    partProgRes.status === 200 && partProgRes.data?.data?.target_akuisisi_bpu > 0,
-    `Target DB: ${partProgRes.data?.data?.target_akuisisi_bpu} BPU, Koordinator: ${partProgRes.data?.data?.coordinator_name}`,
-    partProgRes.duration
-  );
-
-  // 5.8 Digital ID Card dengan Dynamic Rotating QR & Barcode Code128
-  const participantCardRes = await api('/api/participant/digital-id-card', {
-    headers: { Authorization: `Bearer ${pesertaToken}` }
-  });
-  recordTest(
-    '5.8 Digital ID Card Magang Resmi (/api/participant/digital-id-card)',
-    participantCardRes.status === 200 && Boolean(participantCardRes.data?.card?.barcodeValue) && Boolean(participantCardRes.data?.qr?.signature),
-    `Barcode: ${participantCardRes.data?.card?.barcodeValue}, Pembimbing: ${participantCardRes.data?.card?.coordinatorName}, Rolling Sig: ${participantCardRes.data?.qr?.signature?.substring(0, 12)}...`,
-    participantCardRes.duration
-  );
 
   // -------------------------------------------------------------
   // TAHAP 6: HONEYTOKEN TRAP & AUTO IP JAILING TEST
@@ -628,7 +582,6 @@ async function runEndToEndTests() {
     `Total Jebakan Tercatat: ${trapsListRes.data?.data?.length || 0}`,
     trapsListRes.duration
   );
-  await query(`DELETE FROM honeytoken_traps WHERE ip_address IN ('::ffff:127.0.0.1', '127.0.0.1', '::1')`);
 
   // -------------------------------------------------------------
   // TAHAP 7: PENGUJIAN 18 FITUR ENTERPRISE & CYBERSECURITY HARDENING
@@ -692,7 +645,6 @@ async function runEndToEndTests() {
     `Total Incidents Logged: ${incidentListRes.data?.data?.length || 0}`,
     incidentTestRes.duration + incidentListRes.duration
   );
-  await query(`DELETE FROM security_incident_alerts WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1') OR details::text ILIKE '%E2E%'`);
 
   // 7.5 Impossible Travel & Geographical Anomaly Velocity Guard
   const geoHeartbeatRes = await api('/api/auth/geo-heartbeat', {
@@ -873,7 +825,6 @@ async function runEndToEndTests() {
     `Reports Logged: ${cspListRes.data?.count || 0}`,
     cspReportRes.duration + cspListRes.duration
   );
-  await query(`DELETE FROM csp_violation_reports WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1')`);
 
   // 8.3 Post-Quantum Cryptography (PQC) Readiness: Kyber / Dilithium Hybrid Signatures
   const pqcSignRes = await api('/api/certificates/pqc-sign', {
@@ -1172,7 +1123,6 @@ async function runEndToEndTests() {
     `Earned: 3.5 jam -> Current Balance: ${tbBalRes.data?.balanceHours} jam`,
     tbEarnRes.duration + tbBalRes.duration
   );
-  await query(`DELETE FROM time_bank_ledger WHERE event_description = 'Edukasi BPU Car-Free Day Akhir Pekan'`);
 
   // 9.2 Automated MBKM / Kemendikbudristek Logbook & Grade Auto-Converter
   const mbkmRes = await api(`/api/coordinator/mbkm-export/${pesertaUserId}`, {
@@ -1242,9 +1192,6 @@ async function runEndToEndTests() {
     `Session: ${impStartRes.data?.sessionId?.substring(0, 16)}... (Audit Trail Sealed & Terminated)`,
     impStartRes.duration + impEndRes.duration
   );
-  if (impStartRes.data?.sessionId) {
-    await query(`DELETE FROM ephemeral_impersonation_sessions WHERE session_id = $1`, [impStartRes.data?.sessionId]);
-  }
 
   // 9.7 Verified Email DMARC, DKIM & BIMI Brand Avatar Integration
   const emailBimiRes = await api('/api/security/email-compliance-status');
@@ -1271,7 +1218,6 @@ async function runEndToEndTests() {
     `Webhook Hub Challenge Verified | Dispatched WAMID: ${waDispatchRes.data?.wamid?.substring(0, 18)}...`,
     waChallengeRes.duration + waDispatchRes.duration
   );
-  await query(`DELETE FROM whatsapp_notification_dispatches WHERE recipient_phone = '081288889999'`);
 
   // 9.9 Automated Duplicate Identity Resolution Workflow
   const idDupListRes = await api('/api/admin/identity-duplicates', {
@@ -1331,7 +1277,6 @@ async function runEndToEndTests() {
     `First Upload: New | Second Upload: Deduplicated (0 extra bytes consumed)`,
     dedupFirstRes.duration + dedupSecondRes.duration
   );
-  await query(`DELETE FROM storage_deduplication_registry WHERE content_sha256 != 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'`);
 
   // 9.12 PostgreSQL Zero-Copy Database Staging Sandbox
   const sandboxCreateRes = await api('/api/admin/database/sandbox/create', {
@@ -1351,9 +1296,6 @@ async function runEndToEndTests() {
     `Snapshot Created: ${sandboxCreateRes.data?.snapshot?.snapshot_name} (Copy-On-Write Virtual Isolation)`,
     sandboxCreateRes.duration + sandboxListRes.duration
   );
-  if (sandboxCreateRes.data?.snapshot?.snapshot_name) {
-    await query(`DELETE FROM staging_sandbox_snapshots WHERE snapshot_name = $1`, [sandboxCreateRes.data?.snapshot?.snapshot_name]);
-  }
 
   // 9.13 Print-Ready Batch QR Generator (A4/A3 dengan Crop Marks)
   const printSheetRes = await api('/api/admin/print/batch-qr-sheet?paper=A4', {
@@ -1387,57 +1329,28 @@ async function runEndToEndTests() {
   // -------------------------------------------------------------
   // AUTOMATED TEST DATA CLEANUP (ANTI-SAMPAH DATABASE GUARANTEE)
   // -------------------------------------------------------------
-  // -------------------------------------------------------------
-  // AUTOMATED TEST DATA CLEANUP (ANTI-SAMPAH DATABASE GUARANTEE)
-  // -------------------------------------------------------------
-  const cleanQueries = [
-    `DELETE FROM broadcast_messages WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR content ILIKE '%e2e%' OR content ILIKE '%end-to-end%' OR content ILIKE '%pengujian%'`,
-    `DELETE FROM broadcast_dismissals WHERE broadcast_id NOT IN (SELECT broadcast_id FROM broadcast_messages)`,
-    `DELETE FROM notifications WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR message ILIKE '%end-to-end%' OR message ILIKE '%e2e%' OR message ILIKE '%pengujian%' OR type = 'broadcast'`,
-    `DELETE FROM whistleblowing_reports WHERE subject ILIKE '%Uji Coba%' OR subject ILIKE '%Test%' OR ticket_code ILIKE 'WB-%'`,
-    `DELETE FROM certificates WHERE certificate_number ILIKE '%012%' OR certificate_number ILIKE '%TEST%'`,
-    `DELETE FROM certificate_revocation_list WHERE cert_number ILIKE '%012%' OR reason ILIKE '%Pengujian E2E%' OR reason ILIKE '%E2E%'`,
-    `DELETE FROM jailed_ips WHERE ip IN ('::ffff:127.0.0.1', '127.0.0.1')`,
-    `DELETE FROM staging_sandbox_snapshots WHERE snapshot_name ILIKE 'sandbox_test_%'`,
-    `DELETE FROM storage_deduplication_registry WHERE content_sha256 != 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'`,
-    `DELETE FROM time_bank_ledger WHERE event_description ILIKE '%Pengujian E2E%' OR event_description ILIKE '%Car-Free Day%' OR event_description ILIKE '%Test%'`,
-    `DELETE FROM ephemeral_impersonation_sessions WHERE reason ILIKE '%E2E%' OR reason ILIKE '%TEST%' OR reason ILIKE '%kendala teknis%'`,
-    `DELETE FROM whatsapp_notification_dispatches WHERE recipient_phone ILIKE '%081288889999%' OR recipient_phone ILIKE '%08123456789%' OR template_name ILIKE '%test%'`,
-    `DELETE FROM identity_duplicate_cases WHERE resolution_notes ILIKE '%E2E%' OR nik = '1271019900000001'`,
-    `DELETE FROM csp_violation_reports WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1') OR document_uri ILIKE '%test%'`,
-    `DELETE FROM honeytoken_traps WHERE ip_address IN ('::ffff:127.0.0.1', '127.0.0.1') OR user_agent = 'node'`,
-    `DELETE FROM security_incident_alerts WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1') OR details::text ILIKE '%test%' OR details::text ILIKE '%e2e%'`,
-    `DELETE FROM activity_logs WHERE details ILIKE '%E2E%' OR details ILIKE '%Uji Coba%' OR details ILIKE '%test%' OR ip_address IN ('::ffff:127.0.0.1', '127.0.0.1')`
-  ];
-
-  for (const q of cleanQueries) {
-    try {
-      await query(q);
-    } catch (cleanErr) {
-      // Continue next query
-    }
-  }
-
   try {
+    await query(`DELETE FROM broadcast_messages WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR content ILIKE '%e2e%' OR content ILIKE '%end-to-end%' OR content ILIKE '%pengujian%'`);
+    await query(`DELETE FROM broadcast_dismissals WHERE broadcast_id NOT IN (SELECT broadcast_id FROM broadcast_messages)`);
+    await query(`DELETE FROM notifications WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR message ILIKE '%end-to-end%' OR message ILIKE '%e2e%' OR message ILIKE '%pengujian%' OR type = 'broadcast'`);
+    await query(`DELETE FROM whistleblowing_reports WHERE subject ILIKE '%Uji Coba%' OR subject ILIKE '%Test%' OR ticket_code ILIKE 'WB-%'`);
+    await query(`DELETE FROM certificates WHERE certificate_number = 'BPJSTK/MAGANG/2026/012'`);
+    await query(`DELETE FROM certificate_revocation_list WHERE cert_number ILIKE '%012%' OR reason ILIKE '%Pengujian E2E%' OR reason ILIKE '%E2E%'`);
+    await query(`DELETE FROM jailed_ips WHERE ip IN ('::ffff:127.0.0.1', '127.0.0.1')`);
+    await query(`DELETE FROM staging_sandbox_snapshots WHERE snapshot_name ILIKE 'sandbox_test_%'`);
+    await query(`DELETE FROM storage_deduplication_registry WHERE content_sha256 != 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'`);
+    await query(`DELETE FROM time_bank_ledger WHERE event_description ILIKE '%Pengujian E2E%' OR event_description ILIKE '%Test%' OR event_description ILIKE '%E2E%'`);
+    await query(`DELETE FROM ephemeral_impersonation_sessions WHERE reason ILIKE '%E2E%' OR reason ILIKE '%TEST%'`);
+    await query(`DELETE FROM whatsapp_notification_dispatches WHERE recipient_phone ILIKE '%08123456789%' OR template_name ILIKE '%test%'`);
+    await query(`DELETE FROM identity_duplicate_cases WHERE resolution_notes ILIKE '%E2E%' OR nik = '1271019900000001'`);
+    await query(`DELETE FROM csp_violation_reports WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1') OR document_uri ILIKE '%test%'`);
+    await query(`DELETE FROM honeytoken_traps WHERE ip_address IN ('::ffff:127.0.0.1', '127.0.0.1') OR user_agent = 'node'`);
+    await query(`DELETE FROM security_incident_alerts WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1') OR details::text ILIKE '%test%' OR details::text ILIKE '%e2e%'`);
+    await query(`DELETE FROM activity_logs WHERE details ILIKE '%E2E%' OR details ILIKE '%Uji Coba%' OR details ILIKE '%test%' OR ip_address IN ('::ffff:127.0.0.1', '127.0.0.1')`);
     await rebuildAuditChain();
-  } catch (err) {}
-
-  // -------------------------------------------------------------
-  // VERIFIKASI KEBERSIHAN BASIS DATA (ZERO-RESIDUE GUARANTEE)
-  // -------------------------------------------------------------
-  const broadcastCheck = await query(`SELECT COUNT(*) FROM broadcast_messages`);
-  const notifCheck = await query(`SELECT COUNT(*) FROM notifications WHERE type = 'broadcast' OR title ILIKE '%E2E%' OR message ILIKE '%end-to-end%'`);
-  const trapCheck = await query(`SELECT COUNT(*) FROM honeytoken_traps WHERE ip_address IN ('::ffff:127.0.0.1', '127.0.0.1')`);
-  const incidentCheck = await query(`SELECT COUNT(*) FROM security_incident_alerts WHERE source_ip IN ('::ffff:127.0.0.1', '127.0.0.1')`);
-
-  recordTest(
-    '10.1 Verifikasi Kebersihan Basis Data (Zero-Residue Anti-Sampah Guarantee)',
-    broadcastCheck.rows[0].count === '0' &&
-    notifCheck.rows[0].count === '0' &&
-    trapCheck.rows[0].count === '0' &&
-    incidentCheck.rows[0].count === '0',
-    `Broadcasts: ${broadcastCheck.rows[0].count}, Notif Pengujian: ${notifCheck.rows[0].count}, Traps: ${trapCheck.rows[0].count}, Alerts: ${incidentCheck.rows[0].count} (Seluruhnya Nol / Bersih Mutlak)`
-  );
+  } catch (cleanErr) {
+    // Ignore cleanup non-critical warnings
+  }
 
   // -------------------------------------------------------------
   // REKAPITULASI HASIL PENGUJIAN

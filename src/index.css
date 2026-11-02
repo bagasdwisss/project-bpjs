@@ -22,11 +22,6 @@
 }
 
 :root {
-  --font-heading: 'Plus Jakarta Sans', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --color-primary: #367C52;
-  --color-background: #397C50;
-  --color-white: #FFFFFF;
   --bg-canvas: #F5F4F0;
   --pitch-black: #121214;
   --pastel-yellow: #FCE373;
@@ -99,74 +94,4 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #AFAEA8;
-}
-
-/* KINORA Hero Animations */
-@keyframes kinoraFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes kinoraFadeSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(var(--slide-y, 14px));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-kinora-nav {
-  animation: kinoraFadeIn 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-kinora-icons {
-  --slide-y: 10px;
-  animation: kinoraFadeSlideUp 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-kinora-headline {
-  --slide-y: 18px;
-  animation: kinoraFadeSlideUp 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-kinora-subheading {
-  animation: kinoraFadeIn 700ms cubic-bezier(0.16, 1, 0.3, 1) 200ms forwards;
-  opacity: 0;
-}
-
-.animate-kinora-cta {
-  --slide-y: 10px;
-  animation: kinoraFadeSlideUp 700ms cubic-bezier(0.16, 1, 0.3, 1) 350ms forwards;
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-kinora-nav,
-  .animate-kinora-icons,
-  .animate-kinora-headline,
-  .animate-kinora-subheading,
-  .animate-kinora-cta {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-}
-
-/* Continuous Marquee Ticker for Worker Professions */
-@keyframes marqueeScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee {
-  display: flex;
-  width: max-content;
-  animation: marqueeScroll 40s linear infinite;
-}
-
-.animate-marquee:hover {
-  animation-play-state: paused;
 }
