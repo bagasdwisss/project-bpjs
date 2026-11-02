@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { 
@@ -13,16 +13,16 @@ import {
   AlertTriangle,
   HardHat,
   Briefcase,
-  Building2,
   Sparkles,
-  Users,
+  BadgeCheck,
   CheckCircle2
 } from 'lucide-react';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
+import workersHeroHd from '../../assets/bpjs_workers_hd.jpg';
 import PageLoader from '../Common/PageLoader';
 
 /**
- * The 15 official worker profession segments requested by BPJS Ketenagakerjaan
+ * 15 Segmen Profesi Resmi Pekerja Indonesia yang Dilindungi BPJS Ketenagakerjaan
  */
 const WORKER_PROFESSIONS = [
   { name: 'Karyawan swasta', sector: 'Penerima Upah (PU)' },
@@ -53,13 +53,12 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Active rotating profession index for dynamic headline badge
+  // Rotasi badge profesi setiap 2,4 detik
   const [activeProfessionIdx, setActiveProfessionIdx] = useState(0);
 
   const { user, login, error, clearError, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Rotate through the 15 professions every 2.4 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveProfessionIdx((prev) => (prev + 1) % WORKER_PROFESSIONS.length);
@@ -67,7 +66,7 @@ const Login = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Redirect after authentication
+  // Redirect pengguna setelah autentikasi berhasil
   useEffect(() => {
     if (isAuthenticated && user) {
       if (user.role_id === 1 || user.role === 'Peserta') {
@@ -93,14 +92,6 @@ const Login = () => {
     const value = e.target.value.toUpperCase();
     setUniqueId(value);
     setRoleDetected(detectRole(value));
-    setFormError('');
-    clearError();
-  };
-
-  const handleQuickFill = (id, pass) => {
-    setUniqueId(id);
-    setPassword(pass);
-    setRoleDetected(detectRole(id));
     setFormError('');
     clearError();
   };
@@ -141,134 +132,172 @@ const Login = () => {
   const currentProf = WORKER_PROFESSIONS[activeProfessionIdx];
 
   return (
-    <div className="relative min-h-screen w-full bg-[#397C50] text-[#121214] overflow-x-hidden flex flex-col justify-between select-none">
-      {/* 1. BACKGROUND VIDEO (Directly embedded on the login page) */}
+    <div className="relative min-h-[100svh] w-full bg-[#1b5e32] text-[#121214] overflow-x-hidden flex flex-col justify-between select-none">
+      
+      {/* 1. BACKGROUND HERO: EXTRA SUPER HD INDONESIAN WORKERS (Adults Only, 100% Authentic BPJS Professions) */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          className="absolute inset-0 w-full h-full object-cover object-bottom"
-          style={{ objectPosition: 'center bottom' }}
-        >
-          <source 
-            src="https://res.cloudinary.com/uobghqwu/video/upload/v1793506197/Characters_waving_in_animation_f349ac66_t1.7-8_1080p.mp4" 
-            type="video/mp4" 
-          />
-        </video>
+        <img
+          src={workersHeroHd}
+          alt="Latar Belakang Pekerja BPJS Ketenagakerjaan Extra Super HD"
+          className="w-full h-full object-cover object-center lg:object-bottom transform scale-100 transition-transform duration-1000 ease-out"
+        />
 
-        {/* Soft Green Gradient Overlay for High Readability */}
+        {/* Soft emerald overlay for maximum typography & UI contrast */}
         <div 
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(180deg, rgba(23, 77, 47, 0.90) 0%, rgba(30, 95, 58, 0.72) 45%, rgba(15, 65, 37, 0.40) 100%)'
+            background: 'linear-gradient(180deg, rgba(16, 68, 36, 0.92) 0%, rgba(20, 84, 45, 0.78) 45%, rgba(10, 48, 25, 0.65) 100%)'
           }}
         />
+
+        {/* Radial brand ambient lighting */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FCE373]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* 2. TOP FLOATING BRAND BAR */}
-      <header className="relative z-10 w-full px-5 py-4 sm:px-8 sm:py-5 lg:px-12 flex items-center justify-between">
-        <div className="inline-flex items-center gap-3 bg-white/15 backdrop-blur-md border border-white/25 px-4 py-2 rounded-full shadow-sm text-white">
-          <div className="w-6 h-6 rounded-lg bg-white/20 p-1 flex items-center justify-center shrink-0">
-            <img src={logo} alt="BPJS Logo" className="w-full h-full object-contain brightness-0 invert" />
+      {/* 2. TOP FLOATING BRAND BAR (With Official BPJS Ketenagakerjaan Logo) */}
+      <header className="relative z-20 w-full px-4 py-3 sm:px-8 sm:py-5 lg:px-12 flex items-center justify-between">
+        <div className="inline-flex items-center gap-3 bg-white/95 backdrop-blur-md border-2 border-[#121214] px-3.5 py-2 sm:px-4 sm:py-2 rounded-2xl shadow-[3px_3px_0px_#121214]">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center shrink-0">
+            <img 
+              src={logo} 
+              alt="Logo Resmi BPJS Ketenagakerjaan" 
+              className="w-full h-full object-contain" 
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm tracking-tight text-white" style={{ fontFamily: "var(--font-heading)" }}>
+          <div className="flex flex-col text-left">
+            <span className="font-extrabold text-xs sm:text-sm tracking-tight text-[#154627] leading-none" style={{ fontFamily: "var(--font-heading)" }}>
               BPJS Ketenagakerjaan
             </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider bg-white text-[#154627] px-2 py-0.5 rounded-full shadow-xs">
-              Portal Resmi
+            <span className="text-[9px] sm:text-[10px] font-bold text-[#6E6D6A] mt-0.5 tracking-wider uppercase">
+              Portal Resmi Layanan & Magang
             </span>
           </div>
         </div>
 
-        {/* Live Protection Counter Pill */}
-        <div className="hidden md:inline-flex items-center gap-2 bg-black/25 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-white/90 text-xs font-semibold">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        {/* Live Protection Status Pill */}
+        <div className="hidden sm:inline-flex items-center gap-2 bg-[#121214]/80 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-white text-xs font-bold shadow-md">
+          <span className="w-2 h-2 rounded-full bg-[#FCE373] animate-ping" />
           <span>Melindungi Seluruh Pekerja Indonesia</span>
         </div>
       </header>
 
       {/* 3. MAIN HERO CONTENT & DIRECT LOGIN FORM */}
-      <main className="relative z-10 w-full max-w-7xl mx-auto px-5 py-6 sm:px-8 sm:py-8 lg:px-12 flex-1 flex flex-col justify-center">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-4 py-4 sm:px-8 sm:py-6 lg:px-12 flex-1 flex flex-col justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
           
-          {/* LEFT COLUMN: TAGLINE & THE 15 WORKER SECTORS */}
-          <div className="lg:col-span-7 text-white space-y-5 text-center lg:text-left">
+          {/* LEFT COLUMN: OFFICIAL TAGLINE & EXTRA SUPER HD WORKERS SHOWCASE */}
+          <div className="lg:col-span-7 text-white space-y-4 sm:space-y-5 text-center lg:text-left">
+            
             {/* Dynamic Rotating Profession Badge */}
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-[#FCE373]" />
-              <span className="text-white/80">Melindungi:</span>
-              <span className="text-[#FCE373] font-black underline decoration-wavy decoration-[#FCE373]/60 transition-all duration-300">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-bold shadow-sm max-w-full">
+              <Sparkles className="w-3.5 h-3.5 text-[#FCE373] shrink-0" />
+              <span className="text-white/80 shrink-0">Melindungi:</span>
+              <span className="text-[#FCE373] font-black underline decoration-wavy decoration-[#FCE373]/60 transition-all duration-300 truncate">
                 {currentProf.name}
               </span>
             </div>
 
-            {/* MAIN TAGLINE */}
+            {/* OFFICIAL BPJS TAGLINE */}
             <h1 
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold uppercase tracking-tight text-white leading-[1.08] drop-shadow-sm"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-white leading-[1.08] drop-shadow-md"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               Kerja Keras <br className="hidden sm:inline" />
               <span className="text-[#FCE373]">Bebas Cemas</span>
             </h1>
 
-            {/* Sub-description */}
-            <p className="text-sm sm:text-base text-white/90 max-w-xl font-normal leading-relaxed mx-auto lg:mx-0">
-              Sistem Informasi Absensi & Penilaian Magang Terpadu. Menjamin perlindungan jaminan sosial ketenagakerjaan bagi seluruh pekerja sektor formal, informal, hingga jasa konstruksi.
+            {/* Supporting Description */}
+            <p className="text-xs sm:text-sm md:text-base text-white/95 max-w-xl font-normal leading-relaxed mx-auto lg:mx-0 drop-shadow-sm">
+              Sistem Informasi Presensi & Manajemen Magang Terpadu. Menjamin perlindungan sosial menyeluruh bagi seluruh pekerja profesional formal, informal, hingga jasa konstruksi.
             </p>
 
-            {/* Quick Segment Showcase Badges */}
-            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl flex items-start gap-2.5 max-w-xs text-left">
-                <Briefcase className="w-4 h-4 text-[#FCE373] shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-white">Sektor Penerima Upah (PU)</p>
-                  <p className="text-[11px] text-white/75 mt-0.5 leading-snug">
-                    Karyawan swasta, BUMN/BUMD, pabrik, toko/restoran, satpam, dan yayasan.
-                  </p>
+            {/* Extra Super HD Workers Spotlight Visual Card */}
+            <div className="pt-1">
+              <div className="bg-black/35 backdrop-blur-md border-2 border-white/30 rounded-2xl p-3 sm:p-4 text-left shadow-lg max-w-xl mx-auto lg:mx-0">
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/15">
+                  <div className="flex items-center gap-2">
+                    <BadgeCheck className="w-4 h-4 text-[#FCE373]" />
+                    <span className="text-xs font-bold text-white tracking-wide">
+                      Perlindungan Profesi Nyata Indonesia (Khusus Pekerja Dewasa)
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-[#FCE373] text-[#121214] px-2 py-0.5 rounded-full">
+                    Extra Super HD
+                  </span>
                 </div>
-              </div>
 
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl flex items-start gap-2.5 max-w-xs text-left">
-                <HardHat className="w-4 h-4 text-[#BDD4F2] shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-white">Sektor Jasa Konstruksi (Jakon)</p>
-                  <p className="text-[11px] text-white/75 mt-0.5 leading-snug">
-                    Tukang bangunan, mandor, proyek jalan/gedung, teknisi, dan operator alat berat.
-                  </p>
+                {/* Worker Thumbnail Showcase */}
+                <div className="relative rounded-xl overflow-hidden border border-white/20 mb-2.5 aspect-[16/8] sm:aspect-[16/7]">
+                  <img 
+                    src={workersHeroHd} 
+                    alt="Profesi Pekerja BPJS Ketenagakerjaan: Konstruksi, Satpam, Kantor, Pabrik, Kuliner" 
+                    className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-2.5">
+                    <p className="text-[10px] sm:text-xs text-white/95 font-semibold">
+                      Mandor Proyek • Satpam • Pegawai Kantor • Teknisi Industri • Layanan & Ritel
+                    </p>
+                  </div>
+                </div>
+
+                {/* Sektor PU & Jakon Quick Badges */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-white/10 border border-white/15 rounded-lg p-2 flex items-center gap-2">
+                    <Briefcase className="w-3.5 h-3.5 text-[#FCE373] shrink-0" />
+                    <div>
+                      <span className="font-bold text-white block leading-tight">Sektor Penerima Upah (PU)</span>
+                      <span className="text-[10px] text-white/70">Karyawan swasta, BUMN/BUMD, pabrik, toko & satpam</span>
+                    </div>
+                  </div>
+                  <div className="bg-white/10 border border-white/15 rounded-lg p-2 flex items-center gap-2">
+                    <HardHat className="w-3.5 h-3.5 text-[#BDD4F2] shrink-0" />
+                    <div>
+                      <span className="font-bold text-white block leading-tight">Sektor Jasa Konstruksi (Jakon)</span>
+                      <span className="text-[10px] text-white/70">Tukang, mandor proyek gedung/jalan, teknisi & operator alat</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: DIRECT LOGIN CARD (No Popup Modal Needed!) */}
+          {/* RIGHT COLUMN: DIRECT LOGIN CARD (Clean, Responsive & No Demo Credentials) */}
           <div className="lg:col-span-5 w-full max-w-md mx-auto">
-            <div className="bg-white rounded-[26px] border-2 border-[#121214] shadow-[8px_8px_0px_#121214] p-6 sm:p-7 relative overflow-hidden">
+            <div className="bg-white rounded-[24px] sm:rounded-[28px] border-2 border-[#121214] shadow-[6px_6px_0px_#121214] sm:shadow-[8px_8px_0px_#121214] p-5 sm:p-7 relative overflow-hidden">
               
               {/* Subtle Decorative Pastel Glows */}
               <div className="absolute -top-10 -right-10 w-28 h-28 bg-[#FCE373]/25 rounded-full blur-2xl pointer-events-none" />
-              <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-[#F5C6EC]/25 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-[#BDD4F2]/25 rounded-full blur-2xl pointer-events-none" />
 
-              {/* Card Header */}
-              <div className="mb-5 text-left">
-                <div className="inline-flex items-center gap-2 bg-[#F5F4F0] border border-[#EAE9E4] px-3 py-1 rounded-full text-[11px] font-bold text-[#121214] mb-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>Portal Masuk Sistem</span>
+              {/* Card Header with Official Logo */}
+              <div className="mb-4 sm:mb-5 text-left">
+                <div className="flex items-center gap-3 mb-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#F0F8F3] border-2 border-[#121214] p-1.5 flex items-center justify-center shadow-[2px_2px_0px_#121214] shrink-0">
+                    <img 
+                      src={logo} 
+                      alt="Logo BPJS Ketenagakerjaan" 
+                      className="w-full h-full object-contain" 
+                    />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 bg-[#E8F5E9] border border-[#2E7D32]/30 px-2 py-0.5 rounded-full text-[10px] font-bold text-[#1B5E20]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                      <span>Portal Masuk Sistem</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-[#121214] tracking-tight leading-tight" style={{ fontFamily: "var(--font-heading)" }}>
+                      Selamat Datang
+                    </h2>
+                  </div>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-[#121214] tracking-tight" style={{ fontFamily: "var(--font-heading)" }}>
-                  Selamat Datang
-                </h2>
-                <p className="text-xs text-[#6E6D6A] mt-0.5">
-                  Masukkan ID Pengguna dan Kata Sandi akun Anda
+                <p className="text-xs text-[#6E6D6A]">
+                  Masukkan ID Pengguna dan Kata Sandi terdaftar Anda
                 </p>
               </div>
 
               {/* Alert: Concurrent Session */}
               {reason === 'concurrent_session' && (
-                <div className="mb-4 bg-[#F5C6EC]/40 border-2 border-[#121214] rounded-2xl p-3 flex items-start gap-2.5 shadow-[2px_2px_0px_#121214]">
+                <div className="mb-3.5 bg-[#F5C6EC]/40 border-2 border-[#121214] rounded-2xl p-3 flex items-start gap-2.5 shadow-[2px_2px_0px_#121214]">
                   <ShieldAlert className="w-4 h-4 text-[#121214] shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-black text-[#121214]">Login Ganda Terdeteksi</p>
@@ -279,7 +308,7 @@ const Login = () => {
 
               {/* Alert: Idle Timeout */}
               {reason === 'idle_timeout' && (
-                <div className="mb-4 bg-[#FCE373]/40 border-2 border-[#121214] rounded-2xl p-3 flex items-start gap-2.5 shadow-[2px_2px_0px_#121214]">
+                <div className="mb-3.5 bg-[#FCE373]/40 border-2 border-[#121214] rounded-2xl p-3 flex items-start gap-2.5 shadow-[2px_2px_0px_#121214]">
                   <Clock className="w-4 h-4 text-[#121214] shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-black text-[#121214]">Sesi Berakhir (Inaktivitas)</p>
@@ -290,7 +319,7 @@ const Login = () => {
 
               {/* Alert: Session Expired */}
               {reason === 'session_expired' && (
-                <div className="mb-4 bg-amber-50 border-2 border-[#121214] rounded-2xl p-3 flex items-start gap-2.5 shadow-[2px_2px_0px_#121214]">
+                <div className="mb-3.5 bg-amber-50 border-2 border-[#121214] rounded-2xl p-3 flex items-start gap-2.5 shadow-[2px_2px_0px_#121214]">
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-black text-[#121214]">Masa Berlaku Selesai</p>
@@ -301,7 +330,7 @@ const Login = () => {
 
               {/* Error Notice */}
               {(formError || error) && (
-                <div className="mb-4 bg-rose-50 border-2 border-rose-500 text-rose-700 px-3.5 py-2.5 rounded-xl text-xs font-bold shadow-[2px_2px_0px_#e11d48]">
+                <div className="mb-3.5 bg-rose-50 border-2 border-rose-500 text-rose-700 px-3.5 py-2.5 rounded-xl text-xs font-bold shadow-[2px_2px_0px_#e11d48]">
                   {formError || error}
                 </div>
               )}
@@ -325,7 +354,7 @@ const Login = () => {
                     )}
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#121214]">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#121214]">
                       <User className="h-4 w-4" />
                     </div>
                     <input
@@ -333,9 +362,9 @@ const Login = () => {
                       required
                       value={uniqueId}
                       onChange={handleUniqueIdChange}
-                      placeholder="e.g. PES001 / KO001 / ADM001"
+                      placeholder="Masukkan ID Pengguna (PES / KO / ADM)"
                       disabled={loading}
-                      className="w-full pl-9 pr-3 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] placeholder-[#A09F9B] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white focus:shadow-[3px_3px_0px_#121214] transition-all"
+                      className="w-full pl-10 pr-3.5 py-2.5 sm:py-3 bg-[#FAF9F6] border-2 border-[#121214] rounded-xl text-xs sm:text-sm font-bold text-[#121214] placeholder-[#A09F9B] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white focus:shadow-[3px_3px_0px_#121214] transition-all"
                     />
                   </div>
                 </div>
@@ -346,7 +375,7 @@ const Login = () => {
                     Kata Sandi
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#121214]">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#121214]">
                       <Lock className="h-4 w-4" />
                     </div>
                     <input
@@ -356,44 +385,15 @@ const Login = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Masukkan kata sandi akun"
                       disabled={loading}
-                      className="w-full pl-9 pr-9 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-xl text-xs font-bold text-[#121214] placeholder-[#A09F9B] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white focus:shadow-[3px_3px_0px_#121214] transition-all"
+                      className="w-full pl-10 pr-10 py-2.5 sm:py-3 bg-[#FAF9F6] border-2 border-[#121214] rounded-xl text-xs sm:text-sm font-bold text-[#121214] placeholder-[#A09F9B] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white focus:shadow-[3px_3px_0px_#121214] transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#121214] hover:opacity-75 cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#121214] hover:opacity-75 cursor-pointer"
+                      aria-label={showPassword ? 'Sembunyikan Kata Sandi' : 'Tampilkan Kata Sandi'}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* 1-Click Demo Credentials */}
-                <div className="pt-1">
-                  <span className="text-[10px] font-bold text-[#6E6D6A] block mb-1.5">
-                    Akses Cepat Pengujian:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickFill('PES001', 'password123')}
-                      className="text-[10px] font-bold bg-[#BDD4F2]/50 hover:bg-[#BDD4F2] border border-[#121214] text-[#121214] px-2 py-0.5 rounded-lg cursor-pointer transition-colors shadow-xs"
-                    >
-                      Arthur (Peserta)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickFill('KO001', 'password123')}
-                      className="text-[10px] font-bold bg-[#FCE373]/60 hover:bg-[#FCE373] border border-[#121214] text-[#121214] px-2 py-0.5 rounded-lg cursor-pointer transition-colors shadow-xs"
-                    >
-                      Fedro (Koordinator)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickFill('ADM001', 'password123')}
-                      className="text-[10px] font-bold bg-[#F5C6EC]/60 hover:bg-[#F5C6EC] border border-[#121214] text-[#121214] px-2 py-0.5 rounded-lg cursor-pointer transition-colors shadow-xs"
-                    >
-                      Admin Sistem
                     </button>
                   </div>
                 </div>
@@ -402,7 +402,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 bg-[#121214] hover:bg-neutral-800 active:translate-y-0.5 disabled:opacity-50 text-white font-extrabold py-3 px-4 rounded-xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] hover:shadow-[5px_5px_0px_#121214] transition-all flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer"
+                  className="w-full mt-3 bg-[#121214] hover:bg-neutral-800 active:translate-y-0.5 disabled:opacity-50 text-white font-extrabold py-3 sm:py-3.5 px-4 rounded-xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] hover:shadow-[5px_5px_0px_#121214] transition-all flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer"
                 >
                   {loading ? (
                     <>
@@ -418,13 +418,13 @@ const Login = () => {
                 </button>
               </form>
 
-              {/* Security Note */}
+              {/* Security Footer Note */}
               <div className="mt-4 pt-3 border-t border-[#F0EFEA] flex items-center justify-between text-[11px] text-[#6E6D6A]">
-                <span className="flex items-center gap-1 font-medium">
+                <span className="flex items-center gap-1.5 font-medium">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   Sistem Terotentikasi & Aman
                 </span>
-                <span>BPJSTK</span>
+                <span className="font-bold text-[#154627]">BPJS Ketenagakerjaan</span>
               </div>
             </div>
           </div>
@@ -432,13 +432,13 @@ const Login = () => {
       </main>
 
       {/* 4. BOTTOM CONTINUOUS MARQUEE TICKER (SHOWCASING ALL 15 PROFESSIONS) */}
-      <footer className="relative z-10 w-full bg-black/40 backdrop-blur-md border-t border-white/20 py-2.5 overflow-hidden">
+      <footer className="relative z-20 w-full bg-[#121214]/85 backdrop-blur-md border-t border-white/20 py-2.5 overflow-hidden">
         <div className="animate-marquee items-center gap-6 text-white text-xs font-semibold">
           {WORKER_PROFESSIONS.concat(WORKER_PROFESSIONS).map((item, idx) => (
             <div key={idx} className="inline-flex items-center gap-2 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-[#FCE373]" />
               <span className="text-white/95">{item.name}</span>
-              <span className="text-[10px] text-white/60 bg-white/10 px-1.5 py-0.2 rounded font-normal">
+              <span className="text-[10px] text-white/70 bg-white/10 px-2 py-0.5 rounded-md font-medium border border-white/10">
                 {item.sector}
               </span>
             </div>
