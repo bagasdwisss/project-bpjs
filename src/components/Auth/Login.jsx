@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { 
@@ -14,7 +14,9 @@ import {
   EyeOff, 
   ShieldAlert, 
   Clock, 
-  AlertTriangle
+  AlertTriangle,
+  Video,
+  Sparkles
 } from 'lucide-react';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
 import workersHeroHd from '../../assets/bpjs_workers_hd.jpg';
@@ -31,8 +33,21 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Mode visual: 'video' (animasi melambai asli) atau 'hd_workers' (potret pekerja Extra Super HD)
+  const [visualMode, setVisualMode] = useState('video');
+  const videoRef = useRef(null);
+
   const { user, login, error, clearError, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Memastikan video langsung berputar otomatis (autoplay muted loop)
+  useEffect(() => {
+    if (visualMode === 'video' && videoRef.current) {
+      videoRef.current.play().catch((err) => {
+        console.warn('Video autoplay notice:', err);
+      });
+    }
+  }, [visualMode]);
 
   // Redirect pengguna setelah autentikasi berhasil sesuai role
   useEffect(() => {
@@ -103,22 +118,52 @@ const Login = () => {
       style={{ fontFamily: "var(--font-body, Inter, sans-serif)" }}
     >
       {/* ============================================================== */}
-      {/* 04. BACKGROUND WORKER ANIMATION — EXTRA SUPER HD & ADULTS ONLY */}
+      {/* 04. BACKGROUND ASSET: ANIMASI VIDEO MELAMBAI (WAVING MOTION)   */}
       {/* ============================================================== */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
-        <img
-          src={workersHeroHd}
-          alt="Barisan Pekerja Dewasa BPJS Ketenagakerjaan Extra Super HD"
-          className="absolute inset-0 w-full h-full object-cover object-bottom animate-worker-hd"
-          style={{ 
-            objectPosition: 'center bottom',
-            backfaceVisibility: 'hidden',
-            transform: 'translateZ(0)',
-            filter: 'contrast(1.04) saturate(1.05)'
-          }}
-        />
+        {visualMode === 'video' ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover object-bottom"
+            style={{ 
+              objectPosition: 'center bottom',
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
+              filter: 'contrast(1.05) saturate(1.06)'
+            }}
+          >
+            <source src="/characters_waving.mp4" type="video/mp4" />
+            <source 
+              src="https://res.cloudinary.com/uobghqwu/video/upload/v1793506197/Characters_waving_in_animation_f349ac66_t1.7-8_1080p.mp4" 
+              type="video/mp4" 
+            />
+            {/* Fallback image */}
+            <img 
+              src={workersHeroHd} 
+              alt="Latar Belakang Pekerja BPJS Ketenagakerjaan" 
+              className="w-full h-full object-cover object-bottom"
+            />
+          </video>
+        ) : (
+          <img
+            src={workersHeroHd}
+            alt="Barisan Pekerja Dewasa BPJS Ketenagakerjaan Extra Super HD"
+            className="absolute inset-0 w-full h-full object-cover object-bottom animate-worker-hd"
+            style={{ 
+              objectPosition: 'center bottom',
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
+              filter: 'contrast(1.04) saturate(1.05)'
+            }}
+          />
+        )}
 
-        {/* Subtle Green Contrast Overlay */}
+        {/* Subtle Green Contrast Overlay (strictly matching Section 04) */}
         <div 
           className="absolute inset-0"
           style={{
@@ -164,11 +209,31 @@ const Login = () => {
           <span className="hover:text-white transition-opacity cursor-default">Bukan Penerima Upah</span>
         </div>
 
-        {/* Right: Official Portal Badge */}
-        <div>
+        {/* Right: Mode Switcher & Portal Badge */}
+        <div className="flex items-center gap-2">
+          {/* Visual Mode Switcher (Video Waving vs HD Photo) */}
+          <button
+            type="button"
+            onClick={() => setVisualMode(prev => prev === 'video' ? 'hd_workers' : 'video')}
+            className="hidden sm:inline-flex items-center gap-1.5 bg-black/30 hover:bg-black/50 text-white border border-white/25 rounded-full px-3 py-1.5 text-[10px] font-semibold backdrop-blur-md transition-all cursor-pointer shadow-sm"
+            title="Ganti tampilan visual latar belakang"
+          >
+            {visualMode === 'video' ? (
+              <>
+                <Video className="w-3 h-3 text-[#FCE373] animate-pulse" />
+                <span>Animasi Melambai: Aktif</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3 h-3 text-[#FCE373]" />
+                <span>Potret Pekerja Extra HD</span>
+              </>
+            )}
+          </button>
+
           <div className="bg-white/15 backdrop-blur-md text-white rounded-full px-3.5 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-[11px] font-medium border border-white/20 shadow-sm flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#FCE373] animate-ping" />
-            <span>Portal Layanan Resmi</span>
+            <span>Portal Resmi</span>
           </div>
         </div>
       </header>
