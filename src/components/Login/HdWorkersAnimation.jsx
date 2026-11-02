@@ -39,7 +39,7 @@ export const HdWorkersAnimation = () => {
         playsInline
         preload="auto"
         onLoadedData={() => setIsPlaying(true)}
-        className="absolute inset-0 w-full h-full object-cover object-center sm:object-bottom transition-opacity duration-1000 ease-in-out"
+        className="absolute inset-0 w-full h-full object-cover object-[center_70%] sm:object-bottom transition-opacity duration-1000 ease-in-out"
         style={{
           filter: 'contrast(1.06) saturate(1.08) brightness(1.02)',
           transform: 'translateZ(0)',
