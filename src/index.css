@@ -144,44 +144,37 @@ body {
   opacity: 0;
 }
 
-/* Silky Smooth Arrow Rightward Animations for CTA Button */
-@keyframes smoothArrowSweep {
+/* Arrow animation ONLY on button click (dari kiri ke kanan, tanpa gerak saat hover) */
+@keyframes arrowClickFromLeftToRight {
   0% {
-    transform: translateX(-7px);
-    opacity: 0;
+    transform: translateX(0);
   }
-  30% {
-    transform: translateX(-1px);
-    opacity: 0.9;
+  40% {
+    transform: translateX(8px);
   }
-  60% {
-    transform: translateX(1px);
-    opacity: 1;
+  70% {
+    transform: translateX(8px);
   }
   100% {
-    transform: translateX(8px);
-    opacity: 0;
+    transform: translateX(0);
   }
 }
 
-@keyframes smoothArrowGlide {
-  0% {
-    transform: translateX(0);
+@keyframes arrowLoadingHold {
+  0%, 100% {
+    transform: translateX(4px);
   }
   50% {
-    transform: translateX(5px);
-  }
-  100% {
-    transform: translateX(0);
+    transform: translateX(8px);
   }
 }
 
-.animate-arrow-sweep {
-  animation: smoothArrowSweep 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+.animate-arrow-click-right {
+  animation: arrowClickFromLeftToRight 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) 1;
 }
 
-.animate-arrow-glide {
-  animation: smoothArrowGlide 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+.animate-arrow-loading {
+  animation: arrowLoadingHold 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

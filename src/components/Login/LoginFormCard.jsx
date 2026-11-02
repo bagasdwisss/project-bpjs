@@ -225,14 +225,16 @@ export const LoginFormCard = ({
               className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 relative overflow-hidden z-10 ${
                 isClicked || loading
                   ? 'bg-[#FCE373] text-[#121214] translate-x-1 shadow-sm'
-                  : 'bg-white/15 text-white group-hover:bg-[#FCE373] group-hover:text-[#121214] group-hover:translate-x-0.5'
+                  : 'bg-white/15 text-white'
               }`}
             >
               <ArrowRight
                 className={`w-4 h-4 transition-transform duration-300 ${
-                  loading || isClicked
-                    ? 'animate-arrow-sweep text-[#121214]'
-                    : 'text-white group-hover:text-[#121214] group-hover:translate-x-1 group-active:translate-x-2'
+                  loading
+                    ? 'animate-arrow-loading text-[#121214]'
+                    : isClicked
+                      ? 'animate-arrow-click-right text-[#121214]'
+                      : 'text-white'
                 }`}
               />
             </div>
