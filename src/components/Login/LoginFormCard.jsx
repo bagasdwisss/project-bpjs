@@ -26,6 +26,12 @@ export const LoginFormCard = ({
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotTip, setShowForgotTip] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
+
+  const handleButtonClick = () => {
+    setIsClicked(true);
+    setTimeout(() => setIsClicked(false), 850);
+  };
 
   return (
     <div className="w-full max-w-[400px] mx-auto">
@@ -36,16 +42,12 @@ export const LoginFormCard = ({
         <div className="absolute -top-16 -right-16 w-36 h-36 bg-[#008F4C]/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-[#367C52]/20 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Card Header */}
+        {/* Card Header (Tanpa tulisan portal masuk resmi) */}
         <div className="mb-4 text-left">
-          <div className="inline-flex items-center gap-1.5 bg-[#E8F5E9] border border-[#008F4C]/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#0C371E] mb-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#008F4C] animate-pulse"></span>
-            <span>Portal Masuk Resmi</span>
-          </div>
           <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight font-heading leading-tight">
             Selamat Datang
           </h2>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="text-xs text-neutral-500 mt-1">
             Masukkan akun terdaftar Anda untuk melanjutkan
           </p>
         </div>
@@ -101,7 +103,13 @@ export const LoginFormCard = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-left relative z-10">
+        <form 
+          onSubmit={(e) => {
+            handleButtonClick();
+            handleSubmit(e);
+          }} 
+          className="space-y-3.5 text-left relative z-10"
+        >
           {/* Email / NIK / Nomor Kepesertaan (KPJ) */}
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -199,18 +207,34 @@ export const LoginFormCard = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 bg-[#080B09] hover:bg-neutral-900 active:scale-[0.99] disabled:opacity-60 text-white font-bold py-3 sm:py-3.5 px-5 rounded-full shadow-lg shadow-black/20 hover:shadow-xl transition-all duration-200 flex items-center justify-between group cursor-pointer"
+            onClick={handleButtonClick}
+            className={`w-full mt-2 bg-[#080B09] hover:bg-neutral-900 active:scale-[0.98] disabled:opacity-85 text-white font-bold py-3 sm:py-3.5 px-5 rounded-full shadow-lg shadow-black/20 hover:shadow-xl transition-all duration-300 flex items-center justify-between group cursor-pointer relative overflow-hidden select-none ${
+              isClicked || loading ? 'ring-2 ring-emerald-500/50 shadow-emerald-950/20' : ''
+            }`}
           >
-            <span className="text-xs sm:text-sm tracking-wide font-heading font-extrabold pl-1">
+            {/* Subtle glow / light sweep when clicked */}
+            {(isClicked || loading) && (
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+            )}
+
+            <span className="text-xs sm:text-sm tracking-wide font-heading font-extrabold pl-1 transition-all duration-300 relative z-10">
               {loading ? 'Memverifikasi Akun...' : 'Masuk Sekarang'}
             </span>
 
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/15 group-hover:bg-[#FCE373] group-hover:text-[#121214] flex items-center justify-center transition-all duration-200 shrink-0">
-              {loading ? (
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <ArrowRight className="w-4 h-4 text-white group-hover:text-[#121214] group-hover:translate-x-0.5 transition-transform" />
-              )}
+            <div 
+              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 relative overflow-hidden z-10 ${
+                isClicked || loading
+                  ? 'bg-[#FCE373] text-[#121214] translate-x-1 shadow-sm'
+                  : 'bg-white/15 text-white group-hover:bg-[#FCE373] group-hover:text-[#121214] group-hover:translate-x-0.5'
+              }`}
+            >
+              <ArrowRight
+                className={`w-4 h-4 transition-transform duration-300 ${
+                  loading || isClicked
+                    ? 'animate-arrow-sweep text-[#121214]'
+                    : 'text-white group-hover:text-[#121214] group-hover:translate-x-1 group-active:translate-x-2'
+                }`}
+              />
             </div>
           </button>
         </form>
