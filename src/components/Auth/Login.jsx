@@ -2,10 +2,10 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { Navbar } from '../Login/Navbar';
-import { FeatureIcons } from '../Login/FeatureIcons';
 import { LoginFormCard } from '../Login/LoginFormCard';
 import { HdWorkersAnimation } from '../Login/HdWorkersAnimation';
 import PageLoader from '../Common/PageLoader';
+import { ShieldCheck, Sparkles } from 'lucide-react';
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -85,58 +85,76 @@ const Login = () => {
 
   return (
     <div 
-      className="relative min-h-[100svh] w-full bg-[#2E7047] text-white overflow-x-hidden overflow-y-auto flex flex-col justify-between select-none"
+      className="relative min-h-[100svh] w-full bg-[#2E7047] text-white overflow-x-hidden overflow-y-auto lg:overflow-hidden flex flex-col justify-between select-none"
       style={{ fontFamily: "var(--font-body, Inter, sans-serif)" }}
     >
-      {/* 04. BACKGROUND VIDEO & ADULT WORKERS ANIMATION (BPJSTK VIDEO.mp4 FROM ASSETS) */}
+      {/* 04. BACKGROUND VIDEO: ASSET VIDEO ASLI DARI FOLDER ASSETS (BPJSTK VIDEO.mp4) */}
       <HdWorkersAnimation />
 
-      {/* 05. NAVBAR WITH OFFICIAL BPJS KETENAGAKERJAAN LOGO */}
+      {/* 05. NAVBAR WITH OFFICIAL BPJS KETENAGAKERJAAN LOGO (Tanpa link program perlindungan) */}
       <Navbar />
 
-      {/* 06. LOGIN HERO CONTENT & INTEGRATED LOGIN FORM CARD */}
-      <main className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-20 sm:pt-24 pb-16 sm:pb-24 flex-1 flex flex-col items-center justify-start text-center">
-        {/* A. FIVE PROTECTION PROGRAM ICONS (FEATURE ICON ROW) */}
-        <div className="mb-2 sm:mb-2.5 animate-hero-icons">
-          <FeatureIcons />
-        </div>
+      {/* 06. MAIN CONTENT: 2-COLUMN LAYOUT (Tagline di kiri, Form Login di kanan) */}
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-24 sm:pt-28 pb-10 sm:pb-16 flex-1 flex flex-col justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          
+          {/* LEFT COLUMN: BRANDING & OFFICIAL TAGLINE */}
+          <div className="lg:col-span-7 text-left text-white space-y-4 sm:space-y-6">
+            
+            {/* Tagline Badge */}
+            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-bold text-white shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-[#FCE373] animate-ping" />
+              <span>Portal Resmi Layanan & Magang Terpadu</span>
+            </div>
 
-        {/* B. MAIN HEADLINE (OFFICIAL TAGLINE) */}
-        <h1 
-          className="text-white uppercase font-extrabold tracking-[-0.04em] leading-[1.08] max-w-[760px] text-center drop-shadow-md animate-hero-headline"
-          style={{ 
-            fontFamily: "var(--font-heading)",
-            fontSize: 'clamp(28px, 4.4vw, 46px)'
-          }}
-        >
-          Kerja Keras <br className="hidden sm:inline" />
-          <span className="text-[#FCE373]">Bebas Cemas</span>
-        </h1>
+            {/* MAIN HEADLINE */}
+            <h1 
+              className="text-white uppercase font-extrabold tracking-[-0.04em] leading-[1.08] drop-shadow-md text-3xl sm:text-4xl md:text-5xl lg:text-6xl"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              Kerja Keras <br className="hidden sm:inline" />
+              <span className="text-[#FCE373]">Bebas Cemas</span>
+            </h1>
 
-        {/* C. SUBHEADING */}
-        <p className="text-white/90 text-[11px] sm:text-xs font-normal leading-[1.6] max-w-[520px] mt-2 mb-3.5 sm:mb-4 text-center animate-hero-subheading drop-shadow-sm">
-          Perlindungan jaminan sosial ketenagakerjaan yang menyeluruh bagi seluruh pekerja Indonesia. Masuk untuk mengakses layanan Anda.
-        </p>
+            {/* SUBHEADING */}
+            <p className="text-white/90 text-sm sm:text-base font-normal leading-relaxed max-w-xl drop-shadow-sm">
+              Perlindungan jaminan sosial ketenagakerjaan yang menyeluruh bagi seluruh insan pekerja Indonesia. Masuk ke portal resmi untuk mengakses layanan presensi, capaian kinerja, dan pelaporan terpadu.
+            </p>
 
-        {/* D. INTEGRATED LOGIN CARD (NO AKES CEPAT PENGUJIAN) */}
-        <div className="w-full flex justify-center animate-hero-form">
-          <LoginFormCard
-            uniqueId={uniqueId}
-            setUniqueId={setUniqueId}
-            password={password}
-            setPassword={setPassword}
-            roleDetected={roleDetected}
-            loading={loading}
-            formError={formError || error}
-            reason={reason}
-            handleSubmit={handleSubmit}
-            handleUniqueIdChange={handleUniqueIdChange}
-          />
+            {/* Trust Indicators */}
+            <div className="pt-2 flex flex-wrap gap-2.5 sm:gap-3 text-xs">
+              <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-2xl text-white/95 shadow-sm">
+                <ShieldCheck className="w-4 h-4 text-[#FCE373]" />
+                <span className="font-semibold">Otentikasi Aman SSL 256-Bit</span>
+              </div>
+              <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-2xl text-white/95 shadow-sm">
+                <Sparkles className="w-4 h-4 text-[#FCE373]" />
+                <span className="font-semibold">Layanan Terintegrasi BPJSTK</span>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: LOGIN FORM CARD (Berada di sisi kanan layar) */}
+          <div className="lg:col-span-5 w-full flex justify-center lg:justify-end animate-hero-form">
+            <LoginFormCard
+              uniqueId={uniqueId}
+              setUniqueId={setUniqueId}
+              password={password}
+              setPassword={setPassword}
+              roleDetected={roleDetected}
+              loading={loading}
+              formError={formError || error}
+              reason={reason}
+              handleSubmit={handleSubmit}
+              handleUniqueIdChange={handleUniqueIdChange}
+            />
+          </div>
+
         </div>
       </main>
 
-      {/* Spacer to preserve bottom crowd headroom */}
-      <div className="relative z-10 w-full h-8 sm:h-12 pointer-events-none" />
+      {/* Subtle bottom spacing */}
+      <div className="relative z-10 w-full h-4 sm:h-6 pointer-events-none" />
     </div>
   );
 };

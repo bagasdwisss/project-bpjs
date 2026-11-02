@@ -1,36 +1,9 @@
 import React, { useState } from 'react';
-import { PhoneCall, HelpCircle, X, Shield, Smartphone, Info, Headphones } from 'lucide-react';
+import { PhoneCall, X, Shield, HelpCircle } from 'lucide-react';
 import BpjsLogo from './BpjsLogo';
 
 export const Navbar = () => {
-  const [activeModal, setActiveModal] = useState(null);
-
-  const navLinks = [
-    { 
-      id: 'program', 
-      label: 'Program Perlindungan',
-      title: '5 Program Perlindungan BPJS Ketenagakerjaan',
-      content: 'BPJS Ketenagakerjaan menyelenggarakan 5 program jaminan sosial: Jaminan Kecelakaan Kerja (JKK), Jaminan Kematian (JKM), Jaminan Hari Tua (JHT), Jaminan Pensiun (JP), dan Jaminan Kehilangan Pekerjaan (JKP).'
-    },
-    { 
-      id: 'jmo', 
-      label: 'Layanan Digital (JMO)',
-      title: 'Aplikasi JMO (Jamsostek Mobile)',
-      content: 'Aplikasi resmi dari BPJS Ketenagakerjaan untuk mempermudah pengecekan saldo JHT, klaim online, pengkinian data, hingga pendaftaran peserta baru langsung dari ponsel Anda.'
-    },
-    { 
-      id: 'info', 
-      label: 'Informasi Kepesertaan',
-      title: 'Kategori Kepesertaan',
-      content: 'Terbuka untuk Penerima Upah (PU), Bukan Penerima Upah (BPU/Freelance/Mandiri), Pekerja Jasa Konstruksi (Jakon), dan Pekerja Migran Indonesia (PMI).'
-    },
-    { 
-      id: 'bantuan', 
-      label: 'Bantuan & Kontak',
-      title: 'Pusat Bantuan & Layanan Resmi',
-      content: 'Hubungi Call Center 175 (bebas pulsa dari nomor PSTN) atau WhatsApp resmi +62 813-8007-0175. Kami siap melayani Anda 24 jam.'
-    }
-  ];
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   return (
     <>
@@ -41,27 +14,10 @@ export const Navbar = () => {
             <BpjsLogo inverted={true} />
           </div>
 
-          {/* CENTER: Navigation Links (Desktop/Tablet) */}
-          <nav className="hidden lg:flex items-center gap-1.5 bg-black/20 hover:bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/15 shadow-sm transition-all">
-            {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => setActiveModal(link)}
-                className="px-3.5 py-1 text-xs font-semibold text-white/90 hover:text-white hover:bg-white/15 rounded-full transition-all cursor-pointer"
-              >
-                {link.label}
-              </button>
-            ))}
-          </nav>
-
           {/* RIGHT: Status / Help Badge */}
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => setActiveModal({
-                id: '175',
-                title: 'Layanan Resmi BPJS Ketenagakerjaan',
-                content: 'Layanan Tanya BPJSTK tersedia 24 jam melalui Call Center 175, aplikasi JMO, atau Kantor Cabang terdekat di seluruh Indonesia.'
-              })}
+              onClick={() => setShowHelpModal(true)}
               className="group flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/90 hover:bg-white text-[#0C371E] hover:text-[#008F4C] backdrop-blur-md border border-white/60 shadow-md shadow-black/10 transition-all duration-200 cursor-pointer active:scale-95"
             >
               <span className="relative flex h-2 w-2">
@@ -77,41 +33,55 @@ export const Navbar = () => {
         </div>
       </header>
 
-      {/* Info Modal */}
-      {activeModal && (
+      {/* Help Modal */}
+      {showHelpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-emerald-100 relative">
+          <div 
+            className="absolute inset-0" 
+            onClick={() => setShowHelpModal(false)} 
+          />
+          <div className="relative bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-neutral-100 z-10 animate-in zoom-in-95 duration-200 text-left">
             <button
-              onClick={() => setActiveModal(null)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer"
+              onClick={() => setShowHelpModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-[#008F4C] flex items-center justify-center">
-                {activeModal.id === 'program' && <Shield className="w-5 h-5" />}
-                {activeModal.id === 'jmo' && <Smartphone className="w-5 h-5" />}
-                {activeModal.id === 'info' && <Info className="w-5 h-5" />}
-                {(activeModal.id === 'bantuan' || activeModal.id === '175') && <Headphones className="w-5 h-5" />}
-              </div>
-              <h3 className="text-base font-extrabold text-neutral-900 font-heading">
-                {activeModal.title}
-              </h3>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4 text-[#008F4C]">
+              <PhoneCall className="w-6 h-6" />
             </div>
 
-            <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed font-body">
-              {activeModal.content}
+            <h3 className="text-lg font-bold text-neutral-900 font-heading mb-2">
+              Layanan Resmi BPJS Ketenagakerjaan
+            </h3>
+            <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed mb-5">
+              Layanan Tanya BPJSTK tersedia 24 jam melalui Call Center 175, aplikasi JMO, atau Kantor Cabang terdekat di seluruh Indonesia.
             </p>
 
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setActiveModal(null)}
-                className="px-5 py-2 rounded-full bg-[#008F4C] hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
-              >
-                Mengerti
-              </button>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-neutral-50 border border-neutral-200/60">
+                <PhoneCall className="w-4 h-4 text-[#008F4C] shrink-0" />
+                <div className="text-xs">
+                  <p className="font-bold text-neutral-800">Call Center 175</p>
+                  <p className="text-neutral-500">Bebas pulsa dari seluruh operator PSTN / ponsel</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-neutral-50 border border-neutral-200/60">
+                <Shield className="w-4 h-4 text-[#008F4C] shrink-0" />
+                <div className="text-xs">
+                  <p className="font-bold text-neutral-800">WhatsApp Resmi</p>
+                  <p className="text-neutral-500">+62 813-8007-0175 (Chat Assistant)</p>
+                </div>
+              </div>
             </div>
+
+            <button
+              onClick={() => setShowHelpModal(false)}
+              className="w-full mt-5 py-2.5 bg-[#080B09] hover:bg-neutral-900 text-white rounded-full text-xs font-bold transition-all cursor-pointer"
+            >
+              Tutup
+            </button>
           </div>
         </div>
       )}
