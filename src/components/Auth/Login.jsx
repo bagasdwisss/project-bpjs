@@ -121,15 +121,19 @@ const Login = () => {
               Perlindungan jaminan sosial ketenagakerjaan yang menyeluruh bagi seluruh insan pekerja Indonesia. Masuk ke portal resmi untuk mengakses layanan presensi, capaian kinerja, dan pelaporan terpadu.
             </p>
 
-            {/* Trust Indicators (Hidden on very narrow mobile to keep form visible without endless scroll) */}
-            <div className="hidden sm:flex flex-wrap gap-2.5 sm:gap-3 text-xs justify-center md:justify-start pt-1">
-              <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-2xl text-white/95 shadow-sm">
-                <ShieldCheck className="w-4 h-4 text-[#FCE373] shrink-0" />
-                <span className="font-semibold">Otentikasi Aman SSL 256-Bit</span>
+            {/* Trust Indicators: Selalu berdampingan kanan-kiri (horizontal flex-row) di seluruh device */}
+            <div className="flex flex-row items-center justify-center md:justify-start gap-2 sm:gap-3 pt-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 bg-black/35 backdrop-blur-md border border-white/20 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-2xl text-white/95 shadow-sm whitespace-nowrap shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FCE373] shrink-0" />
+                <span className="font-semibold text-[10px] sm:text-xs">
+                  Otentikasi Aman SSL<span className="hidden sm:inline"> 256-Bit</span>
+                </span>
               </div>
-              <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-2xl text-white/95 shadow-sm">
-                <Sparkles className="w-4 h-4 text-[#FCE373] shrink-0" />
-                <span className="font-semibold">Layanan Terintegrasi BPJSTK</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 bg-black/35 backdrop-blur-md border border-white/20 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-2xl text-white/95 shadow-sm whitespace-nowrap shrink-0">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FCE373] shrink-0" />
+                <span className="font-semibold text-[10px] sm:text-xs">
+                  Layanan Terintegrasi<span className="hidden sm:inline"> BPJSTK</span>
+                </span>
               </div>
             </div>
           </div>
