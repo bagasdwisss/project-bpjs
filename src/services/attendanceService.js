@@ -76,6 +76,81 @@ const attendanceService = {
         error: error.response?.data?.error || error.message
       };
     }
+  },
+
+  // Coordinator: Get all mentees' attendance history with filtering
+  getCoordinatorMenteeAttendance: async (params = {}) => {
+    try {
+      const response = await api.get('/attendance/coordinator/mentees', { params });
+      return {
+        success: true,
+        data: response.data?.data || []
+      };
+    } catch (error) {
+      console.error('Error fetching coordinator mentees attendance:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Gagal memuat riwayat presensi anak didik',
+        data: []
+      };
+    }
+  },
+
+  // Coordinator: Verify or update mentee attendance status
+  verifyAttendanceRecord: async (attendanceId, payload) => {
+    try {
+      const response = await api.put(`/attendance/coordinator/verify/${attendanceId}`, payload);
+      return {
+        success: true,
+        message: response.data?.message || 'Status presensi berhasil diverifikasi.',
+        data: response.data?.data
+      };
+    } catch (error) {
+      console.error('Error verifying attendance record:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Gagal memperbarui status presensi.'
+      };
+    }
+  },
+
+  // Coordinator / Admin: Get mentee leave requests
+  getMenteeLeaves: async () => {
+    try {
+      const response = await api.get('/leaves');
+      return {
+        success: true,
+        data: response.data?.data || []
+      };
+    } catch (error) {
+      console.error('Error fetching mentee leaves:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Gagal memuat pengajuan izin anak didik.',
+        data: []
+      };
+    }
+  },
+
+  // Coordinator / Admin: Review leave request (Approve / Reject)
+  reviewLeaveRequest: async (leaveId, status, rejectionReason = '') => {
+    try {
+      const response = await api.put(`/leaves/${leaveId}/status`, {
+        status,
+        rejection_reason: rejectionReason
+      });
+      return {
+        success: true,
+        message: response.data?.message || 'Status perizinan berhasil diproses.',
+        data: response.data?.data
+      };
+    } catch (error) {
+      console.error('Error reviewing leave request:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Gagal memproses perizinan.'
+      };
+    }
   }
 };
 

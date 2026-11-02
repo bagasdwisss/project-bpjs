@@ -585,6 +585,132 @@ router.get('/participant/:id', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/attendance/coordinator/mentees
+ * Riwayat lengkap presensi anak didik di bawah koordinator yang sedang login
+ * Mendukung filter: month, year, user_id, status
+ */
+router.get(['/coordinator/mentees', '/mentees'], authenticateToken, async (req, res) => {
+  try {
+    const isCoordinator = req.user.role === 'Koordinator' || req.user.role_id === 2;
+    const isAdmin = req.user.role === 'Administrator' || req.user.role_id === 3;
+
+    if (!isCoordinator && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses dilarang. Hanya Koordinator dan Administrator yang berhak mengakses data presensi anak didik.'
+      });
+    }
+
+    const { month, year, user_id, status } = req.query;
+
+    let sql = `
+      SELECT a.attendance_id, a.user_id, a.attendance_date, a.check_in_time, a.status, a.notes,
+             a.location_coordinates, a.location_address, a.created_at,
+             a.selfie_image_url, a.distance_meters, a.is_mock_location,
+             u.full_name, u.unique_id, u.penempatan,
+             COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email,
+             g.name as geofence_name
+      FROM attendance_records a
+      JOIN users u ON a.user_id = u.user_id
+      LEFT JOIN geofence_locations g ON a.geofence_id = g.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    // Filter by coordinator if not admin
+    if (isCoordinator) {
+      params.push(req.user.user_id);
+      sql += ` AND u.coordinator_id = $${params.length}`;
+    }
+
+    if (user_id && user_id !== 'all') {
+      params.push(parseInt(user_id, 10));
+      sql += ` AND a.user_id = $${params.length}`;
+    }
+
+    if (month && year) {
+      params.push(parseInt(month, 10));
+      sql += ` AND EXTRACT(MONTH FROM a.attendance_date) = $${params.length}`;
+      params.push(parseInt(year, 10));
+      sql += ` AND EXTRACT(YEAR FROM a.attendance_date) = $${params.length}`;
+    }
+
+    if (status && status !== 'all') {
+      params.push(status);
+      sql += ` AND a.status = $${params.length}`;
+    }
+
+    sql += ` ORDER BY a.attendance_date DESC, a.check_in_time DESC`;
+
+    const result = await query(sql, params);
+
+    return res.json({
+      success: true,
+      data: result.rows,
+      total: result.rows.length
+    });
+  } catch (error) {
+    console.error('Error fetching coordinator mentee attendance:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * PUT /api/attendance/coordinator/verify/:id
+ * Koordinator memverifikasi atau menyesuaikan status presensi anak didik
+ */
+router.put(['/coordinator/verify/:id', '/verify/:id'], authenticateToken, async (req, res) => {
+  try {
+    const isCoordinator = req.user.role === 'Koordinator' || req.user.role_id === 2;
+    const isAdmin = req.user.role === 'Administrator' || req.user.role_id === 3;
+
+    if (!isCoordinator && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang.' });
+    }
+
+    const { id } = req.params;
+    const { status, notes } = req.body;
+
+    if (isCoordinator) {
+      const check = await query(`
+        SELECT a.attendance_id 
+        FROM attendance_records a
+        JOIN users u ON a.user_id = u.user_id
+        WHERE a.attendance_id = $1 AND u.coordinator_id = $2
+      `, [id, req.user.user_id]);
+
+      if (check.rows.length === 0) {
+        return res.status(403).json({ success: false, message: 'Akses ditolak. Catatan ini bukan milik anak didik Anda.' });
+      }
+    }
+
+    let updateSql = `UPDATE attendance_records SET `;
+    const updates = [];
+    const params = [id];
+
+    if (status) {
+      params.push(status);
+      updates.push(`status = $${params.length}`);
+    }
+    if (notes !== undefined) {
+      params.push(notes);
+      updates.push(`notes = $${params.length}`);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada perubahan yang dikirim.' });
+    }
+
+    updateSql += updates.join(', ') + ` WHERE attendance_id = $1 RETURNING *`;
+    const result = await query(updateSql, params);
+
+    return res.json({ success: true, message: 'Status kehadiran berhasil diperbarui.', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * POST /api/attendance/trigger-auto-absence
  * Admin / Coordinator manual trigger for auto-absence cutoff evaluation
  */

@@ -38,7 +38,7 @@ const CoordinatorCertificates = lazyRetry(() => import('./components/Coordinator
 const CoordinatorForum = lazyRetry(() => import('./components/Coordinator/Forum'));
 const CoordinatorReminders = lazyRetry(() => import('./components/Coordinator/Reminders'));
 const CoordinatorBpuAcquisitions = lazyRetry(() => import('./components/Coordinator/BpuAcquisitions'));
-const CoordinatorPresenceRadar = lazyRetry(() => import('./pages/PresenceRadarPage'));
+const CoordinatorMenteeAttendance = lazyRetry(() => import('./pages/MenteeAttendancePage'));
 
 // Admin Components (Lazy Loaded with Auto-Retry on Stale Chunks)
 const AdminDashboard = lazyRetry(() => import('./components/Admin/Dashboard'));
@@ -135,9 +135,19 @@ function App() {
                 <CoordinatorDashboard />
               </ProtectedRoute>
             } />
+            <Route path="/coordinator/mentee-attendance" element={
+              <ProtectedRoute allowedRoles={['Koordinator', 'Administrator']}>
+                <CoordinatorMenteeAttendance />
+              </ProtectedRoute>
+            } />
             <Route path="/coordinator/presence-radar" element={
-              <ProtectedRoute allowedRoles={['Koordinator']}>
-                <CoordinatorPresenceRadar />
+              <ProtectedRoute allowedRoles={['Koordinator', 'Administrator']}>
+                <CoordinatorMenteeAttendance />
+              </ProtectedRoute>
+            } />
+            <Route path="/coordinator/attendance" element={
+              <ProtectedRoute allowedRoles={['Koordinator', 'Administrator']}>
+                <CoordinatorMenteeAttendance />
               </ProtectedRoute>
             } />
             <Route path="/coordinator/participants" element={

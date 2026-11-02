@@ -54,7 +54,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { path: '/coordinator/analysis', icon: BarChart3, label: 'Analisis Metrik' },
         ],
         tools: [
-          { path: '/coordinator/presence-radar', icon: Radio, label: 'Radar Presensi Live' },
+          { path: '/coordinator/mentee-attendance', icon: ClipboardList, label: 'Absensi Anak Didik' },
           { path: '/coordinator/calendar', icon: Calendar, label: 'Agenda & Jadwal' },
           { path: '/coordinator/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
           { path: '/coordinator/reminders', icon: Bell, label: 'Pengingat' },
@@ -116,7 +116,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           );
         }
 
-        const isActive = location.pathname === item.path;
+        const isActive = location.pathname === item.path || 
+          (item.path === '/coordinator/mentee-attendance' && (location.pathname === '/coordinator/presence-radar' || location.pathname === '/coordinator/attendance'));
 
         return (
           <li key={item.path}>

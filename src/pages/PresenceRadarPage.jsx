@@ -1,12 +1,12 @@
 import React from 'react';
 import Layout from '../components/Layout/Layout';
-import PresenceRadar from '../components/Coordinator/PresenceRadar';
+import MenteeAttendance from '../components/Coordinator/MenteeAttendance';
 
 export default function PresenceRadarPage() {
   return (
-    <Layout title="Live Presence Radar Lapangan">
-      <div className="max-w-5xl mx-auto py-6 px-4">
-        <PresenceRadar />
+    <Layout title="Absensi Anak Didik">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6">
+        <MenteeAttendance />
       </div>
     </Layout>
   );
