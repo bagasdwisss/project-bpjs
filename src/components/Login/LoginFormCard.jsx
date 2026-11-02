@@ -203,40 +203,34 @@ export const LoginFormCard = ({
             )}
           </div>
 
-          {/* Primary Submit Button: Signature Dark Forest Pill CTA (#080B09) */}
+          {/* Primary Submit Button: Fill sweep dari kiri batas abis button ke kanan dengan arrow */}
           <button
             type="submit"
             disabled={loading}
             onClick={handleButtonClick}
-            className={`w-full mt-2 bg-[#080B09] hover:bg-neutral-900 active:scale-[0.98] disabled:opacity-85 text-white font-bold py-3 sm:py-3.5 px-5 rounded-full shadow-lg shadow-black/20 hover:shadow-xl transition-all duration-300 flex items-center justify-between group cursor-pointer relative overflow-hidden select-none ${
-              isClicked || loading ? 'ring-2 ring-emerald-500/50 shadow-emerald-950/20' : ''
-            }`}
+            className="group relative w-full mt-2 h-12 sm:h-13 bg-[#080B09] active:scale-[0.98] disabled:opacity-85 text-white font-extrabold rounded-full shadow-lg shadow-black/20 hover:shadow-xl transition-all duration-300 flex items-center justify-center overflow-hidden cursor-pointer select-none border border-white/10"
           >
-            {/* Subtle glow / light sweep when clicked */}
-            {(isClicked || loading) && (
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
-            )}
+            {/* 1. Background Fill Sweep Layer (Sesuai snippet: width 0% -> 100% dari kiri ke kanan) */}
+            <span 
+              className={`absolute inset-0 bg-gradient-to-r from-[#007A40] to-[#008F4C] rounded-full transition-all duration-500 ease-out z-0 pointer-events-none ${
+                isClicked || loading ? 'w-full' : 'w-0 group-hover:w-full'
+              }`}
+            />
 
-            <span className="text-xs sm:text-sm tracking-wide font-heading font-extrabold pl-1 transition-all duration-300 relative z-10">
+            {/* 2. Centered Button Label */}
+            <span className="relative z-10 text-xs sm:text-sm font-heading font-extrabold tracking-wider uppercase transition-colors duration-300 px-10 truncate text-white drop-shadow-xs">
               {loading ? 'Memverifikasi Akun...' : 'Masuk Sekarang'}
             </span>
 
+            {/* 3. Traveling Arrow: Dimulai dari kiri batas abis button (left-2.5) meluncur ke kanan (left-[calc(100%-40px)]) */}
             <div 
-              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 relative overflow-hidden z-10 ${
+              className={`absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ease-out z-10 shadow-sm pointer-events-none ${
                 isClicked || loading
-                  ? 'bg-[#FCE373] text-[#121214] translate-x-1 shadow-sm'
-                  : 'bg-white/15 text-white'
+                  ? 'left-[calc(100%-40px)] bg-[#FCE373] text-[#121214] scale-105'
+                  : 'left-2 sm:left-2.5 bg-white/20 text-white group-hover:left-[calc(100%-40px)] group-hover:bg-[#FCE373] group-hover:text-[#121214] group-hover:scale-105'
               }`}
             >
-              <ArrowRight
-                className={`w-4 h-4 transition-transform duration-300 ${
-                  loading
-                    ? 'animate-arrow-loading text-[#121214]'
-                    : isClicked
-                      ? 'animate-arrow-click-right text-[#121214]'
-                      : 'text-white'
-                }`}
-              />
+              <ArrowRight className="w-4 h-4 transition-transform duration-300" />
             </div>
           </button>
         </form>

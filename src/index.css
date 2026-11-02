@@ -144,39 +144,6 @@ body {
   opacity: 0;
 }
 
-/* Arrow animation ONLY on button click (dari kiri ke kanan, tanpa gerak saat hover) */
-@keyframes arrowClickFromLeftToRight {
-  0% {
-    transform: translateX(0);
-  }
-  40% {
-    transform: translateX(8px);
-  }
-  70% {
-    transform: translateX(8px);
-  }
-  100% {
-    transform: translateX(0);
-  }
-}
-
-@keyframes arrowLoadingHold {
-  0%, 100% {
-    transform: translateX(4px);
-  }
-  50% {
-    transform: translateX(8px);
-  }
-}
-
-.animate-arrow-click-right {
-  animation: arrowClickFromLeftToRight 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) 1;
-}
-
-.animate-arrow-loading {
-  animation: arrowLoadingHold 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-hero-nav,
   .animate-hero-icons,
