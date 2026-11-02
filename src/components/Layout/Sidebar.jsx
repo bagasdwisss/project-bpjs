@@ -50,7 +50,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { path: '/coordinator/dashboard', icon: Home, label: 'Dashboard' },
           { path: '/coordinator/participants', icon: Users, label: 'Data Peserta' },
           { path: '/coordinator/bpu-acquisitions', icon: Database, label: 'Akuisisi BPU' },
-          { path: '/coordinator/grading', icon: Award, label: 'Penilaian' },
+          { path: '/coordinator/grading', icon: Award, label: 'Penilaian Peserta' },
+          { path: '/coordinator/certificates', icon: FileText, label: 'Sertifikat Magang' },
           { path: '/coordinator/analysis', icon: BarChart3, label: 'Analisis Metrik' },
         ],
         tools: [
@@ -67,6 +68,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         { path: '/participant/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/participant/id-card', icon: ShieldCheck, label: 'ID Card Digital' },
         { path: '/participant/attendance', icon: ClipboardList, label: 'Absensi Harian' },
+        { path: '/participant/scores', icon: Award, label: 'Nilai & Sertifikat' },
         { path: '/participant/calendar', icon: Calendar, label: 'Jadwal & Kalender' },
         { path: '/participant/progress', icon: TrendingUp, label: 'Progress Saya' },
         { path: '/participant/acquisition-result', icon: Database, label: 'Akuisisi BPU' },

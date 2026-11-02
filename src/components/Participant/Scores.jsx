@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
 import { 
   Award, TrendingUp, FileText, Calendar, 
-  Filter, Download, BarChart3, Target, AlertCircle
+  Filter, Download, BarChart3, Target, AlertCircle,
+  CheckCircle2, Sparkles, ExternalLink, ShieldCheck, QrCode
 } from 'lucide-react';
 import api from '../../services/api';
 import { StatRowSkeleton, TableSkeleton } from '../Common/Skeleton';
@@ -16,6 +18,7 @@ const Scores = () => {
   const [selectedModule, setSelectedModule] = useState('all');
   const [scores, setScores] = useState([]);
   const [modules, setModules] = useState([]);
+  const [certificate, setCertificate] = useState(null);
 
   const scoreTypes = [
     { value: 'all', label: 'Semua Tipe' },
@@ -62,6 +65,16 @@ const Scores = () => {
       // Ekstrak modul unik dari data
       const uniqueModules = [...new Set(transformedScores.map(score => score.module))];
       setModules(['all', ...uniqueModules]);
+
+      // Ambil data sertifikat jika sudah diterbitkan
+      try {
+        const certRes = await api.get('/certificates/my');
+        if (certRes.data?.success && certRes.data?.data) {
+          setCertificate(certRes.data.data);
+        }
+      } catch (cErr) {
+        // Belum diterbitkan
+      }
     } catch (err) {
       console.error('Error fetching score data:', err);
       setError(err.response?.data?.message || err.message || 'Gagal memuat data nilai');
@@ -177,6 +190,73 @@ const Scores = () => {
             </span>
           </div>
         </div>
+
+        {/* Sertifikat Magang BPJS Ketenagakerjaan Section */}
+        {certificate ? (
+          <div className="rounded-[24px] bg-gradient-to-r from-[#0C371E] via-[#008F4C] to-[#0C371E] text-white p-6 sm:p-7 shadow-lg shadow-emerald-950/20 relative overflow-hidden border border-emerald-400/30">
+            <div className="absolute right-0 top-0 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 bg-[#FCE373] text-[#121214] px-3 py-1 rounded-full text-xs font-black shadow-xs">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Sertifikat Resmi Telah Diterbitkan</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black font-heading tracking-tight text-white">
+                  Sertifikat Kelulusan Program Magang BPJSTK
+                </h2>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-emerald-100 font-medium pt-1">
+                  <span>No. Seri: <strong className="text-white font-mono">{certificate.certificate_number}</strong></span>
+                  <span>•</span>
+                  <span>Tanggal Terbit: <strong className="text-white">{new Date(certificate.issue_date || certificate.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>
+                  <span>•</span>
+                  <span>Predikat: <strong className="text-[#FCE373] font-extrabold">{certificate.final_grade || 'Sangat Baik (A)'}</strong></span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <Link
+                  to={`/verify-certificate/${certificate.certificate_number}`}
+                  className="px-4 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs backdrop-blur-md border border-white/30 transition-all flex items-center gap-2"
+                >
+                  <QrCode className="w-4 h-4 text-[#FCE373]" />
+                  <span>Verifikasi QR</span>
+                </Link>
+                <a
+                  href={`/api/certificates/download/${certificate.certificate_number}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-5 py-2.5 rounded-full bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Unduh Sertifikat PDF</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-[22px] bg-white border border-[#EAE9E4] p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-[#E8F5E9] border border-[#008F4C]/30 flex items-center justify-center text-[#008F4C] shrink-0">
+                <Award className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base text-neutral-900">
+                  Status Penerbitan Sertifikat Magang
+                </h3>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Sertifikat kelulusan resmi akan diterbitkan oleh Koordinator setelah seluruh modul pembelajaran dan evaluasi selesai.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-neutral-100 text-neutral-700">
+                <ShieldCheck className="w-3.5 h-3.5 text-neutral-500" />
+                Tahap Evaluasi
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* 3 Pastel Bento Metric Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
