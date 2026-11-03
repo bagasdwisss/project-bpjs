@@ -211,7 +211,7 @@ const Reminders = () => {
         </div>
 
         {/* 4 Pastel Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-[#BDD4F2]/30 rounded-[22px] border border-[#BDD4F2] p-5 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-[#121214]/70">Total Notifikasi</span>

@@ -206,7 +206,7 @@ const Documents = () => {
         </div>
 
         {/* 4 Pastel Bento Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="rounded-[22px] bg-[#FCE373] text-[#121214] p-4 sm:p-5 relative overflow-hidden shadow-sm flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#121214]/70">Total Dokumen</span>
             <div className="text-3xl font-black text-[#121214] my-1">{stats.total}</div>

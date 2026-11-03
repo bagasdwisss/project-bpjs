@@ -183,20 +183,20 @@ const AdminDashboard = () => {
               </div>
 
               {/* 3 Metric Columns */}
-              <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Peserta</p>
-                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">{stats.activeParticipants}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.activeParticipants ?? 0}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">BPU & PU</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Koordinator</p>
-                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalCoordinators}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalCoordinators ?? 0}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Pembimbing</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Admin</p>
-                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalAdmins ?? 1}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalAdmins ?? 1}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Superuser</p>
                 </div>
               </div>
@@ -239,20 +239,20 @@ const AdminDashboard = () => {
               </div>
 
               {/* 3 Metrics: AVERAGE, HADIR, TEPAT WAKTU */}
-              <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Rata-Rata Hadir</p>
-                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">94.8%</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">+3.2% bulan ini</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.attendanceRate ?? 95}%</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Bulan berjalan</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Tepat Waktu</p>
-                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">07:45 WIB</p>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Terlambat</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.terlambatCount ?? 0} Kali</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Batas 08:00 WIB</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Izin / Sakit</p>
-                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">2 Hari</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.izinSakitCount ?? 0} Hari</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Toleransi aman</p>
                 </div>
               </div>
@@ -280,33 +280,33 @@ const AdminDashboard = () => {
                   Sebaran Nilai & Grade Peserta
                 </span>
                 <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                  Status: Memuaskan
+                  Status: {stats.passRate >= 80 ? 'Memuaskan' : 'Evaluasi'}
                 </span>
               </div>
 
               {/* 3 Metrics: STABLE, FAIR, CRITICAL */}
-              <div className="grid grid-cols-3 gap-2 pb-3">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
                 <div>
-                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade A (90-100)</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">6 Peserta</p>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade A (&ge;85)</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.gradeA ?? 0} Peserta</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Sangat Baik</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade B (75-89)</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">4 Peserta</p>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade B (75-84)</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.gradeB ?? 0} Peserta</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kompeten</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade C (&lt;75)</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">1 Peserta</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.gradeC ?? 0} Peserta</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Perlu Bimbingan</p>
                 </div>
               </div>
             </div>
 
             <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
-              <span>Evaluasi Tengah Periode</span>
-              <span className="text-[#121214]/80">91% Memenuhi Standar</span>
+              <span>Evaluasi Standar Kelulusan</span>
+              <span className="text-[#121214]/80">{stats.passRate ?? 90}% Memenuhi Standar</span>
             </div>
           </div>
 
@@ -328,21 +328,21 @@ const AdminDashboard = () => {
               </div>
 
               {/* 3 Metrics: BATCH AKTIF, MODUL, DURASI */}
-              <div className="grid grid-cols-3 gap-2 pb-3">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
                 <div>
-                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Batch 1 & 2</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">24 Sesi</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">Sedang Berjalan</p>
+                  <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Batch</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalBatches ?? 1} Gelombang</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Terselenggara</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Modul Aktif</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{stats.totalModules} Modul</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalModules} Modul</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum BPJSTK</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Penempatan</p>
-                  <p className="text-xl sm:text-2xl font-black text-[#121214] mt-0.5">Kantor & Lapangan</p>
-                  <p className="text-[10px] text-[#121214]/60 font-medium">Distribusi Peserta</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.kantorCount ?? 0}K / {stats.lapanganCount ?? 0}L</p>
+                  <p className="text-[10px] text-[#121214]/60 font-medium">Kantor / Lapangan</p>
                 </div>
               </div>
             </div>

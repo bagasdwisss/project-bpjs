@@ -738,6 +738,97 @@ router.post('/ai/ask', authenticateToken, async (req, res) => {
 // =========================================================================
 
 /**
+ * Helper to fetch dynamic institutional configuration from database
+ */
+async function getInstitutionalSettings() {
+  try {
+    const res = await query(`
+      SELECT setting_key, setting_value 
+      FROM system_settings 
+      WHERE setting_key IN ('branch_head_name', 'branch_head_npp', 'branch_name', 'branch_address', 'branch_phone', 'default_coordinator_name', 'default_coordinator_npp')
+    `);
+    const map = {};
+    res.rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+    return {
+      branch_head_name: map['branch_head_name'] || 'Drs. Hendra Prayitno, M.Si.',
+      branch_head_npp: map['branch_head_npp'] || '12048591',
+      branch_name: map['branch_name'] || 'Kantor Cabang Medan Kota',
+      branch_address: map['branch_address'] || 'Jl. Patimura No. 334 Lt. 1, Medan Baru, Kota Medan',
+      branch_phone: map['branch_phone'] || '(061) 4526842',
+      default_coordinator_name: map['default_coordinator_name'] || 'Bambang Sudarmono, S.E., M.M.',
+      default_coordinator_npp: map['default_coordinator_npp'] || '18092284'
+    };
+  } catch (err) {
+    return {
+      branch_head_name: 'Drs. Hendra Prayitno, M.Si.',
+      branch_head_npp: '12048591',
+      branch_name: 'Kantor Cabang Medan Kota',
+      branch_address: 'Jl. Patimura No. 334 Lt. 1, Medan Baru, Kota Medan',
+      branch_phone: '(061) 4526842',
+      default_coordinator_name: 'Bambang Sudarmono, S.E., M.M.',
+      default_coordinator_npp: '18092284'
+    };
+  }
+}
+
+/**
+ * GET /api/admin/system/institution & /api/system/institution
+ * Get dynamic institutional configuration
+ */
+router.get(['/admin/system/institution', '/system/institution'], async (req, res) => {
+  try {
+    const config = await getInstitutionalSettings();
+    return res.json({ success: true, data: config });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/system/institution & /api/system/institution
+ * Administrator updates dynamic institutional configuration
+ */
+router.put(['/admin/system/institution', '/system/institution'], authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { 
+      branch_head_name, 
+      branch_head_npp, 
+      branch_name, 
+      branch_address, 
+      branch_phone, 
+      default_coordinator_name, 
+      default_coordinator_npp 
+    } = req.body;
+
+    const updates = [
+      ['branch_head_name', branch_head_name],
+      ['branch_head_npp', branch_head_npp],
+      ['branch_name', branch_name],
+      ['branch_address', branch_address],
+      ['branch_phone', branch_phone],
+      ['default_coordinator_name', default_coordinator_name],
+      ['default_coordinator_npp', default_coordinator_npp]
+    ];
+
+    for (const [key, val] of updates) {
+      if (val !== undefined) {
+        await query(
+          `INSERT INTO system_settings (setting_key, setting_value, updated_at, updated_by)
+           VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+           ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = CURRENT_TIMESTAMP, updated_by = EXCLUDED.updated_by`,
+          [key, String(val), req.user.user_id]
+        );
+      }
+    }
+
+    const updated = await getInstitutionalSettings();
+    return res.json({ success: true, message: 'Data pimpinan & instansi berhasil diperbarui.', data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * GET /api/certificates/my
  * Participant gets their verified e-certificate
  */
@@ -767,7 +858,14 @@ router.get('/certificates/my', authenticateToken, async (req, res) => {
       });
     }
 
-    return res.json({ success: true, data: result.rows[0] });
+    const inst = await getInstitutionalSettings();
+    return res.json({
+      success: true,
+      data: {
+        ...result.rows[0],
+        ...inst
+      }
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -798,7 +896,9 @@ router.get('/certificates/list', authenticateToken, requireRole('Koordinator', '
     sql += ` ORDER BY c.created_at DESC`;
 
     const result = await query(sql, params);
-    return res.json({ success: true, data: result.rows });
+    const inst = await getInstitutionalSettings();
+    const rows = result.rows.map(r => ({ ...r, ...inst }));
+    return res.json({ success: true, data: rows });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -975,10 +1075,13 @@ router.get('/certificates/download/:certNumber', async (req, res) => {
       year: 'numeric'
     });
 
-    const coordinatorName = cert.coordinator_name || 'Bambang Sudarmono, S.E., M.M.';
-    const coordinatorNpp = cert.coordinator_npp || '18092284';
-    const branchHeadName = 'Drs. Hendra Prayitno, M.Si.';
-    const branchHeadNpp = '12048591';
+    const inst = await getInstitutionalSettings();
+    const coordinatorName = cert.coordinator_name || inst.default_coordinator_name;
+    const coordinatorNpp = cert.coordinator_npp || inst.default_coordinator_npp;
+    const branchHeadName = inst.branch_head_name;
+    const branchHeadNpp = inst.branch_head_npp;
+    const branchName = inst.branch_name;
+    const branchAddress = inst.branch_address;
     const shaHash = cert.digital_signature_hash || cert.digital_signature || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
     const html = `<!DOCTYPE html>
@@ -1377,7 +1480,7 @@ router.get('/certificates/download/:certNumber', async (req, res) => {
         <div class="header-text">
           <h2>BPJS Ketenagakerjaan</h2>
           <p>Badan Penyelenggara Jaminan Sosial Ketenagakerjaan</p>
-          <small>Kantor Cabang Medan Kota • Jl. Patimura No. 334 Lt. 1, Medan Baru, Kota Medan</small>
+          <small>${branchName} • ${branchAddress}</small>
         </div>
       </div>
       <div class="header-right">
@@ -1400,7 +1503,7 @@ router.get('/certificates/download/:certNumber', async (req, res) => {
       </div>
 
       <p class="statement">
-        Telah berhasil menyelesaikan program <b>Praktik Kerja Lapangan / Magang Industri Terstruktur</b> pada <b>BPJS Ketenagakerjaan Kantor Cabang Medan Kota</b> (${cert.batch_name || 'Batch 1'}) dengan capaian evaluasi kompetensi akhir:
+        Telah berhasil menyelesaikan program <b>Praktik Kerja Lapangan / Magang Industri Terstruktur</b> pada <b>BPJS Ketenagakerjaan ${branchName}</b> (${cert.batch_name || 'Batch 1'}) dengan capaian evaluasi kompetensi akhir:
       </p>
 
       <div class="predicate-badge">
@@ -1457,7 +1560,7 @@ router.get('/certificates/download/:certNumber', async (req, res) => {
               </text>
               <path id="stampDn" d="M 175 100 A 75 75 0 0 1 25 100" fill="none" />
               <text font-size="9.5" font-weight="900" letter-spacing="2" fill="currentColor">
-                <textPath href="#stampDn" startOffset="50%" text-anchor="middle">CABANG MEDAN KOTA</textPath>
+                <textPath href="#stampDn" startOffset="50%" text-anchor="middle">${branchName.toUpperCase()}</textPath>
               </text>
               <polygon points="100,68 104,78 115,78 106,84 109,95 100,89 91,95 94,84 85,78 96,78" fill="currentColor" />
               <text x="100" y="112" text-anchor="middle" font-size="11" font-weight="900" letter-spacing="1" fill="currentColor">RESMI</text>

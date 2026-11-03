@@ -18,10 +18,37 @@ const MONTH_NAMES = [
 export default function MenteeAttendance() {
   const { user } = useContext(AuthContext);
 
-  // Default to current month & year (November 2026)
+  // Dynamic current date reference
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1 - 12
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const currentMonthNum = now.getMonth() + 1;
+  const currentYearNum = now.getFullYear();
+
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthNum);
+  const [selectedYear, setSelectedYear] = useState(currentYearNum);
+
+  // Dynamic quick-select periods based on real-time date
+  const dynamicPeriods = useMemo(() => {
+    const list = [];
+    for (let i = 0; i < 3; i++) {
+      let m = currentMonthNum - i;
+      let y = currentYearNum;
+      while (m < 1) {
+        m += 12;
+        y -= 1;
+      }
+      list.push({
+        month: m,
+        year: y,
+        label: i === 0 ? `${MONTH_NAMES[m - 1]} ${y} (Bulan Ini)` : `${MONTH_NAMES[m - 1]} ${y}`
+      });
+    }
+    return list;
+  }, [currentMonthNum, currentYearNum]);
+
+  // Dynamic year options
+  const availableYears = useMemo(() => {
+    return [currentYearNum, currentYearNum - 1, currentYearNum - 2];
+  }, [currentYearNum]);
   
   // Navigation Tabs: 'riwayat', 'izin', 'matriks'
   const [activeTab, setActiveTab] = useState('riwayat');
@@ -94,58 +121,16 @@ export default function MenteeAttendance() {
       });
 
       if (res.success) {
-        setAttendanceRecords(res.data || []);
+        setAttendanceRecords(Array.isArray(res.data) ? res.data : []);
       } else {
-        // Fallback mock records if database has no records for this month yet
-        generateMockAttendanceForMonth(selectedMonth, selectedYear);
+        setAttendanceRecords([]);
       }
     } catch (error) {
       console.error('Error fetching attendance data:', error);
-      generateMockAttendanceForMonth(selectedMonth, selectedYear);
+      setAttendanceRecords([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  // Fallback realistic generator if database is fresh / empty
-  const generateMockAttendanceForMonth = (m, y) => {
-    if (menteesList.length === 0) return;
-    const generated = [];
-    const daysInMonth = new Date(y, m, 0).getDate();
-
-    menteesList.forEach(mentee => {
-      // create records for past working days
-      const maxDay = (m === now.getMonth() + 1 && y === now.getFullYear()) ? Math.min(now.getDate(), daysInMonth) : daysInMonth;
-      
-      for (let day = maxDay; day >= 1; day--) {
-        const dateObj = new Date(y, m - 1, day);
-        const dayOfWeek = dateObj.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip weekend
-
-        const isLate = (day % 7 === 0);
-        const isSick = (day % 15 === 0);
-        const status = isSick ? 'Sakit' : isLate ? 'Terlambat' : 'Hadir';
-
-        generated.push({
-          attendance_id: `mock-${mentee.user_id}-${day}`,
-          user_id: mentee.user_id,
-          full_name: mentee.full_name,
-          unique_id: mentee.unique_id,
-          penempatan: mentee.penempatan || 'Pelayanan & Kepesertaan',
-          attendance_date: `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-          check_in_time: isSick ? null : isLate ? '08:24:15' : '07:48:30',
-          status: status,
-          location_address: 'Kantor Cabang BPJSTK Medan Kota, Jl. Kapten Patimura No.334',
-          location_coordinates: '3.575556, 98.665278',
-          distance_meters: Math.floor(Math.random() * 50) + 15,
-          notes: isSick ? 'Izin sakit dengan surat keterangan dokter terlampir.' : 'Melaksanakan asistensi kepesertaan BPU dan rekapitulasi data harian.',
-          selfie_image_url: null,
-          geofence_name: 'Area Kantor Cabang'
-        });
-      }
-    });
-
-    setAttendanceRecords(generated);
   };
 
   // Load Leave / Izin data
@@ -406,41 +391,26 @@ export default function MenteeAttendance() {
               Pilih Periode:
             </span>
 
-            {/* Quick Button: November (Current Month) */}
-            <button
-              onClick={() => setSelectedMonth(11)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
-                selectedMonth === 11 
-                  ? 'bg-[#008F4C] text-white shadow-sm' 
-                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
-              }`}
-            >
-              November {selectedYear} (Bulan Ini)
-            </button>
-
-            {/* Quick Button: Oktober (Previous Month) */}
-            <button
-              onClick={() => setSelectedMonth(10)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
-                selectedMonth === 10 
-                  ? 'bg-[#008F4C] text-white shadow-sm' 
-                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
-              }`}
-            >
-              Oktober {selectedYear}
-            </button>
-
-            {/* Quick Button: September */}
-            <button
-              onClick={() => setSelectedMonth(9)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
-                selectedMonth === 9 
-                  ? 'bg-[#008F4C] text-white shadow-sm' 
-                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
-              }`}
-            >
-              September {selectedYear}
-            </button>
+            {/* Dynamic Quick Period Buttons */}
+            {dynamicPeriods.map((period) => {
+              const isCurrentSelected = selectedMonth === period.month && selectedYear === period.year;
+              return (
+                <button
+                  key={`${period.year}-${period.month}`}
+                  onClick={() => {
+                    setSelectedMonth(period.month);
+                    setSelectedYear(period.year);
+                  }}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                    isCurrentSelected 
+                      ? 'bg-[#008F4C] text-white shadow-sm' 
+                      : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
+                  }`}
+                >
+                  {period.label}
+                </button>
+              );
+            })}
 
             {/* Dropdown for All Months */}
             <div className="relative inline-block ml-1">
@@ -458,16 +428,18 @@ export default function MenteeAttendance() {
               <ChevronDown className="w-3.5 h-3.5 text-neutral-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Year Selector */}
+            {/* Dynamic Year Selector */}
             <div className="relative inline-block">
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
                 className="appearance-none bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold px-3 py-1.5 pr-7 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-[#008F4C] cursor-pointer"
               >
-                <option value={2026}>Tahun 2026</option>
-                <option value={2025}>Tahun 2025</option>
-                <option value={2024}>Tahun 2024</option>
+                {availableYears.map((yr) => (
+                  <option key={yr} value={yr}>
+                    Tahun {yr}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-neutral-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
@@ -527,10 +499,10 @@ export default function MenteeAttendance() {
       </div>
 
       {/* NAVIGATION TABS (Riwayat, Pengajuan Izin/Sakit, Matriks Bulanan) */}
-      <div className="flex border-b border-neutral-200 gap-6">
+      <div className="flex overflow-x-auto no-scrollbar border-b border-neutral-200 gap-4 sm:gap-6 pb-0.5 whitespace-nowrap">
         <button
           onClick={() => setActiveTab('riwayat')}
-          className={`pb-3 text-xs sm:text-sm font-extrabold font-heading tracking-wide border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+          className={`pb-3 text-xs sm:text-sm font-extrabold font-heading tracking-wide border-b-2 transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'riwayat'
               ? 'border-[#008F4C] text-[#008F4C]'
               : 'border-transparent text-neutral-500 hover:text-neutral-800'
@@ -542,7 +514,7 @@ export default function MenteeAttendance() {
 
         <button
           onClick={() => setActiveTab('izin')}
-          className={`pb-3 text-xs sm:text-sm font-extrabold font-heading tracking-wide border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+          className={`pb-3 text-xs sm:text-sm font-extrabold font-heading tracking-wide border-b-2 transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'izin'
               ? 'border-[#008F4C] text-[#008F4C]'
               : 'border-transparent text-neutral-500 hover:text-neutral-800'
@@ -559,7 +531,7 @@ export default function MenteeAttendance() {
 
         <button
           onClick={() => setActiveTab('matriks')}
-          className={`pb-3 text-xs sm:text-sm font-extrabold font-heading tracking-wide border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+          className={`pb-3 text-xs sm:text-sm font-extrabold font-heading tracking-wide border-b-2 transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'matriks'
               ? 'border-[#008F4C] text-[#008F4C]'
               : 'border-transparent text-neutral-500 hover:text-neutral-800'

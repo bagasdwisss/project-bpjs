@@ -253,20 +253,20 @@ const ParticipantDashboard = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Capaian</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{akuisisiBPU}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{akuisisiBPU}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Peserta BPU</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Progress</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{progressPct}%</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{progressPct}%</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Dari target</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Sisa Target</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{Math.max(0, targetAkuisisi - akuisisiBPU)}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{Math.max(0, targetAkuisisi - akuisisiBPU)}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Peserta</p>
                 </div>
               </div>
@@ -298,20 +298,20 @@ const ParticipantDashboard = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pb-4 border-b border-[#121214]/15">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hadir Efektif</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attPresent} Hari</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{attPresent} Hari</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Dari {attTotal} hari</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Izin & Sakit</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attIzin + attSick} Hari</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{attIzin + attSick} Hari</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat resmi</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Terlambat</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{attLate} Kali</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{attLate} Kali</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Pukul 08:00 WIB</p>
                 </div>
               </div>
@@ -339,24 +339,24 @@ const ParticipantDashboard = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pb-3">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Rata-Rata</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
                     {averageScore !== null ? averageScore.toFixed(1) : '-'}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Skala 100</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Tertinggi</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
                     {maxScore !== null ? maxScore : '-'}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Ujian / Tugas</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Predikat</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{dynamicGrade}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{dynamicGrade}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">{dynamicPredicate}</p>
                 </div>
               </div>
@@ -386,24 +386,24 @@ const ParticipantDashboard = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pb-3">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Modul Selesai</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
                     {stats.completedModules ?? 0} / {stats.totalModules ?? 4}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum Inti</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Tugas Dinilai</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
                     {stats.totalScores ?? 0} Nilai
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Dinilai Koordinator</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hasil Akuisisi</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
                     {akuisisiBPU} BPU
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat di DB</p>

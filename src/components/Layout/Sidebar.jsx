@@ -33,7 +33,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { path: '/admin/batches', icon: Calendar, label: 'Kelola Batch' },
           { path: '/admin/work-schedule', icon: Clock, label: 'Jadwal & Hari Libur' },
           { path: '/admin/office-location', icon: MapPin, label: 'Lokasi Kantor' },
-          { path: '/admin/grading-settings', icon: Target, label: 'Bobot Nilai' },
+          { path: '/admin/grading-settings', icon: Target, label: 'Bobot & Sertifikat' },
           { path: '/admin/bpu-calculator', icon: Calculator, label: 'Kalkulator BPU' },
           { path: '/admin/reports', icon: FileText, label: 'Laporan' },
           { path: '/admin/monitoring', icon: BarChart3, label: 'Monitoring' },
