@@ -5,10 +5,11 @@ import { AuthContext } from '../../context/AuthContext';
 import { 
   Award, TrendingUp, FileText, Calendar, 
   Filter, Download, BarChart3, Target, AlertCircle,
-  CheckCircle2, Sparkles, ExternalLink, ShieldCheck, QrCode
+  CheckCircle2, Sparkles, ExternalLink, ShieldCheck, QrCode, Eye
 } from 'lucide-react';
 import api from '../../services/api';
 import { StatRowSkeleton, TableSkeleton } from '../Common/Skeleton';
+import CompanyCertificateModal from '../Common/CompanyCertificateModal';
 
 const Scores = () => {
   const { user, coordinator } = useContext(AuthContext);
@@ -19,6 +20,7 @@ const Scores = () => {
   const [scores, setScores] = useState([]);
   const [modules, setModules] = useState([]);
   const [certificate, setCertificate] = useState(null);
+  const [showCertModal, setShowCertModal] = useState(false);
 
   const scoreTypes = [
     { value: 'all', label: 'Semua Tipe' },
@@ -215,6 +217,14 @@ const Scores = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowCertModal(true)}
+                  className="px-4 py-2.5 rounded-full bg-white text-[#00552B] font-extrabold text-xs shadow-md hover:bg-emerald-50 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <Eye className="w-4 h-4 text-[#008F4C]" />
+                  <span>Lihat Format Resmi</span>
+                </button>
                 <Link
                   to={`/verify-certificate/${certificate.certificate_number}`}
                   className="px-4 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs backdrop-blur-md border border-white/30 transition-all flex items-center gap-2"
@@ -223,7 +233,7 @@ const Scores = () => {
                   <span>Verifikasi QR</span>
                 </Link>
                 <a
-                  href={`/api/certificates/download/${certificate.certificate_number}`}
+                  href={`/api/certificates/download/${encodeURIComponent(certificate.certificate_number)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="px-5 py-2.5 rounded-full bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
@@ -526,6 +536,16 @@ const Scores = () => {
             </div>
           </div>
         </div>
+
+        {/* Modal Format Resmi E-Sertifikat BPJS Ketenagakerjaan */}
+        {certificate && (
+          <CompanyCertificateModal
+            isOpen={showCertModal}
+            onClose={() => setShowCertModal(false)}
+            certificate={certificate}
+            participant={user}
+          />
+        )}
       </div>
     </Layout>
   );

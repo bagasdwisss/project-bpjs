@@ -5,6 +5,7 @@ import reportService from '../../services/reportService';
 import userService from '../../services/userService';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import CompanyCertificateModal from '../Common/CompanyCertificateModal';
 import { 
   Award, 
   Download, 
@@ -17,7 +18,8 @@ import {
   FileText,
   Users,
   X,
-  Sparkles
+  Sparkles,
+  Eye
 } from 'lucide-react';
 
 const Certificates = () => {
@@ -28,6 +30,7 @@ const Certificates = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
 
   const [formData, setFormData] = useState({
@@ -315,10 +318,11 @@ const Certificates = () => {
                               Verifikasi QR
                             </a>
                             <button
-                              onClick={() => toast.info(`Mengunduh dokumen e-sertifikat resmi untuk: ${certName}`)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214] text-white hover:bg-black text-xs font-bold transition shadow-xs"
+                              onClick={() => setSelectedCertificate(cert)}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#008F4C] text-white hover:bg-[#00753e] text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+                              title="Lihat, Cetak, dan Unduh E-Sertifikat Format Resmi"
                             >
-                              <Download className="w-3.5 h-3.5" /> Unduh
+                              <Download className="w-3.5 h-3.5" /> Lihat & Unduh
                             </button>
                           </div>
                         </td>
@@ -402,6 +406,15 @@ const Certificates = () => {
               </form>
             </div>
           </div>
+        )}
+
+        {/* Modal Format Resmi E-Sertifikat BPJS Ketenagakerjaan */}
+        {selectedCertificate && (
+          <CompanyCertificateModal
+            isOpen={!!selectedCertificate}
+            onClose={() => setSelectedCertificate(null)}
+            certificate={selectedCertificate}
+          />
         )}
 
       </div>

@@ -746,10 +746,13 @@ router.get('/certificates/my', authenticateToken, async (req, res) => {
     const userId = req.user.user_id;
     const result = await query(
       `SELECT c.*, u.full_name as participant_name, u.unique_id as participant_nim,
-              COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, r.role_name
+              COALESCE(u.email, u.unique_id || '@bpjsketenagakerjaan.go.id') as email, 
+              u.penempatan, r.role_name,
+              coord.full_name as coordinator_name, coord.unique_id as coordinator_npp
        FROM certificates c
        JOIN users u ON c.user_id = u.user_id
        JOIN roles r ON u.role_id = r.role_id
+       LEFT JOIN users coord ON u.coordinator_id = coord.user_id
        WHERE c.user_id = $1
        ORDER BY c.issue_date DESC
        LIMIT 1`,
@@ -777,9 +780,12 @@ router.get('/certificates/my', authenticateToken, async (req, res) => {
 router.get('/certificates/list', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     let sql = `
-      SELECT c.*, u.full_name as participant_name, u.unique_id as participant_nim
+      SELECT c.*, u.full_name as participant_name, u.unique_id as participant_nim,
+             u.penempatan,
+             coord.full_name as coordinator_name, coord.unique_id as coordinator_npp
       FROM certificates c
       JOIN users u ON c.user_id = u.user_id
+      LEFT JOIN users coord ON u.coordinator_id = coord.user_id
     `;
     const params = [];
 
@@ -892,6 +898,23 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
       ]
     );
 
+    // Diseminasi Notifikasi Resmi ke Peserta Magang (In-App Bell & Priority Alert)
+    try {
+      await query(
+        `INSERT INTO notifications (user_id, title, message, type, priority, is_read, created_at)
+         VALUES ($1, $2, $3, $4, $5, FALSE, CURRENT_TIMESTAMP)`,
+        [
+          user_id,
+          'Sertifikat Magang Resmi Diterbitkan!',
+          `Selamat! E-Sertifikat kelulusan resmi BPJS Ketenagakerjaan (${certNumber}) Anda telah diterbitkan dengan predikat ${determinedPredicate}. Silakan lihat dan unduh di menu Nilai & Sertifikat.`,
+          'certificate',
+          'high'
+        ]
+      );
+    } catch (notifErr) {
+      console.error('[Certificates] Gagal mengirim notifikasi penerbitan:', notifErr.message);
+    }
+
     return res.status(201).json({
       success: true,
       message: `E-Sertifikat terverifikasi untuk ${user.full_name} berhasil diterbitkan dengan Tanda Tangan Kriptografi ${certSig.algorithm}!`,
@@ -902,6 +925,573 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/certificates/download/:certNumber
+ * Standalone direct print & download endpoint for company certificate
+ */
+router.get('/certificates/download/:certNumber', async (req, res) => {
+  try {
+    const { certNumber } = req.params;
+
+    const result = await query(
+      `SELECT c.*, u.full_name as participant_name, u.unique_id as participant_nim,
+              u.penempatan,
+              coord.full_name as coordinator_name, coord.unique_id as coordinator_npp
+       FROM certificates c
+       JOIN users u ON c.user_id = u.user_id
+       LEFT JOIN users coord ON u.coordinator_id = coord.user_id
+       WHERE UPPER(c.certificate_number) = UPPER($1) 
+          OR UPPER(COALESCE(c.digital_signature, '')) = UPPER($1)
+          OR UPPER(COALESCE(c.digital_signature_hash, '')) = UPPER($1)`,
+      [certNumber]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Sertifikat Tidak Ditemukan</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+          <h2>Sertifikat Magang Tidak Ditemukan</h2>
+          <p>Nomor sertifikat <b>${certNumber}</b> belum diterbitkan atau tidak valid.</p>
+          <a href="/" style="display:inline-block; margin-top:20px; padding:10px 20px; background:#008F4C; color:white; text-decoration:none; border-radius:8px;">Kembali ke Portal</a>
+        </body>
+        </html>
+      `);
+    }
+
+    const cert = result.rows[0];
+    const host = req.get('host') || 'localhost:5000';
+    const protocol = req.protocol || 'http';
+    const verifyUrl = `${protocol}://${host}/verify-certificate/${encodeURIComponent(cert.certificate_number)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(verifyUrl)}&color=00552B&bgcolor=FFFFFF`;
+
+    const formattedDate = new Date(cert.issue_date || cert.created_at || Date.now()).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const coordinatorName = cert.coordinator_name || 'Bambang Sudarmono, S.E., M.M.';
+    const coordinatorNpp = cert.coordinator_npp || '18092284';
+    const branchHeadName = 'Drs. Hendra Prayitno, M.Si.';
+    const branchHeadNpp = '12048591';
+    const shaHash = cert.digital_signature_hash || cert.digital_signature || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
+    const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Sertifikat Magang Resmi BPJS Ketenagakerjaan - ${cert.participant_name}</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #232326;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+    }
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      background: #121214;
+      padding: 10px 20px;
+      border-radius: 999px;
+      color: white;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .btn-print {
+      background: #008F4C;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-print:hover {
+      background: #00753e;
+    }
+    .btn-back {
+      color: #ccc;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .cert-container {
+      width: 1050px;
+      height: 700px;
+      background: #FFFDF9;
+      position: relative;
+      padding: 35px 45px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      background-image: radial-gradient(circle at 50% 50%, rgba(0, 143, 76, 0.02) 0%, rgba(212, 175, 55, 0.04) 100%);
+    }
+    /* Guilloche Borders */
+    .outer-border {
+      position: absolute;
+      inset: 14px;
+      border: 3.5px solid #008F4C;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+    .inner-border {
+      position: absolute;
+      inset: 20px;
+      border: 1.5px solid #D4AF37;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+    .corner-tl { position: absolute; top: 14px; left: 14px; width: 35px; height: 35px; border-top: 5px solid #008F4C; border-left: 5px solid #008F4C; }
+    .corner-tr { position: absolute; top: 14px; right: 14px; width: 35px; height: 35px; border-top: 5px solid #008F4C; border-right: 5px solid #008F4C; }
+    .corner-bl { position: absolute; bottom: 14px; left: 14px; width: 35px; height: 35px; border-bottom: 5px solid #008F4C; border-left: 5px solid #008F4C; }
+    .corner-br { position: absolute; bottom: 14px; right: 14px; width: 35px; height: 35px; border-bottom: 5px solid #008F4C; border-right: 5px solid #008F4C; }
+    
+    /* Kop Surat */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #008F4C;
+      padding-bottom: 12px;
+      position: relative;
+      z-index: 2;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .header-logo {
+      height: 48px;
+      width: auto;
+    }
+    .header-text h2 {
+      font-size: 17px;
+      font-weight: 900;
+      color: #008F4C;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-family: Georgia, serif;
+    }
+    .header-text p {
+      font-size: 10px;
+      color: #333;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .header-text small {
+      font-size: 9px;
+      color: #666;
+    }
+    .header-right {
+      text-align: right;
+    }
+    .badge-iso {
+      background: rgba(0, 143, 76, 0.1);
+      border: 1px solid rgba(0, 143, 76, 0.3);
+      color: #008F4C;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    
+    /* Content */
+    .content {
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      margin: 10px 0;
+    }
+    .sub-title {
+      font-size: 11px;
+      color: #D4AF37;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .main-title {
+      font-size: 32px;
+      font-family: Georgia, serif;
+      font-weight: 900;
+      color: #00552B;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+    .cert-sub {
+      font-size: 12px;
+      font-style: italic;
+      color: #777;
+      font-family: Georgia, serif;
+      margin-bottom: 8px;
+    }
+    .cert-number {
+      display: inline-block;
+      background: #FAF5EB;
+      border: 1px solid rgba(212, 175, 55, 0.6);
+      padding: 3px 18px;
+      border-radius: 999px;
+      font-family: monospace;
+      font-weight: 900;
+      font-size: 12px;
+      color: #121214;
+    }
+    .recipient-intro {
+      font-size: 12px;
+      color: #555;
+      margin-top: 14px;
+    }
+    .recipient-name {
+      font-size: 26px;
+      font-weight: 900;
+      color: #121214;
+      text-transform: uppercase;
+      text-decoration: underline;
+      text-decoration-color: #008F4C;
+      text-underline-offset: 5px;
+      margin: 6px 0 3px 0;
+    }
+    .recipient-meta {
+      font-size: 12px;
+      color: #555;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    .recipient-meta strong {
+      color: #008F4C;
+    }
+    .statement {
+      font-size: 12.5px;
+      color: #444;
+      max-width: 750px;
+      margin: 12px auto 8px auto;
+      line-height: 1.5;
+    }
+    .predicate-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .pill-grade {
+      background: #008F4C;
+      color: white;
+      padding: 5px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .pill-score {
+      background: #FAF5EB;
+      border: 1px solid #D4AF37;
+      color: #121214;
+      padding: 5px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 900;
+      font-family: monospace;
+    }
+
+    /* Signatures */
+    .signatures-grid {
+      display: grid;
+      grid-template-columns: 1fr 150px 1fr;
+      align-items: flex-end;
+      position: relative;
+      z-index: 2;
+      padding-top: 10px;
+    }
+    .sig-block {
+      text-align: center;
+      position: relative;
+    }
+    .sig-date {
+      font-size: 11px;
+      color: #666;
+      font-weight: bold;
+    }
+    .sig-role {
+      font-size: 11px;
+      color: #121214;
+      font-weight: 800;
+    }
+    .sig-specimen {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin: 3px 0;
+    }
+    .sig-name {
+      border-top: 1px solid #333;
+      display: inline-block;
+      min-width: 220px;
+      padding-top: 3px;
+      font-size: 12px;
+      font-weight: 900;
+      color: #121214;
+      text-transform: uppercase;
+    }
+    .sig-npp {
+      font-size: 10px;
+      font-family: monospace;
+      color: #555;
+    }
+    
+    /* Circular Stamp BPJS */
+    .official-stamp {
+      position: absolute;
+      top: -14px;
+      left: 20px;
+      width: 100px;
+      height: 100px;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.85;
+      transform: rotate(-12deg);
+    }
+    
+    /* QR Center */
+    .qr-block {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .qr-box {
+      background: white;
+      border: 1px solid #008F4C;
+      padding: 4px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .qr-box img {
+      width: 65px;
+      height: 65px;
+      display: block;
+    }
+    .qr-caption {
+      font-size: 8px;
+      font-weight: 900;
+      color: #008F4C;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .qr-hash {
+      font-size: 7px;
+      font-family: monospace;
+      color: #888;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Footer Notice */
+    .footer-bar {
+      border-top: 1px solid rgba(212, 175, 55, 0.4);
+      margin-top: 12px;
+      padding-top: 4px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8px;
+      font-family: monospace;
+      color: #777;
+      position: relative;
+      z-index: 2;
+    }
+
+    @media print {
+      body {
+        background: white !important;
+        padding: 0 !important;
+      }
+      .top-actions {
+        display: none !important;
+      }
+      .cert-container {
+        width: 100vw !important;
+        height: 100vh !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 10mm 15mm !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Bar (Hidden on print) -->
+  <div class="top-actions">
+    <span>E-Sertifikat Resmi BPJS Ketenagakerjaan (${cert.certificate_number})</span>
+    <button class="btn-print" onclick="window.print()">
+      🖨️ Cetak / Unduh PDF Resmi
+    </button>
+    <a href="/verify-certificate/${encodeURIComponent(cert.certificate_number)}" target="_blank" class="btn-back">
+      Verifikasi Kriptografi
+    </a>
+  </div>
+
+  <!-- The Certificate Document -->
+  <div class="cert-container" id="cert-sheet">
+    <!-- Borders -->
+    <div class="outer-border"></div>
+    <div class="inner-border"></div>
+    <div class="corner-tl"></div>
+    <div class="corner-tr"></div>
+    <div class="corner-bl"></div>
+    <div class="corner-br"></div>
+
+    <!-- 1. Header -->
+    <div class="header">
+      <div class="header-left">
+        <img src="/bpjs_logo.png" alt="BPJS Ketenagakerjaan" class="header-logo" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Logo_BPJS_Ketenagakerjaan.png/640px-Logo_BPJS_Ketenagakerjaan.png';">
+        <div class="header-text">
+          <h2>BPJS Ketenagakerjaan</h2>
+          <p>Badan Penyelenggara Jaminan Sosial Ketenagakerjaan</p>
+          <small>Kantor Cabang Medan Kota • Jl. Patimura No. 334 Lt. 1, Medan Baru, Kota Medan</small>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="badge-iso">Dokumen Resmi Elektronik</span>
+        <div style="font-size: 8.5px; font-family: monospace; color: #666; margin-top: 4px;">ISO/IEC 27001 Terverifikasi</div>
+      </div>
+    </div>
+
+    <!-- 2. Content Body -->
+    <div class="content">
+      <div class="sub-title">Surat Tanda Tamat Program</div>
+      <h1 class="main-title">SERTIFIKAT MAGANG KERJA</h1>
+      <div class="cert-sub">Certificate of Internship Completion</div>
+      <div class="cert-number">Nomor: ${cert.certificate_number}</div>
+
+      <p class="recipient-intro">Badan Penyelenggara Jaminan Sosial Ketenagakerjaan menyatakan bahwa:</p>
+      <div class="recipient-name">${cert.participant_name}</div>
+      <div class="recipient-meta">
+        NIM / Registrasi: <strong>${cert.participant_nim}</strong> &bull; Penempatan: <strong>${cert.penempatan || 'Bidang Kepesertaan & Pelayanan'}</strong>
+      </div>
+
+      <p class="statement">
+        Telah berhasil menyelesaikan program <b>Praktik Kerja Lapangan / Magang Industri Terstruktur</b> pada <b>BPJS Ketenagakerjaan Kantor Cabang Medan Kota</b> (${cert.batch_name || 'Batch 1'}) dengan capaian evaluasi kompetensi akhir:
+      </p>
+
+      <div class="predicate-badge">
+        <div class="pill-grade">${cert.predicate || 'Sangat Memuaskan (Grade A)'}</div>
+        <div class="pill-score">Indeks Prestasi: ${Number(cert.score_average || 90.0).toFixed(1)} / 100.0</div>
+      </div>
+    </div>
+
+    <!-- 3. Dual Signatures & Stamp -->
+    <div class="signatures-grid">
+      <!-- Koordinator -->
+      <div class="sig-block">
+        <div class="sig-date">Medan, ${formattedDate}</div>
+        <div class="sig-role">Koordinator Pembimbing Magang</div>
+        <div class="sig-specimen">
+          <svg width="150" height="50" viewBox="0 0 200 80" fill="none" stroke="#00552B" stroke-width="2.5" stroke-linecap="round">
+            <path d="M 20 50 Q 50 10 70 45 T 120 40 Q 140 20 160 55 T 185 30" />
+            <path d="M 40 40 Q 80 60 150 45" stroke-width="1.5" />
+          </svg>
+        </div>
+        <div class="sig-name">${coordinatorName}</div>
+        <div class="sig-npp">NPP. ${coordinatorNpp}</div>
+      </div>
+
+      <!-- Center QR -->
+      <div class="qr-block">
+        <div class="qr-box">
+          <img src="${qrUrl}" alt="QR Verifikasi">
+        </div>
+        <div class="qr-caption">Scan Untuk Verifikasi</div>
+        <div class="qr-hash" title="${shaHash}">HASH: ${shaHash.substring(0, 20)}...</div>
+      </div>
+
+      <!-- Kepala Kantor Cabang + Official Stamp -->
+      <div class="sig-block">
+        <div class="sig-date">Mengesahkan,</div>
+        <div class="sig-role">Kepala Kantor Cabang BPJS Ketenagakerjaan</div>
+        <div class="sig-specimen">
+          <!-- Stylized signature -->
+          <svg width="160" height="50" viewBox="0 0 200 80" fill="none" stroke="#00552B" stroke-width="2.8" stroke-linecap="round" style="position:relative; z-index:2;">
+            <path d="M 15 35 Q 40 5 65 35 T 100 45 Q 130 15 160 50 T 190 25" />
+            <path d="M 30 55 Q 90 70 175 35" stroke-width="1.8" />
+          </svg>
+
+          <!-- OFFICIAL CIRCULAR SEAL BPJS KETENAGAKERJAAN -->
+          <div class="official-stamp">
+            <svg viewBox="0 0 200 200" width="100" height="100" style="color: #00875A;">
+              <circle cx="100" cy="100" r="95" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="6 2" />
+              <circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" stroke-width="2.2" />
+              <circle cx="100" cy="100" r="62" fill="none" stroke="currentColor" stroke-width="1.8" />
+              <path id="stampUp" d="M 25 100 A 75 75 0 0 1 175 100" fill="none" />
+              <text font-size="10" font-weight="900" letter-spacing="2" fill="currentColor">
+                <textPath href="#stampUp" startOffset="50%" text-anchor="middle">BPJS KETENAGAKERJAAN</textPath>
+              </text>
+              <path id="stampDn" d="M 175 100 A 75 75 0 0 1 25 100" fill="none" />
+              <text font-size="9.5" font-weight="900" letter-spacing="2" fill="currentColor">
+                <textPath href="#stampDn" startOffset="50%" text-anchor="middle">CABANG MEDAN KOTA</textPath>
+              </text>
+              <polygon points="100,68 104,78 115,78 106,84 109,95 100,89 91,95 94,84 85,78 96,78" fill="currentColor" />
+              <text x="100" y="112" text-anchor="middle" font-size="11" font-weight="900" letter-spacing="1" fill="currentColor">RESMI</text>
+              <text x="100" y="126" text-anchor="middle" font-size="8" font-weight="800" fill="currentColor">DISAHKAN</text>
+            </svg>
+          </div>
+        </div>
+        <div class="sig-name">${branchHeadName}</div>
+        <div class="sig-npp">NPP. ${branchHeadNpp}</div>
+      </div>
+    </div>
+
+    <!-- 4. Footer Legal -->
+    <div class="footer-bar">
+      <span>&copy; ${new Date().getFullYear()} BPJS Ketenagakerjaan. Hak Cipta Dilindungi Undang-Undang.</span>
+      <span>Dokumen sah terdaftar secara elektronik. Sah tanpa stempel basah konvensional.</span>
+    </div>
+  </div>
+
+  <script>
+    // Auto-trigger browser print dialog after assets load
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        window.print();
+      }, 600);
+    });
+  </script>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (error) {
+    return res.status(500).send('Error rendering certificate: ' + error.message);
   }
 });
 

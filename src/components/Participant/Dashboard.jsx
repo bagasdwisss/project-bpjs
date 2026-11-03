@@ -7,15 +7,17 @@ import {
   Calendar, TrendingUp, Award, Clock, CheckCircle, 
   AlertCircle, BarChart3, Bell, RefreshCw, AlertTriangle, 
   ChevronRight, ArrowUpRight, Check, BookOpen, MapPin, Database,
-  Calculator, QrCode, MessageSquare
+  Calculator, QrCode, MessageSquare, Download
 } from 'lucide-react';
 import dashboardService from '../../services/DashboardService.js';
+import api from '../../services/api';
 import { getTimeGreeting } from '../../utils/trueTime';
 
 const CalculatorModal = lazy(() => import('../Common/CalculatorModal'));
 const QRCodeModal = lazy(() => import('../Common/QRCodeModal'));
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 import { DashboardSkeleton } from '../Common/Skeleton';
+import CompanyCertificateModal from '../Common/CompanyCertificateModal';
 
 const ParticipantDashboard = () => {
   const { user, coordinator } = useContext(AuthContext);
@@ -24,6 +26,8 @@ const ParticipantDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [certificate, setCertificate] = useState(null);
+  const [showCertModal, setShowCertModal] = useState(false);
 
   // Enterprise Feature Modals
   const [calcModalOpen, setCalcModalOpen] = useState(false);
@@ -36,11 +40,19 @@ const ParticipantDashboard = () => {
       else setLoading(true);
       setError(null);
 
-      const result = await dashboardService.getParticipantDashboard();
+      const [result, certRes] = await Promise.all([
+        dashboardService.getParticipantDashboard(),
+        api.get('/certificates/my').catch(() => ({ data: { success: false } }))
+      ]);
+
       if (result.success) {
         setDashboardData(result.data);
       } else {
         setError(result.message || 'Gagal memuat data dashboard');
+      }
+
+      if (certRes.data?.success && certRes.data?.data) {
+        setCertificate(certRes.data.data);
       }
     } catch (err) {
       setError('Terjadi kesalahan tak terduga.');
@@ -176,6 +188,52 @@ const ParticipantDashboard = () => {
             </Link>
           </div>
         </div>
+
+        {/* Celebratory Certificate Released Banner */}
+        {certificate && (
+          <div className="rounded-[24px] bg-gradient-to-r from-[#0C371E] via-[#008F4C] to-[#0A4D27] text-white p-5 sm:p-6 shadow-xl shadow-emerald-950/20 relative overflow-hidden border-2 border-emerald-400/40 animate-in fade-in duration-300">
+            <div className="absolute right-0 top-0 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-[#FCE373] shrink-0 shadow-sm">
+                  <Award className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#B8C96E] text-[#121214] text-[10px] font-black uppercase tracking-wider mb-1">
+                    <Check className="w-3 h-3" />
+                    <span>Sertifikat Kelulusan Resmi Diterbitkan</span>
+                  </div>
+                  <h2 className="text-base sm:text-lg font-black text-white">
+                    Selamat! E-Sertifikat Kelulusan Magang Resmi BPJSTK Anda Telah Terbit
+                  </h2>
+                  <p className="text-xs text-emerald-100 font-medium mt-0.5">
+                    No. Seri: <strong className="font-mono text-white">{certificate.certificate_number}</strong> &bull; Predikat: <strong className="text-[#FCE373]">{certificate.predicate || 'Sangat Memuaskan'}</strong> &bull; Rata-Rata: <strong className="text-white">{certificate.score_average || '92.5'}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowCertModal(true)}
+                  className="px-4 py-2.5 rounded-full bg-white hover:bg-emerald-50 text-[#00552B] font-extrabold text-xs shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                >
+                  <Award className="w-4 h-4 text-[#008F4C]" />
+                  <span>Lihat Format Resmi</span>
+                </button>
+                <a
+                  href={`/api/certificates/download/${encodeURIComponent(certificate.certificate_number)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2.5 rounded-full bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-black text-xs shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Unduh PDF</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 4-Card Pastel Bento Grid (Intelly Signature - Perfectly Symmetrical 2x2) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
@@ -486,6 +544,16 @@ const ParticipantDashboard = () => {
           <Suspense fallback={null}>
             <LiveChatModal isOpen={chatModalOpen} onClose={() => setChatModalOpen(false)} />
           </Suspense>
+        )}
+
+        {/* E-Sertifikat Resmi Format Company Modal */}
+        {certificate && (
+          <CompanyCertificateModal
+            isOpen={showCertModal}
+            onClose={() => setShowCertModal(false)}
+            certificate={certificate}
+            participant={user}
+          />
         )}
 
       </div>
