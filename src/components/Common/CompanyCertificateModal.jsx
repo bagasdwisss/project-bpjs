@@ -11,27 +11,45 @@ import {
   QrCode,
   Sparkles,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Check
 } from 'lucide-react';
+import { downloadCertificateDirectly } from '../../utils/certificateDownloader';
 
 /**
  * CompanyCertificateModal
  * Official BPJS Ketenagakerjaan Certificate Component
  * Features:
- * - Dynamic institutional metadata & dual signatures
+ * - Dynamic institutional metadata & dual signatures (Kepala Kantor Cabang & Mentor Pembimbing Magang)
+ * - Support for drawn canvas signatures or transparent PNG extracted signatures
+ * - Instant direct download button (saves directly to Downloads folder)
+ * - Closes on backdrop click, Escape key, or prominent 'X' button
  * - Responsive auto-scale fitting for mobile & tablet viewports
  * - Guilloche gold & emerald security border
- * - Dual signatures: Kepala Kantor Cabang & Koordinator Pembina Magang
  * - Official BPJS Ketenagakerjaan Circular Seal (Stempel Dinas Resmi)
  * - Cryptographic HMAC-SHA256 signature thumbprint
  * - Verification QR Code linking to /verify-certificate/:certNumber
- * - Native 300 DPI vector print & instant PDF export (@page A4 landscape)
+ * - Native 300 DPI vector print (@page A4 landscape)
  */
 const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) => {
   const printRef = useRef(null);
   const wrapperRef = useRef(null);
   const [fitScreen, setFitScreen] = useState(true);
   const [containerWidth, setContainerWidth] = useState(1050);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+
+  // Close on ESC key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,14 +86,17 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
     year: 'numeric'
   });
 
-  // Dynamic coordinator & institutional leadership
-  const coordinatorName = certificate.coordinator_name || participant?.coordinator_name || certificate.default_coordinator_name || 'Bambang Sudarmono, S.E., M.M.';
-  const coordinatorNpp = certificate.coordinator_npp || participant?.coordinator_npp || certificate.default_coordinator_npp || '18092284';
+  // Dynamic Mentor & Institutional Leadership (Changed from Coordinator to Mentor)
+  const mentorName = certificate.mentor_name || certificate.coordinator_name || participant?.coordinator_name || certificate.default_coordinator_name || 'Budi Santoso, S.Kom., M.T.';
+  const mentorNpp = certificate.mentor_npp || certificate.coordinator_npp || participant?.coordinator_npp || certificate.default_coordinator_npp || '8765432109';
+  const mentorSig = certificate.mentor_signature || null;
   
-  const branchHeadName = certificate.branch_head_name || 'Drs. Hendra Prayitno, M.Si.';
-  const branchHeadNpp = certificate.branch_head_npp || '12048591';
-  const branchName = certificate.branch_name || 'Kantor Cabang Medan Kota';
-  const branchAddress = certificate.branch_address || 'Jl. Patimura No. 334 Lt. 1, Medan Baru, Kota Medan';
+  const branchHeadName = certificate.branch_head_name || 'Dr. Hendra Wijaya, S.E., M.M.';
+  const branchHeadNpp = certificate.branch_head_npp || '9876543210';
+  const branchHeadSig = certificate.branch_head_signature || null;
+
+  const branchName = certificate.branch_name || 'BPJS Ketenagakerjaan Kantor Cabang Jakarta Gambir';
+  const branchAddress = certificate.branch_address || 'Jl. Kebon Sirih No. 40, Jakarta Pusat 10110';
 
   const sha256Hash = certificate.digital_signature_hash || certificate.digital_signature || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
@@ -86,8 +107,32 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
     window.print();
   };
 
-  const handleDirectDownload = () => {
-    window.open(`/api/certificates/download/${encodeURIComponent(certNumber)}`, '_blank');
+  // Instant direct file download
+  const handleDirectDownload = async () => {
+    try {
+      setDownloading(true);
+      await downloadCertificateDirectly(certificate, {
+        recipientName,
+        recipientNim,
+        penempatan,
+        branchName,
+        branchAddress,
+        branchHeadName,
+        branchHeadNpp,
+        branchHeadSignature: branchHeadSig,
+        mentorName,
+        mentorNpp,
+        mentorSignature: mentorSig
+      });
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to download certificate directly:', err);
+      // Fallback
+      window.open(`/api/certificates/download/${encodeURIComponent(certNumber)}`, '_blank');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   // Compute responsive scale for mobile viewport
@@ -95,8 +140,26 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const scale = isMobile && fitScreen ? Math.max(0.32, (containerWidth - 20) / 1000) : 1;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static">
-      
+    <div 
+      onClick={(e) => {
+        // Clicking on the backdrop closes the modal
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static"
+    >
+      {/* Floating Top-Right Close Button for immediate thumb access */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed top-3 right-3 sm:top-5 sm:right-5 z-60 w-10 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-2xl border-2 border-white cursor-pointer active:scale-90 transition-all print:hidden"
+        title="Tutup Sertifikat (ESC)"
+        aria-label="Tutup Sertifikat"
+      >
+        <X className="w-5 h-5 stroke-[2.5]" />
+      </button>
+
       {/* Print Specific CSS to enforce A4 Landscape vector output */}
       <style>{`
         @page {
@@ -131,7 +194,10 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
       `}</style>
 
       {/* Outer Modal Container */}
-      <div className="relative w-full max-w-[1100px] bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-[#EAE9E4] print:border-none print:shadow-none print:rounded-none">
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-[1100px] bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-[#EAE9E4] print:border-none print:shadow-none print:rounded-none"
+      >
         
         {/* Modal Action Bar (Responsive on Mobile & Desktop) */}
         <div className="no-print bg-[#121214] text-white px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2.5 border-b border-[#2C2C30]">
@@ -175,33 +241,45 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
               <span className="sm:hidden">QR</span>
             </a>
 
+            {/* Direct File Download Button */}
             <button
               type="button"
               onClick={handleDirectDownload}
-              className="inline-flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full bg-[#BDD4F2] hover:bg-[#a8c4ec] text-[11px] sm:text-xs font-black text-[#121214] transition cursor-pointer"
-              title="Buka Halaman Download PDF Mandiri"
+              disabled={downloading}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FCE373] hover:bg-[#ebd056] active:scale-95 text-[11px] sm:text-xs font-black text-[#121214] shadow-md transition-all cursor-pointer disabled:opacity-50"
+              title="Unduh langsung file sertifikat asli ke komputer/HP"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Link Unduh</span>
-              <span className="sm:hidden">Unduh</span>
+              {downloading ? (
+                <div className="w-3.5 h-3.5 border-2 border-[#121214] border-t-transparent rounded-full animate-spin" />
+              ) : downloadSuccess ? (
+                <Check className="w-3.5 h-3.5 text-emerald-800" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-[#121214]" />
+              )}
+              <span>{downloading ? 'Mengunduh...' : downloadSuccess ? 'Tersimpan ✓' : 'Download File'}</span>
             </button>
 
+            {/* Native Print / PDF Button */}
             <button
               type="button"
               onClick={handlePrint}
               className="inline-flex items-center gap-1 px-3 sm:px-4 py-1.5 rounded-full bg-[#008F4C] hover:bg-[#00753e] text-[11px] sm:text-xs font-black text-white shadow-md transition active:scale-95 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Cetak PDF</span>
+              <span className="hidden sm:inline">Cetak PDF</span>
+              <span className="sm:hidden">Cetak</span>
             </button>
 
+            {/* Prominent Close Button */}
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition cursor-pointer"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-md transition-all cursor-pointer active:scale-95"
               aria-label="Tutup Modal"
+              title="Tutup (ESC)"
             >
               <X className="w-4 h-4" />
+              <span className="hidden sm:inline">Tutup</span>
             </button>
           </div>
         </div>
@@ -340,25 +418,33 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                 </div>
               </div>
 
-              {/* 3. SIGNATURES & OFFICIAL COMPANY SEAL (TWO SIGNATURES) */}
+              {/* 3. SIGNATURES & OFFICIAL COMPANY SEAL (TWO SIGNATURES: MENTOR & KEPALA CABANG) */}
               <div className="relative z-10 px-6 pb-2">
                 <div className="grid grid-cols-3 items-end">
                   
-                  {/* Left Signature: Koordinator Pembimbing Magang */}
+                  {/* Left Signature: Mentor Pembimbing Magang */}
                   <div className="text-center relative">
                     <p className="text-[11px] font-bold text-gray-600">
                       Medan, {issueDateFormatted}
                     </p>
                     <p className="text-[11px] font-bold text-[#121214]">
-                      Koordinator Pembimbing Magang
+                      Mentor Pembimbing Magang
                     </p>
                     
                     {/* Digital Signature Specimen */}
                     <div className="h-16 flex items-center justify-center relative my-0.5">
-                      <svg className="w-36 h-14 text-[#00552B]" viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M 20 50 Q 50 10 70 45 T 120 40 Q 140 20 160 55 T 185 30" />
-                        <path d="M 40 40 Q 80 60 150 45" strokeWidth="1.5" />
-                      </svg>
+                      {mentorSig ? (
+                        <img 
+                          src={mentorSig} 
+                          alt="Tanda Tangan Mentor" 
+                          className="max-h-14 max-w-[160px] object-contain drop-shadow-sm select-none"
+                        />
+                      ) : (
+                        <svg className="w-36 h-14 text-[#00552B]" viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M 20 50 Q 50 10 70 45 T 120 40 Q 140 20 160 55 T 185 30" />
+                          <path d="M 40 40 Q 80 60 150 45" strokeWidth="1.5" />
+                        </svg>
+                      )}
                       <div className="absolute right-2 bottom-0 px-1.5 py-0.5 bg-[#B8C96E]/40 border border-[#008F4C]/40 rounded text-[8px] font-mono font-bold text-[#00552B] flex items-center gap-0.5">
                         <CheckCircle2 className="w-2.5 h-2.5" /> E-SIGN VALID
                       </div>
@@ -366,10 +452,10 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
 
                     <div className="border-t border-[#121214]/60 pt-1 inline-block min-w-[200px]">
                       <p className="text-xs font-black text-[#121214] uppercase">
-                        {coordinatorName}
+                        {mentorName}
                       </p>
                       <p className="text-[10px] font-mono text-gray-600">
-                        NPP. {coordinatorNpp}
+                        NPP. {mentorNpp}
                       </p>
                     </div>
                   </div>
@@ -403,10 +489,18 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
 
                     {/* Digital Signature Specimen + Authentic BPJS Circular Stamp Overlay */}
                     <div className="h-16 flex items-center justify-center relative my-0.5">
-                      <svg className="w-40 h-14 text-[#00552B] relative z-10" viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M 15 35 Q 40 5 65 35 T 100 45 Q 130 15 160 50 T 190 25" />
-                        <path d="M 30 55 Q 90 70 175 35" strokeWidth="1.8" />
-                      </svg>
+                      {branchHeadSig ? (
+                        <img 
+                          src={branchHeadSig} 
+                          alt="Tanda Tangan Kepala Cabang" 
+                          className="max-h-14 max-w-[160px] object-contain drop-shadow-sm select-none relative z-10"
+                        />
+                      ) : (
+                        <svg className="w-40 h-14 text-[#00552B] relative z-10" viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M 15 35 Q 40 5 65 35 T 100 45 Q 130 15 160 50 T 190 25" />
+                          <path d="M 30 55 Q 90 70 175 35" strokeWidth="1.8" />
+                        </svg>
+                      )}
 
                       {/* OFFICIAL BPJS KETENAGAKERJAAN CIRCULAR STAMP */}
                       <div 
@@ -458,27 +552,26 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                   </div>
 
                 </div>
+              </div>
 
-                {/* Bottom Micro-Legal Notice */}
-                <div className="mt-3 pt-1 border-t border-[#D4AF37]/40 flex items-center justify-between text-[8px] text-gray-500 font-mono">
-                  <span>© {new Date().getFullYear()} BPJS Ketenagakerjaan. Hak Cipta Dilindungi Undang-Undang.</span>
-                  <span>Dokumen resmi terdaftar pada Sistem Informasi Terpadu BPJSTK. Valid tanpa stempel basah.</span>
-                </div>
+              {/* 4. FOOTER NOTE */}
+              <div className="relative z-10 border-t border-[#D4AF37]/40 pt-2 px-6 flex items-center justify-between text-[8px] font-mono text-gray-500">
+                <span>&copy; {new Date().getFullYear()} BPJS Ketenagakerjaan. Hak Cipta Dilindungi Undang-Undang.</span>
+                <span>Dokumen sah terdaftar secara elektronik. Sah tanpa stempel basah konvensional.</span>
               </div>
 
             </div>
           </div>
-        </div>
 
-        {/* Modal Footer Note */}
-        <div className="no-print bg-[#FAF9F6] px-4 sm:px-6 py-2.5 sm:py-3 border-t border-[#EAE9E4] flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs text-gray-600 gap-1 sm:gap-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#008F4C] shrink-0" />
-            <span>Format sertifikat telah disesuaikan dengan standar korporat resmi BPJS Ketenagakerjaan.</span>
-          </div>
-          <div className="flex items-center gap-2 font-mono text-[10px] sm:text-[11px] text-[#121214]">
-            <span>Status: <strong className="text-[#008F4C]">Aktif & Sah</strong></span>
-          </div>
+          {/* Close button at bottom for easy thumb access on mobile */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-4 px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all print:hidden"
+          >
+            <X className="w-4 h-4 text-rose-400" />
+            <span>Tutup Tampilan Sertifikat (ESC)</span>
+          </button>
         </div>
 
       </div>
@@ -487,4 +580,3 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
 };
 
 export default CompanyCertificateModal;
-

@@ -745,28 +745,42 @@ async function getInstitutionalSettings() {
     const res = await query(`
       SELECT setting_key, setting_value 
       FROM system_settings 
-      WHERE setting_key IN ('branch_head_name', 'branch_head_npp', 'branch_name', 'branch_address', 'branch_phone', 'default_coordinator_name', 'default_coordinator_npp')
+      WHERE setting_key IN (
+        'branch_head_name', 'branch_head_npp', 'branch_name', 'branch_address', 'branch_phone', 
+        'mentor_name', 'mentor_npp', 'default_coordinator_name', 'default_coordinator_npp',
+        'branch_head_signature', 'mentor_signature'
+      )
     `);
     const map = {};
     res.rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+    const mentorName = map['mentor_name'] || map['default_coordinator_name'] || 'Budi Santoso, S.Kom., M.T.';
+    const mentorNpp = map['mentor_npp'] || map['default_coordinator_npp'] || '8765432109';
     return {
-      branch_head_name: map['branch_head_name'] || 'Drs. Hendra Prayitno, M.Si.',
-      branch_head_npp: map['branch_head_npp'] || '12048591',
-      branch_name: map['branch_name'] || 'Kantor Cabang Medan Kota',
-      branch_address: map['branch_address'] || 'Jl. Patimura No. 334 Lt. 1, Medan Baru, Kota Medan',
-      branch_phone: map['branch_phone'] || '(061) 4526842',
-      default_coordinator_name: map['default_coordinator_name'] || 'Bambang Sudarmono, S.E., M.M.',
-      default_coordinator_npp: map['default_coordinator_npp'] || '18092284'
+      branch_head_name: map['branch_head_name'] || 'Dr. Hendra Wijaya, S.E., M.M.',
+      branch_head_npp: map['branch_head_npp'] || '9876543210',
+      branch_name: map['branch_name'] || 'BPJS Ketenagakerjaan Kantor Cabang Jakarta Gambir',
+      branch_address: map['branch_address'] || 'Jl. Kebon Sirih No. 40, Jakarta Pusat 10110',
+      branch_phone: map['branch_phone'] || '(021) 3456789',
+      mentor_name: mentorName,
+      mentor_npp: mentorNpp,
+      default_coordinator_name: mentorName,
+      default_coordinator_npp: mentorNpp,
+      branch_head_signature: map['branch_head_signature'] || null,
+      mentor_signature: map['mentor_signature'] || null
     };
   } catch (err) {
     return {
-      branch_head_name: 'Drs. Hendra Prayitno, M.Si.',
-      branch_head_npp: '12048591',
-      branch_name: 'Kantor Cabang Medan Kota',
-      branch_address: 'Jl. Patimura No. 334 Lt. 1, Medan Baru, Kota Medan',
-      branch_phone: '(061) 4526842',
-      default_coordinator_name: 'Bambang Sudarmono, S.E., M.M.',
-      default_coordinator_npp: '18092284'
+      branch_head_name: 'Dr. Hendra Wijaya, S.E., M.M.',
+      branch_head_npp: '9876543210',
+      branch_name: 'BPJS Ketenagakerjaan Kantor Cabang Jakarta Gambir',
+      branch_address: 'Jl. Kebon Sirih No. 40, Jakarta Pusat 10110',
+      branch_phone: '(021) 3456789',
+      mentor_name: 'Budi Santoso, S.Kom., M.T.',
+      mentor_npp: '8765432109',
+      default_coordinator_name: 'Budi Santoso, S.Kom., M.T.',
+      default_coordinator_npp: '8765432109',
+      branch_head_signature: null,
+      mentor_signature: null
     };
   }
 }
@@ -796,9 +810,16 @@ router.put(['/admin/system/institution', '/system/institution'], authenticateTok
       branch_name, 
       branch_address, 
       branch_phone, 
+      mentor_name, 
+      mentor_npp, 
       default_coordinator_name, 
-      default_coordinator_npp 
+      default_coordinator_npp,
+      branch_head_signature,
+      mentor_signature
     } = req.body;
+
+    const resolvedMentorName = mentor_name || default_coordinator_name;
+    const resolvedMentorNpp = mentor_npp || default_coordinator_npp;
 
     const updates = [
       ['branch_head_name', branch_head_name],
@@ -806,8 +827,12 @@ router.put(['/admin/system/institution', '/system/institution'], authenticateTok
       ['branch_name', branch_name],
       ['branch_address', branch_address],
       ['branch_phone', branch_phone],
-      ['default_coordinator_name', default_coordinator_name],
-      ['default_coordinator_npp', default_coordinator_npp]
+      ['mentor_name', resolvedMentorName],
+      ['mentor_npp', resolvedMentorNpp],
+      ['default_coordinator_name', resolvedMentorName],
+      ['default_coordinator_npp', resolvedMentorNpp],
+      ['branch_head_signature', branch_head_signature],
+      ['mentor_signature', mentor_signature]
     ];
 
     for (const [key, val] of updates) {
@@ -816,13 +841,13 @@ router.put(['/admin/system/institution', '/system/institution'], authenticateTok
           `INSERT INTO system_settings (setting_key, setting_value, updated_at, updated_by)
            VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
            ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = CURRENT_TIMESTAMP, updated_by = EXCLUDED.updated_by`,
-          [key, String(val), req.user.user_id]
+          [key, String(val || ''), req.user.user_id]
         );
       }
     }
 
     const updated = await getInstitutionalSettings();
-    return res.json({ success: true, message: 'Data pimpinan & instansi berhasil diperbarui.', data: updated });
+    return res.json({ success: true, message: 'Data pimpinan, mentor & spesimen tanda tangan berhasil disimpan.', data: updated });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -1076,12 +1101,14 @@ router.get('/certificates/download/:certNumber', async (req, res) => {
     });
 
     const inst = await getInstitutionalSettings();
-    const coordinatorName = cert.coordinator_name || inst.default_coordinator_name;
-    const coordinatorNpp = cert.coordinator_npp || inst.default_coordinator_npp;
+    const mentorName = inst.mentor_name || cert.coordinator_name || inst.default_coordinator_name || 'Budi Santoso, S.Kom., M.T.';
+    const mentorNpp = inst.mentor_npp || cert.coordinator_npp || inst.default_coordinator_npp || '8765432109';
     const branchHeadName = inst.branch_head_name;
     const branchHeadNpp = inst.branch_head_npp;
     const branchName = inst.branch_name;
     const branchAddress = inst.branch_address;
+    const mentorSig = inst.mentor_signature;
+    const branchHeadSig = inst.branch_head_signature;
     const shaHash = cert.digital_signature_hash || cert.digital_signature || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
     const html = `<!DOCTYPE html>
@@ -1461,6 +1488,9 @@ router.get('/certificates/download/:certNumber', async (req, res) => {
     <a href="/verify-certificate/${encodeURIComponent(cert.certificate_number)}" target="_blank" class="btn-back">
       Verifikasi Kriptografi
     </a>
+    <button onclick="if(window.history.length > 1) { window.history.back(); } else { window.close(); }" style="background: #e11d48; color: white; border: none; padding: 8px 18px; border-radius: 999px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+      ✖ Tutup / Kembali
+    </button>
   </div>
 
   <!-- The Certificate Document -->
@@ -1514,18 +1544,20 @@ router.get('/certificates/download/:certNumber', async (req, res) => {
 
     <!-- 3. Dual Signatures & Stamp -->
     <div class="signatures-grid">
-      <!-- Koordinator -->
+      <!-- Mentor Pembimbing Magang -->
       <div class="sig-block">
-        <div class="sig-date">Medan, ${formattedDate}</div>
-        <div class="sig-role">Koordinator Pembimbing Magang</div>
+        <div class="sig-date">${branchName.replace(/BPJS Ketenagakerjaan (Kantor Cabang )?/i, '')}, ${formattedDate}</div>
+        <div class="sig-role">Mentor Pembimbing Magang</div>
         <div class="sig-specimen">
-          <svg width="150" height="50" viewBox="0 0 200 80" fill="none" stroke="#00552B" stroke-width="2.5" stroke-linecap="round">
-            <path d="M 20 50 Q 50 10 70 45 T 120 40 Q 140 20 160 55 T 185 30" />
-            <path d="M 40 40 Q 80 60 150 45" stroke-width="1.5" />
-          </svg>
+          ${mentorSig ? `<img src="${mentorSig}" alt="Tanda Tangan Mentor" style="max-height: 58px; max-width: 170px; object-fit: contain;">` : `
+            <svg width="150" height="50" viewBox="0 0 200 80" fill="none" stroke="#00552B" stroke-width="2.5" stroke-linecap="round">
+              <path d="M 20 50 Q 50 10 70 45 T 120 40 Q 140 20 160 55 T 185 30" />
+              <path d="M 40 40 Q 80 60 150 45" stroke-width="1.5" />
+            </svg>
+          `}
         </div>
-        <div class="sig-name">${coordinatorName}</div>
-        <div class="sig-npp">NPP. ${coordinatorNpp}</div>
+        <div class="sig-name">${mentorName}</div>
+        <div class="sig-npp">NPP. ${mentorNpp}</div>
       </div>
 
       <!-- Center QR -->
@@ -1542,11 +1574,12 @@ router.get('/certificates/download/:certNumber', async (req, res) => {
         <div class="sig-date">Mengesahkan,</div>
         <div class="sig-role">Kepala Kantor Cabang BPJS Ketenagakerjaan</div>
         <div class="sig-specimen">
-          <!-- Stylized signature -->
-          <svg width="160" height="50" viewBox="0 0 200 80" fill="none" stroke="#00552B" stroke-width="2.8" stroke-linecap="round" style="position:relative; z-index:2;">
-            <path d="M 15 35 Q 40 5 65 35 T 100 45 Q 130 15 160 50 T 190 25" />
-            <path d="M 30 55 Q 90 70 175 35" stroke-width="1.8" />
-          </svg>
+          ${branchHeadSig ? `<img src="${branchHeadSig}" alt="Tanda Tangan Kepala Cabang" style="max-height: 58px; max-width: 170px; object-fit: contain; position: relative; z-index: 2;">` : `
+            <svg width="160" height="50" viewBox="0 0 200 80" fill="none" stroke="#00552B" stroke-width="2.8" stroke-linecap="round" style="position:relative; z-index:2;">
+              <path d="M 15 35 Q 40 5 65 35 T 100 45 Q 130 15 160 50 T 190 25" />
+              <path d="M 30 55 Q 90 70 175 35" stroke-width="1.8" />
+            </svg>
+          `}
 
           <!-- OFFICIAL CIRCULAR SEAL BPJS KETENAGAKERJAAN -->
           <div class="official-stamp">

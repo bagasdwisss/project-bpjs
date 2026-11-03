@@ -10,6 +10,7 @@ import {
 import api from '../../services/api';
 import { StatRowSkeleton, TableSkeleton } from '../Common/Skeleton';
 import CompanyCertificateModal from '../Common/CompanyCertificateModal';
+import { downloadCertificateDirectly } from '../../utils/certificateDownloader';
 
 const Scores = () => {
   const { user, coordinator } = useContext(AuthContext);
@@ -21,6 +22,24 @@ const Scores = () => {
   const [modules, setModules] = useState([]);
   const [certificate, setCertificate] = useState(null);
   const [showCertModal, setShowCertModal] = useState(false);
+  const [downloadingCert, setDownloadingCert] = useState(false);
+
+  const handleDownloadCertificate = async () => {
+    if (!certificate) return;
+    try {
+      setDownloadingCert(true);
+      await downloadCertificateDirectly(certificate, {
+        recipientName: user?.full_name,
+        recipientNim: user?.unique_id,
+        penempatan: user?.penempatan
+      });
+    } catch (e) {
+      console.error('Download error:', e);
+      window.open(`/api/certificates/download/${encodeURIComponent(certificate.certificate_number)}`, '_blank');
+    } finally {
+      setDownloadingCert(false);
+    }
+  };
 
   const scoreTypes = [
     { value: 'all', label: 'Semua Tipe' },
@@ -232,15 +251,16 @@ const Scores = () => {
                   <QrCode className="w-4 h-4 text-[#FCE373]" />
                   <span>Verifikasi QR</span>
                 </Link>
-                <a
-                  href={`/api/certificates/download/${encodeURIComponent(certificate.certificate_number)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-5 py-2.5 rounded-full bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                <button
+                  type="button"
+                  onClick={handleDownloadCertificate}
+                  disabled={downloadingCert}
+                  className="px-5 py-2.5 rounded-full bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                  title="Unduh langsung file sertifikat asli ke disk lokal"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Unduh Sertifikat PDF</span>
-                </a>
+                  <span>{downloadingCert ? 'Mengunduh...' : 'Unduh Sertifikat Langsung'}</span>
+                </button>
               </div>
             </div>
           </div>

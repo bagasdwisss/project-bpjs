@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import SignatureCaptureInput from './SignatureCaptureInput';
 import { 
   Target, 
   Award, 
@@ -19,7 +20,8 @@ import {
   Phone,
   MapPin,
   ShieldCheck,
-  FileCheck
+  FileCheck,
+  PenTool
 } from 'lucide-react';
 
 const GradingSettings = () => {
@@ -48,13 +50,17 @@ const GradingSettings = () => {
     grade_d_cutoff: 50
   });
 
-  // 2. Dynamic Institutional & Signatory Configuration State
+  // 2. Dynamic Institutional & Signatory Configuration State (Kepala Cabang & Mentor)
   const [instConfig, setInstConfig] = useState({
     branch_head_name: 'Dr. Hendra Wijaya, S.E., M.M.',
     branch_head_npp: '9876543210',
+    branch_head_signature: '',
     branch_name: 'BPJS Ketenagakerjaan Kantor Cabang Jakarta Gambir',
     branch_address: 'Jl. Kebon Sirih No. 40, Jakarta Pusat 10110',
     branch_phone: '(021) 3456789',
+    mentor_name: 'Budi Santoso, S.Kom., M.T.',
+    mentor_npp: '8765432109',
+    mentor_signature: '',
     default_coordinator_name: 'Budi Santoso, S.Kom., M.T.',
     default_coordinator_npp: '8765432109'
   });
@@ -99,7 +105,14 @@ const GradingSettings = () => {
       setLoadingInst(true);
       const res = await api.get('/admin/system/institution');
       if (res.data?.success && res.data.data) {
-        setInstConfig(res.data.data);
+        const d = res.data.data;
+        setInstConfig({
+          ...d,
+          mentor_name: d.mentor_name || d.default_coordinator_name || 'Budi Santoso, S.Kom., M.T.',
+          mentor_npp: d.mentor_npp || d.default_coordinator_npp || '8765432109',
+          branch_head_signature: d.branch_head_signature || '',
+          mentor_signature: d.mentor_signature || ''
+        });
       }
     } catch (err) {
       console.warn('Gagal memuat profil instansi:', err);
@@ -174,9 +187,14 @@ const GradingSettings = () => {
     e.preventDefault();
     try {
       setSavingInst(true);
-      const res = await api.put('/admin/system/institution', instConfig);
+      const payload = {
+        ...instConfig,
+        default_coordinator_name: instConfig.mentor_name,
+        default_coordinator_npp: instConfig.mentor_npp
+      };
+      const res = await api.put('/admin/system/institution', payload);
       if (res.data?.success) {
-        toast.success('Profil instansi & penandatangan sertifikat berhasil diperbarui!');
+        toast.success('Profil instansi, mentor & tanda tangan sertifikat berhasil disimpan!');
         if (res.data.data) {
           setInstConfig(res.data.data);
         }
@@ -226,7 +244,7 @@ const GradingSettings = () => {
                 Bobot Nilai, Target & Penandatangan Sertifikat
               </h1>
               <p className="text-xs sm:text-sm text-[#121214]/80 font-semibold mt-1 max-w-2xl">
-                Atur bobot kelulusan, batas cutoff grade A/B/C/D, serta nama & NPP penandatangan resmi pimpinan cabang dan koordinator pembina secara dinamis dari database.
+                Atur bobot kelulusan, batas cutoff grade, serta profil penandatangan resmi (Kepala Kantor Cabang & Mentor Pembimbing Magang) lengkap dengan goresan tanda tangan digital asli.
               </p>
             </div>
 
@@ -271,7 +289,7 @@ const GradingSettings = () => {
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>2. Profil Kantor & Penandatangan Sertifikat</span>
+            <span>2. Profil Kantor & Penandatangan Sertifikat (Mentor & Pimpinan)</span>
           </button>
         </div>
 
@@ -605,7 +623,7 @@ const GradingSettings = () => {
           </form>
         )}
 
-        {/* TAB 2: PROFIL INSTANSI & PENANDATANGAN SERTIFIKAT */}
+        {/* TAB 2: PROFIL INSTANSI & PENANDATANGAN SERTIFIKAT (KEPALA CABANG & MENTOR) */}
         {activeTab === 'institution' && (
           <form onSubmit={handleSaveInstitution} className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
@@ -676,30 +694,30 @@ const GradingSettings = () => {
                   </div>
                 </div>
 
-                {/* 2. Pimpinan & Penandatangan Resmi */}
-                <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-4">
+                {/* 2. Pimpinan & Mentor Resmi */}
+                <div className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
                   <div className="flex items-center gap-2.5 border-b-2 border-gray-100 pb-3">
                     <div className="w-8 h-8 rounded-lg bg-[#B8C96E] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214]">
                       <UserCheck className="w-4 h-4" />
                     </div>
                     <div>
                       <h2 className="text-sm font-black text-[#121214] uppercase tracking-wide">
-                        Penandatangan Resmi Sertifikat
+                        Penandatangan Resmi Sertifikat (Kepala Cabang & Mentor)
                       </h2>
                       <p className="text-xs text-gray-500 font-medium">
-                        Nama dan Nomor Pegawai Pokok (NPP) yang dicetak pada tanda tangan digital.
+                        Koordinator bertugas merilis sertifikat, sedangkan penandatanganan dilakukan oleh Kepala Cabang & Mentor.
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {/* Kepala Cabang */}
-                    <div className="p-3.5 bg-gray-50 border-2 border-[#121214]/30 rounded-xl space-y-3">
+                    <div className="p-4 bg-gray-50 border-2 border-[#121214]/30 rounded-2xl space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-black uppercase text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-400">
                           Pihak 1: Kepala Kantor Cabang
                         </span>
-                        <span className="text-[10px] font-bold text-gray-500">Penandatangan Utama</span>
+                        <span className="text-[10px] font-bold text-gray-500">Mengesahkan Sertifikat</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -726,41 +744,59 @@ const GradingSettings = () => {
                           />
                         </div>
                       </div>
+
+                      {/* Signature Capture Input for Kepala Cabang */}
+                      <SignatureCaptureInput
+                        label="Tanda Tangan Kepala Cabang"
+                        roleTitle="Kepala Kantor Cabang"
+                        signerName={instConfig.branch_head_name}
+                        value={instConfig.branch_head_signature}
+                        onChange={(sig) => setInstConfig({ ...instConfig, branch_head_signature: sig })}
+                      />
                     </div>
 
-                    {/* Koordinator Pembina */}
-                    <div className="p-3.5 bg-gray-50 border-2 border-[#121214]/30 rounded-xl space-y-3">
+                    {/* Mentor Pembimbing Magang (Changed from Koordinator) */}
+                    <div className="p-4 bg-gray-50 border-2 border-[#121214]/30 rounded-2xl space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-black uppercase text-blue-800 bg-blue-100 px-2 py-0.5 rounded border border-blue-400">
-                          Pihak 2: Koordinator Pembina Magang
+                          Pihak 2: Mentor Pembimbing Magang
                         </span>
                         <span className="text-[10px] font-bold text-gray-500">Pembimbing Lapangan</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs font-bold text-[#121214]">Nama Lengkap & Gelar</label>
+                          <label className="text-xs font-bold text-[#121214]">Nama Lengkap & Gelar Mentor</label>
                           <input
                             type="text"
                             required
-                            value={instConfig.default_coordinator_name}
-                            onChange={(e) => setInstConfig({ ...instConfig, default_coordinator_name: e.target.value })}
+                            value={instConfig.mentor_name}
+                            onChange={(e) => setInstConfig({ ...instConfig, mentor_name: e.target.value })}
                             placeholder="Budi Santoso, S.Kom., M.T."
                             className="w-full px-3 py-2 bg-white border border-[#121214] rounded-lg text-xs font-bold text-[#121214] focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-bold text-[#121214]">NPP Koordinator</label>
+                          <label className="text-xs font-bold text-[#121214]">NPP Mentor</label>
                           <input
                             type="text"
                             required
-                            value={instConfig.default_coordinator_npp}
-                            onChange={(e) => setInstConfig({ ...instConfig, default_coordinator_npp: e.target.value })}
+                            value={instConfig.mentor_npp}
+                            onChange={(e) => setInstConfig({ ...instConfig, mentor_npp: e.target.value })}
                             placeholder="8765432109"
                             className="w-full px-3 py-2 bg-white border border-[#121214] rounded-lg text-xs font-mono font-bold text-[#121214] focus:outline-none"
                           />
                         </div>
                       </div>
+
+                      {/* Signature Capture Input for Mentor */}
+                      <SignatureCaptureInput
+                        label="Tanda Tangan Mentor"
+                        roleTitle="Mentor Pembimbing Magang"
+                        signerName={instConfig.mentor_name}
+                        value={instConfig.mentor_signature}
+                        onChange={(sig) => setInstConfig({ ...instConfig, mentor_signature: sig })}
+                      />
                     </div>
 
                   </div>
@@ -772,7 +808,7 @@ const GradingSettings = () => {
                       className="w-full py-3 px-4 rounded-xl border-2 border-[#121214] bg-[#B8C96E] hover:bg-[#a5b85a] active:scale-95 text-xs font-black text-[#121214] shadow-[3px_3px_0px_#121214] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       {savingInst ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      Simpan Profil Instansi & Penandatangan
+                      Simpan Profil Instansi, Mentor & Tanda Tangan
                     </button>
                   </div>
                 </div>
@@ -792,13 +828,13 @@ const GradingSettings = () => {
                           Live Preview Blok Sertifikat
                         </h2>
                         <p className="text-xs text-gray-500 font-medium">
-                          Tampilan kop dan stempel tanda tangan dinamis.
+                          Tampilan kop, stempel dinas, dan tanda tangan digital riil.
                         </p>
                       </div>
                     </div>
 
                     <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 border border-emerald-400">
-                      Auto Synced
+                      Live Synced
                     </span>
                   </div>
 
@@ -825,25 +861,33 @@ const GradingSettings = () => {
                       <p className="text-[10px] text-gray-500 font-mono">NIM / ID Magang: 2026-BPJS-001</p>
                     </div>
 
-                    {/* Signature Columns Preview */}
+                    {/* Signature Columns Preview (Mentor & Kepala Cabang) */}
                     <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-300">
-                      {/* Coordinator Stamp */}
+                      {/* Mentor Stamp */}
                       <div className="text-center space-y-1">
                         <span className="text-[10px] font-bold text-gray-600 block">Mengetahui,</span>
-                        <span className="text-[10px] font-black text-[#121214] block">Koordinator Pembina Magang</span>
+                        <span className="text-[10px] font-black text-[#121214] block">Mentor Pembimbing Magang</span>
                         
-                        <div className="my-2 p-2 bg-white border border-dashed border-[#121214]/40 rounded-lg inline-block">
-                          <div className="w-16 h-12 bg-blue-50 border border-blue-300 rounded flex flex-col items-center justify-center">
-                            <ShieldCheck className="w-5 h-5 text-blue-700" />
-                            <span className="text-[8px] font-black text-blue-800">DIGITALLY SIGNED</span>
-                          </div>
+                        <div className="my-1.5 p-1.5 bg-white border border-dashed border-[#121214]/40 rounded-lg inline-block min-w-[140px] min-h-[55px] flex items-center justify-center">
+                          {instConfig.mentor_signature ? (
+                            <img 
+                              src={instConfig.mentor_signature} 
+                              alt="Tanda Tangan Mentor" 
+                              className="max-h-12 max-w-[130px] object-contain mx-auto"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center">
+                              <PenTool className="w-4 h-4 text-gray-400" />
+                              <span className="text-[8px] font-bold text-gray-400">Spesimen Belum Diinput</span>
+                            </div>
+                          )}
                         </div>
 
                         <p className="text-[11px] font-black text-[#121214] underline">
-                          {instConfig.default_coordinator_name || 'Budi Santoso, S.Kom., M.T.'}
+                          {instConfig.mentor_name || 'Budi Santoso, S.Kom., M.T.'}
                         </p>
                         <p className="text-[9px] font-mono text-gray-600">
-                          NPP: {instConfig.default_coordinator_npp || '8765432109'}
+                          NPP: {instConfig.mentor_npp || '8765432109'}
                         </p>
                       </div>
 
@@ -852,11 +896,19 @@ const GradingSettings = () => {
                         <span className="text-[10px] font-bold text-gray-600 block">Menyetujui,</span>
                         <span className="text-[10px] font-black text-[#121214] block">Kepala Kantor Cabang</span>
 
-                        <div className="my-2 p-2 bg-white border border-dashed border-[#121214]/40 rounded-lg inline-block">
-                          <div className="w-16 h-12 bg-emerald-50 border border-emerald-300 rounded flex flex-col items-center justify-center">
-                            <ShieldCheck className="w-5 h-5 text-emerald-700" />
-                            <span className="text-[8px] font-black text-emerald-800">DIGITALLY SIGNED</span>
-                          </div>
+                        <div className="my-1.5 p-1.5 bg-white border border-dashed border-[#121214]/40 rounded-lg inline-block min-w-[140px] min-h-[55px] flex items-center justify-center relative">
+                          {instConfig.branch_head_signature ? (
+                            <img 
+                              src={instConfig.branch_head_signature} 
+                              alt="Tanda Tangan Kepala Cabang" 
+                              className="max-h-12 max-w-[130px] object-contain mx-auto"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center">
+                              <PenTool className="w-4 h-4 text-gray-400" />
+                              <span className="text-[8px] font-bold text-gray-400">Spesimen Belum Diinput</span>
+                            </div>
+                          )}
                         </div>
 
                         <p className="text-[11px] font-black text-[#121214] underline">
@@ -871,10 +923,10 @@ const GradingSettings = () => {
                     <div className="p-3 bg-white border border-[#121214]/20 rounded-xl text-[10px] text-gray-600 space-y-1">
                       <div className="flex items-center gap-1.5 font-bold text-[#121214]">
                         <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Kriptografis Terintegrasi</span>
+                        <span>Tanda Tangan & Kriptografi Terintegrasi</span>
                       </div>
                       <p>
-                        Setiap sertifikat yang diunduh (PDF) atau diverifikasi lewat kode QR publik akan otomatis membaca profil instansi dan nama penandatangan di atas tanpa hardcode.
+                        Goresan tanda tangan di atas akan langsung tercetak pada sertifikat resmi yang diunduh (PNG/PDF) peserta magang dan koordinator.
                       </p>
                     </div>
 
@@ -886,11 +938,11 @@ const GradingSettings = () => {
                   <div className="flex items-center gap-2">
                     <Info className="w-4 h-4 text-[#121214]" />
                     <h3 className="text-xs font-black text-[#121214] uppercase tracking-wide">
-                      Penyimpanan Terpusat Pada Database
+                      Pemisahan Peran Koordinator vs Mentor
                     </h3>
                   </div>
                   <p className="text-xs text-gray-700 font-medium leading-relaxed">
-                    Pengaturan instansi ini disimpan dalam tabel <code className="bg-gray-200 px-1 py-0.5 rounded font-mono text-[11px]">system_settings</code>. Jika terjadi pergantian Kepala Kantor Cabang atau Koordinator, Administrator cukup memperbarui formulir ini sekali dan seluruh sistem sertifikat baru langsung memperbarui data cetak secara konsisten.
+                    Koordinator bertugas mengelola nilai dan merilis sertifikat di portal koordinator. Tanda tangan yang dicantumkan pada sertifikat adalah milik <strong>Kepala Kantor Cabang</strong> dan <strong>Mentor Pembimbing Magang</strong> yang tersimpan di tabel <code className="bg-gray-200 px-1 py-0.5 rounded font-mono text-[11px]">system_settings</code>.
                   </p>
                 </div>
 
