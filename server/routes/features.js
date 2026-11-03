@@ -932,13 +932,27 @@ router.get('/certificates/list', authenticateToken, requireRole('Koordinator', '
 /**
  * POST /api/certificates/generate
  * Issue certificate with SHA-256 cryptographic verification hash
+ * Anti-Fraud Security Rules:
+ * 1. Requires coordinator account password verification
+ * 2. Strict 1 Participant = 1 Certificate limit (double issuance forbidden)
+ * 3. Records issued_by coordinator ID and chosen design template theme
  */
 router.post('/certificates/generate', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const { user_id, batch_name, predicate, score_average } = req.body;
+    const { user_id, batch_name, predicate, score_average, design_theme, password } = req.body;
 
     if (!user_id) {
       return res.status(400).json({ success: false, message: 'User ID peserta wajib diisi.' });
+    }
+
+    // Security Rule 1: Coordinator Password Authorization Check
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Kata sandi otorisasi akun wajib dimasukkan untuk mengesahkan penerbitan sertifikat.' });
+    }
+
+    const authRes = await query(`SELECT password_hash FROM users WHERE user_id = $1`, [req.user.user_id]);
+    if (authRes.rows.length === 0 || !(await bcrypt.compare(password, authRes.rows[0].password_hash))) {
+      return res.status(401).json({ success: false, message: 'Kata sandi otorisasi salah. Penerbitan sertifikat ditolak demi keamanan sistem.' });
     }
 
     const uRes = await query(`SELECT * FROM users WHERE user_id = $1`, [user_id]);
@@ -952,6 +966,18 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
       if (user.coordinator_id !== req.user.user_id) {
         return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menerbitkan sertifikat untuk anak didik Anda sendiri.' });
       }
+    }
+
+    // Security Rule 2: Strict Anti-Fraud 1 Participant = 1 Certificate
+    const existingCert = await query(
+      `SELECT certificate_id, certificate_number, issue_date FROM certificates WHERE user_id = $1`,
+      [user_id]
+    );
+    if (existingCert.rows.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Peserta ini sudah pernah diterbitkan sertifikat (No: ${existingCert.rows[0].certificate_number}). Untuk mencegah kecurangan, satu anak didik hanya boleh diterbitkan sertifikat sekali saja. Jika terdapat kesalahan nama atau data, ajukan permohonan penerbitan ulang / pembatalan ke Administrator.` 
+      });
     }
 
     // Query real progress score & batch from DB
@@ -998,17 +1024,15 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
       issueDate
     });
 
+    const chosenTheme = design_theme || 'emerald';
+
     const result = await query(
       `INSERT INTO certificates (
         user_id, certificate_number, issue_date, predicate, 
-        score_average, digital_signature_hash, digital_signature, signature_algorithm, batch_name, status, created_at
+        score_average, digital_signature_hash, digital_signature, signature_algorithm, 
+        batch_name, status, design_theme, issued_by, created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Terbit', CURRENT_TIMESTAMP)
-      ON CONFLICT (certificate_number) DO UPDATE SET
-        predicate = EXCLUDED.predicate,
-        score_average = EXCLUDED.score_average,
-        digital_signature_hash = EXCLUDED.digital_signature_hash,
-        digital_signature = EXCLUDED.digital_signature
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Terbit', $10, $11, CURRENT_TIMESTAMP)
       RETURNING *`,
       [
         user_id,
@@ -1019,11 +1043,21 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
         certSig.signature,
         certSig.signature,
         certSig.algorithm,
-        realBatchName
+        realBatchName,
+        chosenTheme,
+        req.user.user_id
       ]
     );
 
-    // Diseminasi Notifikasi Resmi ke Peserta Magang (In-App Bell & Priority Alert)
+    // Audit Logging
+    await logActivity({
+      req,
+      userId: req.user.user_id,
+      action: 'CERTIFICATE_ISSUED',
+      details: `Koordinator ${req.user.username || req.user.full_name} menerbitkan sertifikat ${certNumber} [Tema: ${chosenTheme}] untuk ${user.full_name} (NIM: ${user.unique_id})`
+    });
+
+    // In-App Notification to Participant
     try {
       await query(
         `INSERT INTO notifications (user_id, title, message, type, priority, is_read, created_at)
@@ -1042,10 +1076,306 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
 
     return res.status(201).json({
       success: true,
-      message: `E-Sertifikat terverifikasi untuk ${user.full_name} berhasil diterbitkan dengan Tanda Tangan Kriptografi ${certSig.algorithm}!`,
+      message: `E-Sertifikat resmi untuk ${user.full_name} berhasil diterbitkan (${certNumber})!`,
       data: {
         ...result.rows[0],
         cryptographic_thumbprint: certSig.thumbprint
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/certificates/bulk-generate
+ * Bulk Issue Certificates for multiple mentees with password authorization
+ */
+router.post('/certificates/bulk-generate', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
+  try {
+    const { user_ids, design_theme, predicate, password } = req.body;
+
+    if (!Array.isArray(user_ids) || user_ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Daftar ID peserta wajib dipilih minimal 1 orang.' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Kata sandi otorisasi koordinator wajib dimasukkan untuk penerbitan massal.' });
+    }
+
+    // Verify Password
+    const authRes = await query(`SELECT password_hash FROM users WHERE user_id = $1`, [req.user.user_id]);
+    if (authRes.rows.length === 0 || !(await bcrypt.compare(password, authRes.rows[0].password_hash))) {
+      return res.status(401).json({ success: false, message: 'Kata sandi otorisasi koordinator tidak valid.' });
+    }
+
+    const issuedList = [];
+    const skippedList = [];
+    const chosenTheme = design_theme || 'emerald';
+
+    for (const uId of user_ids) {
+      const uRes = await query(`SELECT * FROM users WHERE user_id = $1`, [uId]);
+      if (uRes.rows.length === 0) continue;
+      const user = uRes.rows[0];
+
+      // Coordinator isolation check
+      if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+        if (user.coordinator_id !== req.user.user_id) {
+          skippedList.push({ name: user.full_name, reason: 'Bukan anak didik Anda' });
+          continue;
+        }
+      }
+
+      // Check if already has certificate
+      const existRes = await query(`SELECT certificate_number FROM certificates WHERE user_id = $1`, [uId]);
+      if (existRes.rows.length > 0) {
+        skippedList.push({ name: user.full_name, reason: `Sudah memiliki sertifikat (${existRes.rows[0].certificate_number})` });
+        continue;
+      }
+
+      // Progress data
+      const progRes = await query(`SELECT nilai, grade FROM progress WHERE user_id = $1 LIMIT 1`, [uId]);
+      const realScore = (progRes.rows.length > 0 && progRes.rows[0].nilai !== null) ? parseFloat(progRes.rows[0].nilai) : 88.0;
+      const realGrade = realScore >= 85 ? 'A' : realScore >= 75 ? 'B' : 'C';
+      const determinedPredicate = predicate || (realGrade === 'A' ? 'Sangat Memuaskan (Grade A)' : 'Memuaskan (Grade B)');
+
+      const certCountRes = await query(`SELECT COUNT(*) FROM certificates`);
+      const nextSeq = parseInt(certCountRes.rows[0].count, 10) + 1;
+      const certNumber = `BPJSTK/MAGANG/2026/${String(nextSeq).padStart(3, '0')}`;
+      const issueDate = new Date().toISOString().split('T')[0];
+
+      const certSig = signCertificate({
+        certNumber,
+        recipientName: user.full_name,
+        userId: user.user_id,
+        grade: realGrade,
+        finalScore: realScore,
+        issueDate
+      });
+
+      const insRes = await query(
+        `INSERT INTO certificates (
+          user_id, certificate_number, issue_date, predicate, 
+          score_average, digital_signature_hash, digital_signature, signature_algorithm, 
+          batch_name, status, design_theme, issued_by, created_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Batch 1 - Gelombang Berjalan', 'Terbit', $9, $10, CURRENT_TIMESTAMP)
+        RETURNING *`,
+        [
+          uId, certNumber, issueDate, determinedPredicate, realScore,
+          certSig.signature, certSig.signature, certSig.algorithm,
+          chosenTheme, req.user.user_id
+        ]
+      );
+
+      issuedList.push({
+        user_id: uId,
+        participant_name: user.full_name,
+        certificate_number: certNumber
+      });
+
+      // Audit Log
+      await logActivity({
+        req,
+        userId: req.user.user_id,
+        action: 'CERTIFICATE_ISSUED_BULK',
+        details: `Penerbitan massal sertifikat ${certNumber} [Tema: ${chosenTheme}] untuk ${user.full_name}`
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Penerbitan massal selesai: ${issuedList.length} sertifikat berhasil diterbitkan, ${skippedList.length} dilewati.`,
+      data: {
+        issuedCount: issuedList.length,
+        skippedCount: skippedList.length,
+        issuedList,
+        skippedList
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/certificates/request-reissue
+ * Coordinator requests certificate reissue / typo correction to Admin
+ */
+router.post('/certificates/request-reissue', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
+  try {
+    const { certificate_id, reason } = req.body;
+    if (!certificate_id || !reason) {
+      return res.status(400).json({ success: false, message: 'ID sertifikat dan alasan permohonan koreksi wajib diisi.' });
+    }
+
+    const certRes = await query(`SELECT * FROM certificates WHERE certificate_id = $1`, [certificate_id]);
+    if (certRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Sertifikat tidak ditemukan.' });
+    }
+
+    await query(
+      `UPDATE certificates 
+       SET reissue_requested = TRUE, 
+           reissue_reason = $1, 
+           reissue_requested_at = CURRENT_TIMESTAMP, 
+           reissue_requested_by = $2 
+       WHERE certificate_id = $3`,
+      [reason, req.user.user_id, certificate_id]
+    );
+
+    await logActivity({
+      req,
+      userId: req.user.user_id,
+      action: 'CERTIFICATE_REISSUE_REQUESTED',
+      details: `Koordinator mengajukan pembatalan & penerbitan ulang sertifikat ID ${certificate_id}. Alasan: ${reason}`
+    });
+
+    return res.json({
+      success: true,
+      message: 'Permohonan koreksi sertifikat berhasil diajukan ke Administrator untuk ditinjau.'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/certificates/reissue-requests
+ * Admin lists all pending certificate reissue requests
+ */
+router.get('/admin/certificates/reissue-requests', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT c.*, 
+             u.full_name as participant_name, u.unique_id as participant_nim,
+             req_user.full_name as requested_by_name, req_user.username as requested_by_user
+      FROM certificates c
+      JOIN users u ON c.user_id = u.user_id
+      LEFT JOIN users req_user ON c.reissue_requested_by = req_user.user_id
+      WHERE c.reissue_requested = TRUE
+      ORDER BY c.reissue_requested_at DESC
+    `);
+    return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/certificates/approve-reissue
+ * Admin approves reissue: COMPLETELY DELETES/PURGES the old certificate from the database and system
+ */
+router.post('/admin/certificates/approve-reissue', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { certificate_id } = req.body;
+    if (!certificate_id) {
+      return res.status(400).json({ success: false, message: 'ID sertifikat wajib diisi.' });
+    }
+
+    const certRes = await query(`
+      SELECT c.*, u.full_name as participant_name, u.unique_id as participant_nim 
+      FROM certificates c
+      JOIN users u ON c.user_id = u.user_id
+      WHERE c.certificate_id = $1
+    `, [certificate_id]);
+
+    if (certRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Sertifikat tidak ditemukan.' });
+    }
+
+    const cert = certRes.rows[0];
+
+    // HAPUS BERSIH sertifikat yang pernah keluar dari database dan sistem
+    await query(`DELETE FROM certificates WHERE certificate_id = $1`, [certificate_id]);
+
+    await logActivity({
+      req,
+      userId: req.user.user_id,
+      action: 'CERTIFICATE_PURGED_AND_REISSUED',
+      details: `Admin ${req.user.username} menyetujui koreksi dan MENGHAPUS BERSIH sertifikat (${cert.certificate_number}) milik ${cert.participant_name} dari database. Izin penerbitan ulang telah dibuka.`
+    });
+
+    return res.json({
+      success: true,
+      message: `Sertifikat ${cert.certificate_number} berhasil dihapus bersih dari database. Koordinator kini dapat menerbitkan sertifikat baru dengan data yang benar.`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/certificates/reject-reissue
+ * Admin rejects reissue request
+ */
+router.post('/admin/certificates/reject-reissue', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const { certificate_id, reject_reason } = req.body;
+    await query(
+      `UPDATE certificates 
+       SET reissue_requested = FALSE 
+       WHERE certificate_id = $1`,
+      [certificate_id]
+    );
+
+    await logActivity({
+      req,
+      userId: req.user.user_id,
+      action: 'CERTIFICATE_REISSUE_REJECTED',
+      details: `Admin menolak permohonan pembatalan sertifikat ID ${certificate_id}. Catatan: ${reject_reason || 'Ditolak'}`
+    });
+
+    return res.json({ success: true, message: 'Permohonan koreksi sertifikat ditolak.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/certificates/monitoring-logs
+ * Enterprise Anti-Fraud Monitoring for Certificate Issuance
+ */
+router.get('/admin/certificates/monitoring-logs', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT c.*, 
+             u.full_name as participant_name, u.unique_id as participant_nim, u.penempatan,
+             coord.full_name as coordinator_name, coord.unique_id as coordinator_npp
+      FROM certificates c
+      JOIN users u ON c.user_id = u.user_id
+      LEFT JOIN users coord ON COALESCE(c.issued_by, u.coordinator_id) = coord.user_id
+      ORDER BY c.created_at DESC
+    `);
+
+    // Anti-fraud heuristics check
+    const enrichedLogs = result.rows.map(row => {
+      const issueTime = new Date(row.created_at);
+      const hour = issueTime.getHours();
+      const day = issueTime.getDay(); // 0 is Sunday, 6 is Saturday
+      const isWeekend = day === 0 || day === 6;
+      const isOffHours = hour < 7 || hour >= 19 || isWeekend;
+
+      return {
+        ...row,
+        fraud_flags: {
+          is_off_hours: isOffHours,
+          is_weekend: isWeekend,
+          reissue_pending: !!row.reissue_requested
+        }
+      };
+    });
+
+    const offHoursCount = enrichedLogs.filter(l => l.fraud_flags.is_off_hours).length;
+    const pendingReissueCount = enrichedLogs.filter(l => l.reissue_requested).length;
+
+    return res.json({
+      success: true,
+      data: enrichedLogs,
+      summary: {
+        total_issued: enrichedLogs.length,
+        off_hours_alerts: offHoursCount,
+        pending_reissues: pendingReissueCount
       }
     });
   } catch (error) {

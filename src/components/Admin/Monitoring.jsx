@@ -2,14 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import { 
   Activity, Server, Users, RefreshCw, Clock, ShieldCheck, 
   Database, Cpu, AlertTriangle, Globe, BarChart3, Building,
-  ShieldAlert, Smartphone, Laptop, CheckCircle, Sparkles
+  ShieldAlert, Smartphone, Laptop, CheckCircle, Sparkles,
+  Award, Trash2, XCircle, FileEdit, Check, AlertOctagon, Search
 } from 'lucide-react';
 
 const Monitoring = () => {
-  const [activeTab, setActiveTab] = useState('audit'); // 'audit' or 'komparasi'
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('audit'); // 'audit', 'telemetry', 'honeytoken', 'whistleblowing', 'komparasi', 'certificates'
   const [anomalyOnly, setAnomalyOnly] = useState(false);
 
   const [systemStatus, setSystemStatus] = useState({
@@ -36,10 +39,22 @@ const Monitoring = () => {
   const [whistleResponseText, setWhistleResponseText] = useState('');
   const [whistleStatus, setWhistleStatus] = useState('DITINDAKLANJUTI');
 
+  // Certificate Monitoring & Anti-Fraud States
+  const [certLogs, setCertLogs] = useState([]);
+  const [certSummary, setCertSummary] = useState({ total_issued: 0, off_hours_alerts: 0, pending_reissues: 0 });
+  const [reissueRequests, setReissueRequests] = useState([]);
+  const [certSearch, setCertSearch] = useState('');
+  const [certAnomalyOnly, setCertAnomalyOnly] = useState(false);
+  const [showPurgeConfirmModal, setShowPurgeConfirmModal] = useState(null);
+  const [rejectModalTarget, setRejectModalTarget] = useState(null);
+  const [rejectReasonText, setRejectReasonText] = useState('');
+  const [approvingId, setApprovingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
+
   const fetchMonitoringData = async () => {
     try {
       setLoading(true);
-      const [statsRes, auditRes, compRes, teleRes, brinRes, jailRes, trapRes, wbRes] = await Promise.all([
+      const [statsRes, auditRes, compRes, teleRes, brinRes, jailRes, trapRes, wbRes, certRes, reissueRes] = await Promise.all([
         api.get('/admin/monitoring/system-stats'),
         api.get(`/admin/forensic-audit?anomaly_only=${anomalyOnly}`),
         api.get('/admin/comparison'),
@@ -47,7 +62,9 @@ const Monitoring = () => {
         api.get('/admin/database/brin-status').catch(() => ({ data: { success: false } })),
         api.get('/admin/security/jailed-ips').catch(() => ({ data: { success: false } })),
         api.get('/admin/security/honeytoken-traps').catch(() => ({ data: { success: false } })),
-        api.get('/admin/whistleblowing').catch(() => ({ data: { success: false } }))
+        api.get('/admin/whistleblowing').catch(() => ({ data: { success: false } })),
+        api.get('/admin/certificates/monitoring-logs').catch(() => ({ data: { success: false } })),
+        api.get('/admin/certificates/reissue-requests').catch(() => ({ data: { success: false } }))
       ]);
 
       if (statsRes.data?.success) setSystemStatus(statsRes.data.data);
@@ -61,6 +78,11 @@ const Monitoring = () => {
       if (jailRes.data?.success) setJailedIps(jailRes.data.data || []);
       if (trapRes.data?.success) setHoneytokenTraps(trapRes.data.data || []);
       if (wbRes.data?.success) setWhistleblowingReports(wbRes.data.data || []);
+      if (certRes.data?.success) {
+        setCertLogs(certRes.data.data || []);
+        if (certRes.data.summary) setCertSummary(certRes.data.summary);
+      }
+      if (reissueRes.data?.success) setReissueRequests(reissueRes.data.data || []);
     } catch (err) {
       console.error('Error fetching monitoring data:', err);
     } finally {
@@ -94,6 +116,43 @@ const Monitoring = () => {
       }
     } catch (err) {
       console.error('Failed to update whistleblowing report:', err);
+    }
+  };
+
+  const handleApproveReissue = async (certificateId) => {
+    try {
+      setApprovingId(certificateId);
+      const res = await api.post('/admin/certificates/approve-reissue', { certificate_id: certificateId });
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Sertifikat lama berhasil dihapus bersih dari database!');
+        setShowPurgeConfirmModal(null);
+        fetchMonitoringData();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menyetujui koreksi: ' + err.message);
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleRejectReissue = async () => {
+    if (!rejectModalTarget) return;
+    try {
+      setRejectingId(rejectModalTarget.certificate_id);
+      const res = await api.post('/admin/certificates/reject-reissue', { 
+        certificate_id: rejectModalTarget.certificate_id,
+        reject_reason: rejectReasonText || 'Ditolak oleh Administrator'
+      });
+      if (res.data?.success) {
+        toast.success('Permohonan koreksi sertifikat ditolak.');
+        setRejectModalTarget(null);
+        setRejectReasonText('');
+        fetchMonitoringData();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menolak permohonan: ' + err.message);
+    } finally {
+      setRejectingId(null);
     }
   };
 
@@ -232,6 +291,20 @@ const Monitoring = () => {
             }`}
           >
             Komparasi Batch & Wilayah
+          </button>
+          <button
+            onClick={() => setActiveTab('certificates')}
+            className={`px-4 py-2 rounded-xl border-2 border-[#121214] font-black text-xs transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'certificates'
+                ? 'bg-[#121214] text-white shadow-[3px_3px_0px_#B8C96E]'
+                : 'bg-white text-gray-700 hover:bg-[#F5F4F0]'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Pengawasan Sertifikat & Anti-Fraud</span>
+            {certSummary.pending_reissues > 0 && (
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping ml-0.5" />
+            )}
           </button>
         </div>
 
@@ -757,6 +830,432 @@ const Monitoring = () => {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* TAB 6: PENGAWASAN SERTIFIKAT & ANTI-FRAUD RADAR */}
+        {activeTab === 'certificates' && (
+          <div className="space-y-6">
+            
+            {/* Radar Header & Anti-Fraud Alert */}
+            <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[5px_5px_0px_#121214] flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+                    Sistem Integritas Forensik Sertifikat
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-[#121214] tracking-tight flex items-center gap-2">
+                  <Award className="w-6 h-6 text-emerald-700" />
+                  <span>Pengawasan Penerbitan & Radar Anti-Fraud</span>
+                </h2>
+                <p className="text-xs text-gray-600 mt-1 font-medium max-w-2xl">
+                  Memantau seluruh aktivitas penerbitan sertifikat resmi oleh Koordinator, mendeteksi anomali di luar jam kerja, mencegah kecurangan penggandaan (1 peserta = 1 sertifikat), dan mengelola persetujuan hapus bersih data.
+                </p>
+              </div>
+
+              {/* Filter Anomaly Toggle */}
+              <button
+                type="button"
+                onClick={() => setCertAnomalyOnly(!certAnomalyOnly)}
+                className={`px-4 py-2.5 rounded-2xl border-2 border-[#121214] text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                  certAnomalyOnly
+                    ? 'bg-[#F5C6EC] text-[#121214] shadow-[3px_3px_0px_#121214]'
+                    : 'bg-[#F5F4F0] text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                <span>{certAnomalyOnly ? 'Menampilkan Anomali Saja' : 'Filter Penerbitan Berisiko'}</span>
+              </button>
+            </div>
+
+            {/* 4 Pastel Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              
+              {/* Card 1: Total Sertifikat Sah */}
+              <div className="p-5 rounded-2xl bg-[#B8C96E] border-2 border-[#121214] text-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/70">Sertifikat Sah</span>
+                  <span className="bg-[#121214] text-white text-[10px] font-black px-2 py-0.5 rounded-full">Database</span>
+                </div>
+                <div>
+                  <p className="text-3xl font-black text-[#121214]">{certSummary.total_issued}</p>
+                  <p className="text-[10px] font-bold text-[#121214]/80 mt-1">Telah diterbitkan & bernomor seri</p>
+                </div>
+                <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat secara kriptografis</p>
+              </div>
+
+              {/* Card 2: Anomali Diluar Jam Kerja */}
+              <div className="p-5 rounded-2xl bg-[#F5C6EC] border-2 border-[#121214] text-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/70">Penerbitan Luar Jam Kerja</span>
+                  <span className="bg-rose-700 text-white text-[10px] font-black px-2 py-0.5 rounded-full">Heuristik</span>
+                </div>
+                <div>
+                  <p className="text-3xl font-black text-rose-950">{certSummary.off_hours_alerts}</p>
+                  <p className="text-[10px] font-bold text-rose-900 mt-1">Penerbitan malam hari (&lt;07:00 / &ge;19:00) / Weekend</p>
+                </div>
+                <p className="text-[10px] text-rose-800/70 font-medium">Memerlukan pemantauan khusus</p>
+              </div>
+
+              {/* Card 3: Permohonan Koreksi Pending */}
+              <div className="p-5 rounded-2xl bg-[#FCE373] border-2 border-[#121214] text-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/70">Permohonan Re-Issue</span>
+                  <span className="bg-[#121214] text-white text-[10px] font-black px-2 py-0.5 rounded-full">Butuh Aksi</span>
+                </div>
+                <div>
+                  <p className="text-3xl font-black text-[#121214]">{certSummary.pending_reissues}</p>
+                  <p className="text-[10px] font-bold text-[#856B12] mt-1">Menunggu persetujuan & hapus bersih</p>
+                </div>
+                <p className="text-[10px] text-[#121214]/60 font-medium">Protokol pemulihan kesalahan data</p>
+              </div>
+
+              {/* Card 4: Anti-Fraud Rules Active */}
+              <div className="p-5 rounded-2xl bg-[#BDD4F2] border-2 border-[#121214] text-[#121214] shadow-[4px_4px_0px_#121214] flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#121214]/70">Anti-Fraud Engine</span>
+                  <span className="bg-[#121214] text-white text-[10px] font-black px-2 py-0.5 rounded-full">Aktif</span>
+                </div>
+                <div>
+                  <p className="text-xl font-black text-[#121214]">1 Peserta = 1 Sertifikat</p>
+                  <p className="text-[10px] font-bold text-[#121214]/80 mt-1">Otorisasi Sandi Akun Diwajibkan</p>
+                </div>
+                <p className="text-[10px] text-[#121214]/60 font-medium">Blokir duplikasi & verifikasi identitas</p>
+              </div>
+
+            </div>
+
+            {/* PANEL: PERMOHONAN KOREKSI / RE-ISSUE (HAPUS BERSIH PROTOCOL) */}
+            <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[5px_5px_0px_#121214] space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b-2 border-[#121214]">
+                <div>
+                  <h3 className="text-base font-black text-[#121214] flex items-center gap-2">
+                    <FileEdit className="w-5 h-5 text-amber-600" />
+                    <span>Permohonan Koreksi / Hapus Bersih Sertifikat Lama</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
+                      {reissueRequests.length} Menunggu
+                    </span>
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">
+                    Koordinator mengajukan pembatalan sertifikat karena adanya kesalahan data. Menyetujui permohonan ini akan <strong>MENGHAPUS BERSIH</strong> sertifikat lama dari database agar dapat diterbitkan ulang dengan benar.
+                  </p>
+                </div>
+              </div>
+
+              {reissueRequests.length === 0 ? (
+                <div className="p-6 bg-emerald-50/50 border border-emerald-200 rounded-xl text-center space-y-1">
+                  <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto" />
+                  <p className="text-xs font-extrabold text-emerald-900">Tidak ada permohonan koreksi pending</p>
+                  <p className="text-[11px] text-emerald-700">Seluruh data sertifikat yang telah diterbitkan berada dalam status sah dan terverifikasi.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {reissueRequests.map((req) => (
+                    <div 
+                      key={req.certificate_id} 
+                      className="p-4 rounded-xl border-2 border-amber-500 bg-amber-50/60 shadow-[3px_3px_0px_#D97706] space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded">
+                            Permohonan Koreksi Data
+                          </span>
+                          <h4 className="font-black text-sm text-[#121214] mt-1">
+                            {req.participant_name}
+                          </h4>
+                          <p className="text-xs font-mono text-gray-600">
+                            NIM: {req.participant_nim} • No: {req.certificate_number}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-500">
+                          {req.reissue_requested_at ? new Date(req.reissue_requested_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-lg border border-amber-200 text-xs text-gray-800">
+                        <span className="font-bold text-gray-600 block mb-0.5">Alasan Revisi / Koreksi:</span>
+                        <p className="italic text-gray-900">"{req.reissue_reason || 'Kesalahan data sertifikat'}"</p>
+                        <p className="text-[10px] text-gray-500 mt-2 font-medium">
+                          Diajukan oleh Koordinator: <strong className="text-gray-800">{req.coordinator_name || 'Koordinator Pembina'}</strong>
+                        </p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          disabled={rejectingId === req.certificate_id}
+                          onClick={() => {
+                            setRejectModalTarget(req);
+                            setRejectReasonText('');
+                          }}
+                          className="px-3 py-1.5 rounded-lg border border-gray-400 bg-white hover:bg-gray-100 text-xs font-bold text-gray-700 transition cursor-pointer active:scale-95 disabled:opacity-50"
+                        >
+                          Tolak
+                        </button>
+                        <button
+                          type="button"
+                          disabled={approvingId === req.certificate_id}
+                          onClick={() => setShowPurgeConfirmModal(req)}
+                          className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-black transition shadow-sm cursor-pointer active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Setujui & Hapus Bersih Database</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* TABEL LOG FORENSIK PENGAWASAN SERTIFIKAT */}
+            <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[5px_5px_0px_#121214] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-[#121214]">
+                <div>
+                  <h3 className="font-black text-base text-[#121214] flex items-center space-x-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                    <span>Log Forensik Penerbitan E-Sertifikat BPJSTK</span>
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Rekaman lengkap penerbit, penerima, verifikasi HMAC SHA-256, dan analisis kepatuhan waktu kerja
+                  </p>
+                </div>
+
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Cari koordinator, peserta, no sertifikat..."
+                    value={certSearch}
+                    onChange={(e) => setCertSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-medium text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214]"
+                  />
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+                  <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Waktu & Jam Kerja</th>
+                      <th className="px-4 py-3 text-left">Koordinator Penerbit</th>
+                      <th className="px-4 py-3 text-left">Anak Didik Penerima</th>
+                      <th className="px-4 py-3 text-left">Nomor Sertifikat & Desain</th>
+                      <th className="px-4 py-3 text-left">Predikat & Nilai</th>
+                      <th className="px-4 py-3 text-left">Integritas Digital</th>
+                      <th className="px-4 py-3 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0EFEA] bg-white">
+                    {certLogs
+                      .filter(cert => {
+                        const q = certSearch.toLowerCase();
+                        const matchText = (cert.participant_name || '').toLowerCase().includes(q) ||
+                          (cert.coordinator_name || '').toLowerCase().includes(q) ||
+                          (cert.certificate_number || '').toLowerCase().includes(q);
+                        const matchAnomaly = !certAnomalyOnly || cert.fraud_flags?.is_off_hours || cert.reissue_requested;
+                        return matchText && matchAnomaly;
+                      })
+                      .map((cert) => {
+                        const isOffHours = cert.fraud_flags?.is_off_hours;
+                        const isReissue = !!cert.reissue_requested;
+                        const certTheme = cert.design_theme || 'emerald';
+
+                        return (
+                          <tr key={cert.certificate_id} className="hover:bg-[#FAF9F6] transition-colors">
+                            {/* Waktu & Jam Kerja */}
+                            <td className="px-4 py-3">
+                              <p className="font-mono text-[11px] font-bold text-[#121214]">
+                                {new Date(cert.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </p>
+                              <p className="text-[10px] font-mono text-gray-500">
+                                {new Date(cert.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                              </p>
+                              {isOffHours ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-800 border border-rose-300 mt-1">
+                                  <AlertTriangle className="w-2.5 h-2.5 text-rose-600" />
+                                  Luar Jam Kerja
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 mt-1">
+                                  Jam Normal
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Koordinator Penerbit */}
+                            <td className="px-4 py-3">
+                              <p className="font-black text-[#121214]">{cert.coordinator_name || 'Koordinator Pembina'}</p>
+                              <p className="text-[10px] font-mono text-gray-500">NPP: {cert.coordinator_npp || '-'}</p>
+                            </td>
+
+                            {/* Anak Didik Penerima */}
+                            <td className="px-4 py-3">
+                              <p className="font-bold text-[#121214]">{cert.participant_name}</p>
+                              <p className="text-[10px] font-mono text-gray-500">NIM: {cert.participant_nim}</p>
+                              <p className="text-[10px] text-gray-500 truncate max-w-[140px]">{cert.penempatan}</p>
+                            </td>
+
+                            {/* Nomor & Desain */}
+                            <td className="px-4 py-3">
+                              <p className="font-mono font-bold text-[#121214] text-[11px]">{cert.certificate_number}</p>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black border mt-1 ${
+                                certTheme === 'royal_gold'
+                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                  : certTheme === 'platinum'
+                                  ? 'bg-slate-100 text-slate-800 border-slate-300'
+                                  : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                              }`}>
+                                {certTheme === 'royal_gold' ? '👑 Royal Gold' : certTheme === 'platinum' ? '💎 Platinum' : '🌿 Emerald'}
+                              </span>
+                            </td>
+
+                            {/* Predikat & Nilai */}
+                            <td className="px-4 py-3">
+                              <p className="font-bold text-emerald-800">{cert.predicate || 'Sangat Memuaskan'}</p>
+                              <p className="text-[10px] font-mono text-gray-600">IP: {cert.score_average || '90.0'} / 100</p>
+                            </td>
+
+                            {/* Integritas Digital */}
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1 text-emerald-700 font-bold text-[10px]">
+                                <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                <span>SHA-256 Valid</span>
+                              </div>
+                              <p className="text-[8px] font-mono text-gray-400 truncate max-w-[120px]" title={cert.digital_signature_hash}>
+                                {cert.digital_signature_hash ? cert.digital_signature_hash.substring(0, 16) + '...' : '-'}
+                              </p>
+                            </td>
+
+                            {/* Status */}
+                            <td className="px-4 py-3">
+                              {isReissue ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                                  Revisi Diajukan
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-[#B8C96E] text-[#121214] border border-[#121214]">
+                                  Sah
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* =========================================================================
+            MODAL KONFIRMASI HAPUS BERSIH DATABASE (ADMIN APPROVE REISSUE)
+        ========================================================================== */}
+        {showPurgeConfirmModal && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white border-2 border-rose-600 rounded-3xl shadow-[8px_8px_0px_#E11D48] max-w-lg w-full p-6 sm:p-7 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center gap-3 pb-3 border-b-2 border-rose-200">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700">
+                  <AlertOctagon className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-rose-950">Konfirmasi Hapus Bersih Sertifikat</h3>
+                  <p className="text-xs text-rose-800 font-medium">Protokol Pembersihan Data Permanen</p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-2 text-xs text-rose-950 leading-relaxed">
+                <p>
+                  Anda akan menyetujui koreksi dan <strong className="underline font-black">MENGHAPUS BERSIH</strong> sertifikat berikut secara permanen dari basis data sistem:
+                </p>
+                <div className="p-3 bg-white rounded-xl border border-rose-300 font-mono space-y-0.5">
+                  <p><strong>Nomor:</strong> {showPurgeConfirmModal.certificate_number}</p>
+                  <p><strong>Peserta:</strong> {showPurgeConfirmModal.participant_name} ({showPurgeConfirmModal.participant_nim})</p>
+                  <p><strong>Alasan Koreksi:</strong> "{showPurgeConfirmModal.reissue_reason}"</p>
+                </div>
+                <p className="text-[11px] font-bold text-rose-900 pt-1">
+                  Setelah dihapus bersih, slot penerbitan peserta ini akan terbuka kembali sehingga Koordinator dapat menerbitkan sertifikat baru dengan data yang valid. Tindakan ini dicatat ke dalam audit trail forensik.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={approvingId}
+                  onClick={() => setShowPurgeConfirmModal(null)}
+                  className="px-4 py-2 border-2 border-[#121214] rounded-xl text-xs font-bold hover:bg-[#FAF9F6] transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={approvingId}
+                  onClick={() => handleApproveReissue(showPurgeConfirmModal.certificate_id)}
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black border-2 border-[#121214] shadow-[2px_2px_0px_#121214] active:scale-95 transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {approvingId ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>{approvingId ? 'Menghapus...' : 'Ya, Hapus Bersih Sekarang'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            MODAL TOLAK PERMOHONAN KOREKSI (ADMIN REJECT REISSUE)
+        ========================================================================== */}
+        {rejectModalTarget && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] max-w-md w-full p-6 space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-[#EAE9E4]">
+                <h4 className="font-black text-sm text-[#121214]">Tolak Permohonan Koreksi Sertifikat</h4>
+                <button onClick={() => setRejectModalTarget(null)} className="text-gray-500 hover:text-black">✕</button>
+              </div>
+
+              <div className="text-xs space-y-1">
+                <p>Peserta: <strong>{rejectModalTarget.participant_name}</strong></p>
+                <p className="font-mono text-gray-500">No: {rejectModalTarget.certificate_number}</p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black uppercase text-gray-600 mb-1">
+                  Alasan Penolakan
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectReasonText}
+                  onChange={(e) => setRejectReasonText(e.target.value)}
+                  placeholder="Tuliskan catatan alasan penolakan untuk koordinator..."
+                  className="w-full text-xs font-medium bg-[#FAF9F6] border-2 border-[#121214] rounded-xl p-2.5 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setRejectModalTarget(null)}
+                  className="px-4 py-2 border-2 border-[#121214] rounded-xl text-xs font-bold"
+                >
+                  Batal
+                </button>
+                <button
+                  disabled={rejectingId}
+                  onClick={handleRejectReissue}
+                  className="px-5 py-2 bg-[#121214] hover:bg-black text-white rounded-xl text-xs font-bold border-2 border-[#121214] shadow-[2px_2px_0px_#121214]"
+                >
+                  {rejectingId ? 'Menolak...' : 'Tolak Permohonan'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

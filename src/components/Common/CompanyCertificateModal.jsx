@@ -20,9 +20,11 @@ import { downloadCertificateDirectly } from '../../utils/certificateDownloader';
  * CompanyCertificateModal
  * Official BPJS Ketenagakerjaan Certificate Component
  * Features:
+ * - 3 distinctive visual designs: 'emerald' (Classic BPJS), 'royal_gold' (Royal Gold & Navy Elite), 'platinum' (Modern Geometric Platinum)
+ * - Live theme switcher preview directly in the modal toolbar
  * - Dynamic institutional metadata & dual signatures (Kepala Kantor Cabang & Mentor Pembimbing Magang)
  * - Support for drawn canvas signatures or transparent PNG extracted signatures
- * - Instant direct download button (saves directly to Downloads folder)
+ * - Instant direct download button (saves directly to Downloads folder with official BPJSTK filename format)
  * - Closes on backdrop click, Escape key, or prominent 'X' button
  * - Responsive auto-scale fitting for mobile & tablet viewports
  * - Guilloche gold & emerald security border
@@ -38,6 +40,15 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const [containerWidth, setContainerWidth] = useState(1050);
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+
+  // Active theme: defaults to cert design_theme or 'emerald'
+  const [currentTheme, setCurrentTheme] = useState('emerald');
+
+  useEffect(() => {
+    if (certificate?.design_theme) {
+      setCurrentTheme(certificate.design_theme);
+    }
+  }, [certificate]);
 
   // Close on ESC key
   useEffect(() => {
@@ -86,7 +97,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
     year: 'numeric'
   });
 
-  // Dynamic Mentor & Institutional Leadership (Changed from Coordinator to Mentor)
+  // Dynamic Mentor & Institutional Leadership
   const mentorName = certificate.mentor_name || certificate.coordinator_name || participant?.coordinator_name || certificate.default_coordinator_name || 'Budi Santoso, S.Kom., M.T.';
   const mentorNpp = certificate.mentor_npp || certificate.coordinator_npp || participant?.coordinator_npp || certificate.default_coordinator_npp || '8765432109';
   const mentorSig = certificate.mentor_signature || null;
@@ -107,7 +118,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
     window.print();
   };
 
-  // Instant direct file download
+  // Instant direct file download with selected theme
   const handleDirectDownload = async () => {
     try {
       setDownloading(true);
@@ -122,13 +133,13 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
         branchHeadSignature: branchHeadSig,
         mentorName,
         mentorNpp,
-        mentorSignature: mentorSig
+        mentorSignature: mentorSig,
+        theme: currentTheme
       });
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 3000);
     } catch (err) {
       console.error('Failed to download certificate directly:', err);
-      // Fallback
       window.open(`/api/certificates/download/${encodeURIComponent(certNumber)}`, '_blank');
     } finally {
       setDownloading(false);
@@ -139,17 +150,25 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const isMobile = containerWidth < 1030;
   const scale = isMobile && fitScreen ? Math.max(0.32, (containerWidth - 20) / 1000) : 1;
 
+  // Visual Palette variables based on currentTheme
+  const isRoyal = currentTheme === 'royal_gold';
+  const isPlatinum = currentTheme === 'platinum';
+
+  const primaryColor = isRoyal ? '#0A192F' : isPlatinum ? '#1E293B' : '#00552B';
+  const accentColor = isRoyal ? '#C5A059' : isPlatinum ? '#0D9488' : '#D4AF37';
+  const borderColorPrimary = isRoyal ? '#0A192F' : isPlatinum ? '#1E293B' : '#008F4C';
+  const borderColorSecondary = isRoyal ? '#C5A059' : isPlatinum ? '#0D9488' : '#D4AF37';
+
   return (
     <div 
       onClick={(e) => {
-        // Clicking on the backdrop closes the modal
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
       className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static"
     >
-      {/* Floating Top-Right Close Button for immediate thumb access */}
+      {/* Floating Top-Right Close Button */}
       <button
         type="button"
         onClick={onClose}
@@ -199,7 +218,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
         className="relative w-full max-w-[1100px] bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-[#EAE9E4] print:border-none print:shadow-none print:rounded-none"
       >
         
-        {/* Modal Action Bar (Responsive on Mobile & Desktop) */}
+        {/* Modal Action Bar with 3-Theme Switcher */}
         <div className="no-print bg-[#121214] text-white px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2.5 border-b border-[#2C2C30]">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-[#008F4C] flex items-center justify-center text-white shadow-sm shrink-0">
@@ -207,17 +226,54 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
             </div>
             <div className="min-w-0">
               <h3 className="font-extrabold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
-                <span>E-Sertifikat Resmi</span>
+                <span>E-Sertifikat Resmi BPJSTK</span>
                 <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-[#B8C96E] text-[#121214]">
-                  Dual Signature & Seal
+                  Dual Signature
                 </span>
               </h3>
               <p className="text-[10px] sm:text-[11px] text-gray-400 font-mono truncate">No: {certNumber}</p>
             </div>
           </div>
 
+          {/* 3 THEMES SELECTOR */}
+          <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-full border border-white/20">
+            <button 
+              type="button" 
+              onClick={() => setCurrentTheme('emerald')}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-black transition cursor-pointer flex items-center gap-1 ${
+                currentTheme === 'emerald' ? 'bg-[#008F4C] text-white shadow-sm' : 'text-gray-300 hover:text-white'
+              }`}
+              title="Tema Emerald Classic BPJSTK (Hijau Zamrud & Emas Tradisional)"
+            >
+              <span>🌿</span>
+              <span className="hidden sm:inline">Emerald</span>
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setCurrentTheme('royal_gold')}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-black transition cursor-pointer flex items-center gap-1 ${
+                currentTheme === 'royal_gold' ? 'bg-[#D4AF37] text-[#121214] shadow-sm' : 'text-gray-300 hover:text-white'
+              }`}
+              title="Tema Royal Gold Elite (Navy Gelap & Emas Megah Prestasi)"
+            >
+              <span>👑</span>
+              <span className="hidden sm:inline">Royal Gold</span>
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setCurrentTheme('platinum')}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-black transition cursor-pointer flex items-center gap-1 ${
+                currentTheme === 'platinum' ? 'bg-cyan-700 text-white shadow-sm' : 'text-gray-300 hover:text-white'
+              }`}
+              title="Tema Modern Geometric Platinum (Slate Platinum & Sian Teal)"
+            >
+              <span>💎</span>
+              <span className="hidden sm:inline">Platinum</span>
+            </button>
+          </div>
+
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
-            {/* Mobile View Toggle: Fit Screen vs Full Zoom */}
+            {/* Mobile View Toggle */}
             {isMobile && (
               <button
                 type="button"
@@ -247,7 +303,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
               onClick={handleDirectDownload}
               disabled={downloading}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FCE373] hover:bg-[#ebd056] active:scale-95 text-[11px] sm:text-xs font-black text-[#121214] shadow-md transition-all cursor-pointer disabled:opacity-50"
-              title="Unduh langsung file sertifikat asli ke komputer/HP"
+              title="Unduh langsung file sertifikat format resmi ke komputer"
             >
               {downloading ? (
                 <div className="w-3.5 h-3.5 border-2 border-[#121214] border-t-transparent rounded-full animate-spin" />
@@ -301,35 +357,46 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
             <div 
               id="official-bpjstk-certificate"
               ref={printRef}
-              className="w-[1000px] h-[680px] shrink-0 bg-[#FFFDF9] text-[#121214] p-8 relative shadow-2xl flex flex-col justify-between select-none print:shadow-none print:w-full print:h-full print:transform-none"
+              className="w-[1000px] h-[680px] shrink-0 text-[#121214] p-8 relative shadow-2xl flex flex-col justify-between select-none print:shadow-none print:w-full print:h-full print:transform-none"
               style={{
+                backgroundColor: isPlatinum ? '#F8FAFC' : isRoyal ? '#FAFAF7' : '#FFFDF9',
                 transform: scale < 1 ? `scale(${scale})` : 'none',
                 transformOrigin: 'top left',
-                backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(0, 143, 76, 0.02) 0%, rgba(212, 175, 55, 0.04) 100%)'
+                backgroundImage: isRoyal 
+                  ? 'radial-gradient(circle at 50% 50%, rgba(197, 160, 89, 0.05) 0%, rgba(10, 25, 47, 0.04) 100%)' 
+                  : isPlatinum 
+                  ? 'radial-gradient(circle at 50% 50%, rgba(13, 148, 136, 0.04) 0%, rgba(30, 41, 59, 0.05) 100%)'
+                  : 'radial-gradient(circle at 50% 50%, rgba(0, 143, 76, 0.02) 0%, rgba(212, 175, 55, 0.04) 100%)'
               }}
             >
-              {/* Guilloche & Security Decorative Borders */}
-              <div className="absolute inset-4 border-[3px] border-[#008F4C] rounded-xl pointer-events-none" />
-              <div className="absolute inset-6 border-[1.5px] border-[#D4AF37] rounded-lg pointer-events-none" />
+              {/* Theme Decorative Borders */}
+              <div 
+                className="absolute inset-4 rounded-xl pointer-events-none" 
+                style={{ border: `3.5px solid ${borderColorPrimary}` }}
+              />
+              <div 
+                className="absolute inset-6 rounded-lg pointer-events-none" 
+                style={{ border: `1.5px solid ${borderColorSecondary}` }}
+              />
               
               {/* Corner Ornaments */}
-              <div className="absolute top-4 left-4 w-10 h-10 border-t-4 border-l-4 border-[#008F4C] pointer-events-none" />
-              <div className="absolute top-4 right-4 w-10 h-10 border-t-4 border-r-4 border-[#008F4C] pointer-events-none" />
-              <div className="absolute bottom-4 left-4 w-10 h-10 border-b-4 border-l-4 border-[#008F4C] pointer-events-none" />
-              <div className="absolute bottom-4 right-4 w-10 h-10 border-b-4 border-r-4 border-[#008F4C] pointer-events-none" />
+              <div className="absolute top-4 left-4 w-10 h-10 border-t-4 border-l-4 pointer-events-none" style={{ borderColor: borderColorPrimary }} />
+              <div className="absolute top-4 right-4 w-10 h-10 border-t-4 border-r-4 pointer-events-none" style={{ borderColor: borderColorPrimary }} />
+              <div className="absolute bottom-4 left-4 w-10 h-10 border-b-4 border-l-4 pointer-events-none" style={{ borderColor: borderColorPrimary }} />
+              <div className="absolute bottom-4 right-4 w-10 h-10 border-b-4 border-r-4 pointer-events-none" style={{ borderColor: borderColorPrimary }} />
 
-              {/* Subtle Security Watermark in Center Background */}
+              {/* Security Watermark in Center Background */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.035] overflow-hidden">
                 <div className="text-center transform -rotate-12 select-none">
-                  <span className="text-8xl font-black tracking-widest text-[#008F4C] block">BPJS</span>
-                  <span className="text-5xl font-black tracking-widest text-[#008F4C] block">KETENAGAKERJAAN</span>
+                  <span className="text-8xl font-black tracking-widest block" style={{ color: primaryColor }}>BPJS</span>
+                  <span className="text-5xl font-black tracking-widest block" style={{ color: primaryColor }}>KETENAGAKERJAAN</span>
                   <span className="text-2xl font-bold tracking-widest text-[#121214] block mt-2 uppercase">{branchName}</span>
                 </div>
               </div>
 
               {/* 1. HEADER (Kop Surat Resmi BPJS Ketenagakerjaan) */}
               <div className="relative z-10 pt-2 px-6">
-                <div className="flex items-center justify-between border-b-2 border-[#008F4C] pb-3">
+                <div className="flex items-center justify-between pb-3" style={{ borderBottom: `2px solid ${borderColorPrimary}` }}>
                   {/* Left: Official Emblem BPJS Ketenagakerjaan */}
                   <div className="flex items-center gap-3">
                     <img 
@@ -341,8 +408,8 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                         e.target.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Logo_BPJS_Ketenagakerjaan.png/640px-Logo_BPJS_Ketenagakerjaan.png";
                       }}
                     />
-                    <div className="border-l-2 border-[#D4AF37] pl-3 text-left">
-                      <h2 className="text-base font-black tracking-wider text-[#008F4C] leading-tight font-serif uppercase">
+                    <div className="pl-3 text-left" style={{ borderLeft: `2px solid ${accentColor}` }}>
+                      <h2 className="text-base font-black tracking-wider leading-tight uppercase font-serif" style={{ color: primaryColor }}>
                         BPJS Ketenagakerjaan
                       </h2>
                       <p className="text-[10px] font-bold tracking-widest text-[#121214]/80 uppercase">
@@ -354,9 +421,16 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                     </div>
                   </div>
 
-                  {/* Right: Security & ISO Credentials */}
+                  {/* Right: Security Credentials */}
                   <div className="text-right">
-                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#008F4C]/10 border border-[#008F4C]/30 text-[#008F4C] text-[10px] font-black uppercase tracking-wider">
+                    <div 
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider"
+                      style={{ 
+                        backgroundColor: `${primaryColor}15`, 
+                        border: `1px solid ${primaryColor}40`,
+                        color: primaryColor 
+                      }}
+                    >
                       <Lock className="w-3 h-3" />
                       <span>Dokumen Elektronik Resmi</span>
                     </div>
@@ -366,22 +440,28 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                   </div>
                 </div>
 
-                {/* Gold Ribbon Underline */}
-                <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mt-1" />
+                {/* Ribbon Underline */}
+                <div 
+                  className="w-full h-[2px] mt-1" 
+                  style={{ background: `linear-gradient(to right, transparent, ${accentColor}, transparent)` }}
+                />
               </div>
 
               {/* 2. CERTIFICATE TITLE */}
               <div className="relative z-10 text-center my-auto py-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#D4AF37] block">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] block" style={{ color: accentColor }}>
                   SURAT TANDA TAMAT PROGRAM
                 </span>
-                <h1 className="text-3xl font-black tracking-wide text-[#00552B] font-serif uppercase mt-1">
+                <h1 className="text-3xl font-black tracking-wide font-serif uppercase mt-1" style={{ color: primaryColor }}>
                   SERTIFIKAT MAGANG KERJA
                 </h1>
                 <p className="text-[11px] font-serif italic text-gray-500 -mt-0.5 tracking-wider">
                   Certificate of Internship Completion
                 </p>
-                <div className="inline-block mt-2 px-4 py-0.5 rounded-full bg-[#FAF5EB] border border-[#D4AF37]/50">
+                <div 
+                  className="inline-block mt-2 px-4 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${accentColor}15`, border: `1px solid ${accentColor}60` }}
+                >
                   <span className="text-xs font-mono font-black text-[#121214] tracking-wider">
                     Nomor: {certNumber}
                   </span>
@@ -394,31 +474,40 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                 
                 {/* Participant Name */}
                 <div className="mt-1">
-                  <h3 className="text-2xl font-black text-[#121214] tracking-tight uppercase underline decoration-[#008F4C] decoration-2 underline-offset-4">
+                  <h3 
+                    className="text-2xl font-black text-[#121214] tracking-tight uppercase underline decoration-2 underline-offset-4"
+                    style={{ textDecorationColor: primaryColor }}
+                  >
                     {recipientName}
                   </h3>
                   <p className="text-xs font-mono text-gray-600 font-bold mt-1">
-                    NIM / Registrasi: <span className="text-[#008F4C] font-black">{recipientNim}</span> • Penempatan: <span className="font-bold text-[#121214]">{penempatan}</span>
+                    NIM / Registrasi: <span className="font-black" style={{ color: primaryColor }}>{recipientNim}</span> • Penempatan: <span className="font-bold text-[#121214]">{penempatan}</span>
                   </p>
                 </div>
 
                 {/* Program Statement */}
                 <p className="text-[11.5px] leading-relaxed text-gray-700 max-w-2xl mx-auto mt-2 font-normal">
-                  Telah berhasil menyelesaikan seluruh rangkaian program <strong className="text-[#121214]">Praktik Kerja Lapangan / Magang Industri Terstruktur</strong> pada <strong className="text-[#008F4C]">BPJS Ketenagakerjaan {branchName}</strong> ({batchName}) dengan predikat:
+                  Telah berhasil menyelesaikan seluruh rangkaian program <strong className="text-[#121214]">Praktik Kerja Lapangan / Magang Industri Terstruktur</strong> pada <strong style={{ color: primaryColor }}>BPJS Ketenagakerjaan {branchName}</strong> ({batchName}) dengan predikat:
                 </p>
 
                 {/* Predicate & Final Score Pill */}
                 <div className="flex items-center justify-center gap-3 mt-2">
-                  <div className="px-4 py-1 rounded-lg bg-[#008F4C] text-white text-xs font-extrabold shadow-sm tracking-wide">
+                  <div 
+                    className="px-4 py-1 rounded-lg text-white text-xs font-extrabold shadow-sm tracking-wide"
+                    style={{ backgroundColor: primaryColor }}
+                  >
                     {predicate}
                   </div>
-                  <div className="px-3 py-1 rounded-lg bg-[#FAF5EB] border border-[#D4AF37] text-xs font-mono font-black text-[#121214]">
+                  <div 
+                    className="px-3 py-1 rounded-lg text-xs font-mono font-black text-[#121214]"
+                    style={{ backgroundColor: `${accentColor}15`, border: `1px solid ${accentColor}` }}
+                  >
                     Indeks Prestasi: {score} / 100.0
                   </div>
                 </div>
               </div>
 
-              {/* 3. SIGNATURES & OFFICIAL COMPANY SEAL (TWO SIGNATURES: MENTOR & KEPALA CABANG) */}
+              {/* 3. SIGNATURES & OFFICIAL COMPANY SEAL */}
               <div className="relative z-10 px-6 pb-2">
                 <div className="grid grid-cols-3 items-end">
                   
@@ -440,12 +529,15 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                           className="max-h-14 max-w-[160px] object-contain drop-shadow-sm select-none"
                         />
                       ) : (
-                        <svg className="w-36 h-14 text-[#00552B]" viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-36 h-14" style={{ color: primaryColor }} viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M 20 50 Q 50 10 70 45 T 120 40 Q 140 20 160 55 T 185 30" />
                           <path d="M 40 40 Q 80 60 150 45" strokeWidth="1.5" />
                         </svg>
                       )}
-                      <div className="absolute right-2 bottom-0 px-1.5 py-0.5 bg-[#B8C96E]/40 border border-[#008F4C]/40 rounded text-[8px] font-mono font-bold text-[#00552B] flex items-center gap-0.5">
+                      <div 
+                        className="absolute right-2 bottom-0 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold flex items-center gap-0.5"
+                        style={{ backgroundColor: `${primaryColor}20`, border: `1px solid ${primaryColor}50`, color: primaryColor }}
+                      >
                         <CheckCircle2 className="w-2.5 h-2.5" /> E-SIGN VALID
                       </div>
                     </div>
@@ -462,7 +554,10 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
 
                   {/* Center: Dynamic QR Code Verification & SHA-256 Digest */}
                   <div className="text-center flex flex-col items-center justify-end px-2">
-                    <div className="p-1.5 bg-white border border-[#008F4C] rounded-lg shadow-sm">
+                    <div 
+                      className="p-1.5 bg-white rounded-lg shadow-sm"
+                      style={{ border: `1px solid ${primaryColor}` }}
+                    >
                       <img 
                         src={qrCodeUrl} 
                         alt="QR Code Verifikasi Sertifikat" 
@@ -470,7 +565,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                         loading="lazy"
                       />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-wider text-[#008F4C] mt-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider mt-1" style={{ color: primaryColor }}>
                       Scan Untuk Verifikasi
                     </span>
                     <p className="text-[7.5px] font-mono text-gray-500 max-w-[200px] truncate" title={sha256Hash}>
@@ -496,7 +591,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                           className="max-h-14 max-w-[160px] object-contain drop-shadow-sm select-none relative z-10"
                         />
                       ) : (
-                        <svg className="w-40 h-14 text-[#00552B] relative z-10" viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-40 h-14 relative z-10" style={{ color: primaryColor }} viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M 15 35 Q 40 5 65 35 T 100 45 Q 130 15 160 50 T 190 25" />
                           <path d="M 30 55 Q 90 70 175 35" strokeWidth="1.8" />
                         </svg>
@@ -505,9 +600,9 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                       {/* OFFICIAL BPJS KETENAGAKERJAAN CIRCULAR STAMP */}
                       <div 
                         className="absolute -top-3 left-4 w-24 h-24 pointer-events-none select-none z-20 opacity-85 transform -rotate-12"
-                        style={{ filter: 'drop-shadow(0 0 1px rgba(0, 143, 76, 0.5))' }}
+                        style={{ filter: `drop-shadow(0 0 1px ${primaryColor}80)` }}
                       >
-                        <svg viewBox="0 0 200 200" className="w-full h-full text-[#00875A]">
+                        <svg viewBox="0 0 200 200" className="w-full h-full" style={{ color: primaryColor }}>
                           <circle cx="100" cy="100" r="95" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="6 2" />
                           <circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" strokeWidth="2.2" />
                           <circle cx="100" cy="100" r="62" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -536,7 +631,10 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                         </svg>
                       </div>
 
-                      <div className="absolute right-2 bottom-0 px-1.5 py-0.5 bg-[#B8C96E]/40 border border-[#008F4C]/40 rounded text-[8px] font-mono font-bold text-[#00552B] flex items-center gap-0.5 z-10">
+                      <div 
+                        className="absolute right-2 bottom-0 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold flex items-center gap-0.5 z-10"
+                        style={{ backgroundColor: `${primaryColor}20`, border: `1px solid ${primaryColor}50`, color: primaryColor }}
+                      >
                         <CheckCircle2 className="w-2.5 h-2.5" /> PIMPINAN VALID
                       </div>
                     </div>
@@ -555,7 +653,10 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
               </div>
 
               {/* 4. FOOTER NOTE */}
-              <div className="relative z-10 border-t border-[#D4AF37]/40 pt-2 px-6 flex items-center justify-between text-[8px] font-mono text-gray-500">
+              <div 
+                className="relative z-10 pt-2 px-6 flex items-center justify-between text-[8px] font-mono text-gray-500"
+                style={{ borderTop: `1px solid ${accentColor}60` }}
+              >
                 <span>&copy; {new Date().getFullYear()} BPJS Ketenagakerjaan. Hak Cipta Dilindungi Undang-Undang.</span>
                 <span>Dokumen sah terdaftar secara elektronik. Sah tanpa stempel basah konvensional.</span>
               </div>
@@ -563,7 +664,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
             </div>
           </div>
 
-          {/* Close button at bottom for easy thumb access on mobile */}
+          {/* Close button at bottom */}
           <button
             type="button"
             onClick={onClose}
