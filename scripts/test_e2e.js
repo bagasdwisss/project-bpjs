@@ -447,28 +447,115 @@ async function runEndToEndTests() {
     atRiskRes.duration
   );
 
-  // Certificate Cryptographic HMAC / Ed25519 Signing
+  // --- UJI SERTIFIKAT DIGITAL, ANTI-FRAUD & MONITORING ---
+  // Pastikan user 4 (Widi) bersih dari sertifikat sebelumnya untuk pengujian berulang
+  await query(`DELETE FROM certificates WHERE user_id = 4`);
+
+  // 4.3 Penerbitan Sertifikat Kelulusan dengan Otorisasi Sandi Koordinator
   const signCertRes = await api('/api/certificates/generate', {
     method: 'POST',
     headers: { Authorization: `Bearer ${koorToken}` },
     body: JSON.stringify({
       user_id: 4, // Widi (assigned to KO001 user_id 2)
+      certificate_type: 'Kelulusan',
       predicate: 'Sangat Baik',
-      score_average: 88.5
+      score_average: 88.5,
+      password: 'password123'
     })
   });
   const certNumber = signCertRes.data?.data?.certificate_number || '';
+  const certId = signCertRes.data?.data?.certificate_id;
   recordTest(
-    '4.3 Penerbitan Tanda Tangan Kriptografi QR Sertifikat (HMAC-SHA256)',
+    '4.3 Penerbitan Sertifikat Kelulusan Resmi & Tanda Tangan Kriptografi (HMAC-SHA256)',
     (signCertRes.status === 200 || signCertRes.status === 201) && Boolean(certNumber),
-    `Nomor Sertifikat: ${certNumber}, Algoritma: ${signCertRes.data?.data?.signature_algorithm || 'HMAC-SHA256'}`,
+    `Nomor: ${certNumber}, Tipe: ${signCertRes.data?.data?.certificate_type}, Tema: ${signCertRes.data?.data?.design_theme}`,
     signCertRes.duration
   );
 
-  // Public Certificate QR Verification
-  const verifyCertRes = await api(`/api/certificates/verify/${encodeURIComponent(certNumber)}`);
+  // 4.4 Anti-Fraud: Pencegahan Penerbitan Ganda (1 Peserta = 1 Sertifikat)
+  const duplicateCertRes = await api('/api/certificates/generate', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${koorToken}` },
+    body: JSON.stringify({
+      user_id: 4,
+      certificate_type: 'Kelulusan',
+      predicate: 'Sangat Baik',
+      password: 'password123'
+    })
+  });
   recordTest(
-    '4.4 Verifikasi Publik Keaslian Sertifikat Digital',
+    '4.4 Anti-Fraud: Blokir Penerbitan Sertifikat Ganda (1 Peserta = 1 Sertifikat)',
+    duplicateCertRes.status === 400 && duplicateCertRes.data?.success === false,
+    `Respon 400 Terblokir: ${duplicateCertRes.data?.message?.substring(0, 50)}...`,
+    duplicateCertRes.duration
+  );
+
+  // 4.5 Pengajuan Permohonan Koreksi / Penerbitan Ulang ke Admin
+  const reissueReqRes = await api('/api/certificates/request-reissue', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${koorToken}` },
+    body: JSON.stringify({
+      certificate_id: certId,
+      reason: 'Koreksi penyesuaian jenis sertifikat menjadi Sertifikat Prestasi'
+    })
+  });
+  recordTest(
+    '4.5 Pengajuan Koreksi Sertifikat oleh Koordinator (/api/certificates/request-reissue)',
+    reissueReqRes.status === 200 && reissueReqRes.data?.success === true,
+    reissueReqRes.data?.message || 'Berhasil diajukan',
+    reissueReqRes.duration
+  );
+
+  // 4.6 Admin Monitoring: Melihat Daftar Permohonan Koreksi & Log Audit
+  const pendingRequestsRes = await api('/api/admin/certificates/reissue-requests', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  const monitoringLogsRes = await api('/api/admin/certificates/monitoring-logs', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  recordTest(
+    '4.6 Admin Monitoring: Log Penerbitan & Daftar Permohonan Koreksi Sertifikat',
+    pendingRequestsRes.status === 200 && monitoringLogsRes.status === 200 && Array.isArray(monitoringLogsRes.data?.data),
+    `Permohonan Pending: ${pendingRequestsRes.data?.data?.length || 0}, Total Audit Log: ${monitoringLogsRes.data?.data?.length || 0}`,
+    monitoringLogsRes.duration
+  );
+
+  // 4.7 Admin Approve Koreksi: Hapus Bersih Sertifikat Lama dari Sistem & Database
+  const approveReissueRes = await api('/api/admin/certificates/approve-reissue', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ certificate_id: certId })
+  });
+  recordTest(
+    '4.7 Admin Approve: Hapus Bersih Sertifikat dari Database & Buka Izin Reissue',
+    approveReissueRes.status === 200 && approveReissueRes.data?.success === true,
+    approveReissueRes.data?.message || 'Berhasil dihapus bersih',
+    approveReissueRes.duration
+  );
+
+  // 4.8 Penerbitan Sertifikat Prestasi (Desain Royal Gold) Setelah Disetujui
+  const reissuedCertRes = await api('/api/certificates/generate', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${koorToken}` },
+    body: JSON.stringify({
+      user_id: 4,
+      certificate_type: 'Prestasi',
+      predicate: 'Pencapaian Khusus / Prestasi Terbaik (Grade A+)',
+      password: 'password123'
+    })
+  });
+  const newCertNumber = reissuedCertRes.data?.data?.certificate_number || '';
+  recordTest(
+    '4.8 Penerbitan Ulang Sertifikat Prestasi (Desain Khusus Royal Gold & Navy)',
+    (reissuedCertRes.status === 200 || reissuedCertRes.status === 201) && Boolean(newCertNumber),
+    `Nomor Baru: ${newCertNumber}, Tipe: ${reissuedCertRes.data?.data?.certificate_type}`,
+    reissuedCertRes.duration
+  );
+
+  // 4.9 Public Certificate QR Verification
+  const verifyCertRes = await api(`/api/certificates/verify/${encodeURIComponent(newCertNumber)}`);
+  recordTest(
+    '4.9 Verifikasi Publik Keaslian Sertifikat Digital BPJS Ketenagakerjaan',
     verifyCertRes.status === 200 && verifyCertRes.data?.valid === true,
     `Hasil: ${verifyCertRes.data?.valid ? 'ASLI & SAH BPJS KETENAGAKERJAAN' : 'TIDAK VALID'}`,
     verifyCertRes.duration

@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { query } from '../db.js';
+import { query, ensureCertificateSchema } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 import cache from '../utils/cache.js';
@@ -939,7 +939,8 @@ router.get('/certificates/list', authenticateToken, requireRole('Koordinator', '
  */
 router.post('/certificates/generate', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const { user_id, batch_name, predicate, score_average, design_theme, password } = req.body;
+    await ensureCertificateSchema();
+    const { user_id, batch_name, predicate, score_average, certificate_type, type, password } = req.body;
 
     if (!user_id) {
       return res.status(400).json({ success: false, message: 'User ID peserta wajib diisi.' });
@@ -999,11 +1000,28 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
       ? progRes.rows[0].grade
       : (realScore >= 85 ? 'A' : realScore >= 75 ? 'B' : 'C');
 
-    const determinedPredicate = predicate || (
-      realGrade === 'A' ? 'Sangat Memuaskan (Grade A)' :
-      realGrade === 'B' ? 'Memuaskan (Grade B)' :
-      realGrade === 'C' ? 'Cukup (Grade C)' : 'Lulus'
-    );
+    // Auto-map type to distinct design theme, title, and predicate
+    const rawType = (certificate_type || type || 'Kelulusan').toLowerCase();
+    let certType = 'Kelulusan';
+    let chosenTheme = 'emerald';
+    let determinedPredicate = predicate;
+
+    if (rawType.includes('prestasi') || rawType.includes('achievement')) {
+      certType = 'Prestasi';
+      chosenTheme = 'royal_gold';
+      if (!determinedPredicate) determinedPredicate = 'Pencapaian Khusus / Prestasi Terbaik (Grade A+)';
+    } else if (rawType.includes('partisipasi') || rawType.includes('participation')) {
+      certType = 'Partisipasi';
+      chosenTheme = 'platinum';
+      if (!determinedPredicate) determinedPredicate = 'Partisipasi Aktif & Berdedikasi';
+    } else {
+      certType = 'Kelulusan';
+      chosenTheme = 'emerald';
+      if (!determinedPredicate) {
+        determinedPredicate = realGrade === 'A' ? 'Sangat Memuaskan (Grade A)' :
+          realGrade === 'B' ? 'Memuaskan (Grade B)' : 'Cukup (Grade C)';
+      }
+    }
 
     const realBatchName = (batchRes.rows.length > 0 && batchRes.rows[0].batch_name)
       ? batchRes.rows[0].batch_name
@@ -1024,15 +1042,13 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
       issueDate
     });
 
-    const chosenTheme = design_theme || 'emerald';
-
     const result = await query(
       `INSERT INTO certificates (
         user_id, certificate_number, issue_date, predicate, 
         score_average, digital_signature_hash, digital_signature, signature_algorithm, 
-        batch_name, status, design_theme, issued_by, created_at
+        batch_name, status, certificate_type, design_theme, issued_by, created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Terbit', $10, $11, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Terbit', $10, $11, $12, CURRENT_TIMESTAMP)
       RETURNING *`,
       [
         user_id,
@@ -1044,6 +1060,7 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
         certSig.signature,
         certSig.algorithm,
         realBatchName,
+        certType,
         chosenTheme,
         req.user.user_id
       ]
@@ -1054,7 +1071,7 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
       req,
       userId: req.user.user_id,
       action: 'CERTIFICATE_ISSUED',
-      details: `Koordinator ${req.user.username || req.user.full_name} menerbitkan sertifikat ${certNumber} [Tema: ${chosenTheme}] untuk ${user.full_name} (NIM: ${user.unique_id})`
+      details: `Koordinator ${req.user.full_name || req.user.unique_id} menerbitkan sertifikat ${certNumber} [Tema: ${chosenTheme}] untuk ${user.full_name} (NIM: ${user.unique_id})`
     });
 
     // In-App Notification to Participant
@@ -1093,7 +1110,8 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
  */
 router.post('/certificates/bulk-generate', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const { user_ids, design_theme, predicate, password } = req.body;
+    await ensureCertificateSchema();
+    const { user_ids, certificate_type, type, predicate, password } = req.body;
 
     if (!Array.isArray(user_ids) || user_ids.length === 0) {
       return res.status(400).json({ success: false, message: 'Daftar ID peserta wajib dipilih minimal 1 orang.' });
@@ -1109,9 +1127,19 @@ router.post('/certificates/bulk-generate', authenticateToken, requireRole('Koord
       return res.status(401).json({ success: false, message: 'Kata sandi otorisasi koordinator tidak valid.' });
     }
 
+    const rawType = (certificate_type || type || 'Kelulusan').toLowerCase();
+    let certType = 'Kelulusan';
+    let chosenTheme = 'emerald';
+    if (rawType.includes('prestasi') || rawType.includes('achievement')) {
+      certType = 'Prestasi';
+      chosenTheme = 'royal_gold';
+    } else if (rawType.includes('partisipasi') || rawType.includes('participation')) {
+      certType = 'Partisipasi';
+      chosenTheme = 'platinum';
+    }
+
     const issuedList = [];
     const skippedList = [];
-    const chosenTheme = design_theme || 'emerald';
 
     for (const uId of user_ids) {
       const uRes = await query(`SELECT * FROM users WHERE user_id = $1`, [uId]);
@@ -1137,7 +1165,11 @@ router.post('/certificates/bulk-generate', authenticateToken, requireRole('Koord
       const progRes = await query(`SELECT nilai, grade FROM progress WHERE user_id = $1 LIMIT 1`, [uId]);
       const realScore = (progRes.rows.length > 0 && progRes.rows[0].nilai !== null) ? parseFloat(progRes.rows[0].nilai) : 88.0;
       const realGrade = realScore >= 85 ? 'A' : realScore >= 75 ? 'B' : 'C';
-      const determinedPredicate = predicate || (realGrade === 'A' ? 'Sangat Memuaskan (Grade A)' : 'Memuaskan (Grade B)');
+      const determinedPredicate = predicate || (
+        certType === 'Prestasi' ? 'Pencapaian Khusus / Prestasi Terbaik (Grade A+)' :
+        certType === 'Partisipasi' ? 'Partisipasi Aktif & Berdedikasi' :
+        (realGrade === 'A' ? 'Sangat Memuaskan (Grade A)' : 'Memuaskan (Grade B)')
+      );
 
       const certCountRes = await query(`SELECT COUNT(*) FROM certificates`);
       const nextSeq = parseInt(certCountRes.rows[0].count, 10) + 1;
@@ -1157,14 +1189,14 @@ router.post('/certificates/bulk-generate', authenticateToken, requireRole('Koord
         `INSERT INTO certificates (
           user_id, certificate_number, issue_date, predicate, 
           score_average, digital_signature_hash, digital_signature, signature_algorithm, 
-          batch_name, status, design_theme, issued_by, created_at
+          batch_name, status, certificate_type, design_theme, issued_by, created_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Batch 1 - Gelombang Berjalan', 'Terbit', $9, $10, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Batch 1 - Gelombang Berjalan', 'Terbit', $9, $10, $11, CURRENT_TIMESTAMP)
         RETURNING *`,
         [
           uId, certNumber, issueDate, determinedPredicate, realScore,
           certSig.signature, certSig.signature, certSig.algorithm,
-          chosenTheme, req.user.user_id
+          certType, chosenTheme, req.user.user_id
         ]
       );
 
@@ -1179,7 +1211,7 @@ router.post('/certificates/bulk-generate', authenticateToken, requireRole('Koord
         req,
         userId: req.user.user_id,
         action: 'CERTIFICATE_ISSUED_BULK',
-        details: `Penerbitan massal sertifikat ${certNumber} [Tema: ${chosenTheme}] untuk ${user.full_name}`
+        details: `Penerbitan massal sertifikat ${certType} (${certNumber}) untuk ${user.full_name}`
       });
     }
 
@@ -1204,6 +1236,7 @@ router.post('/certificates/bulk-generate', authenticateToken, requireRole('Koord
  */
 router.post('/certificates/request-reissue', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
+    await ensureCertificateSchema();
     const { certificate_id, reason } = req.body;
     if (!certificate_id || !reason) {
       return res.status(400).json({ success: false, message: 'ID sertifikat dan alasan permohonan koreksi wajib diisi.' });
@@ -1246,15 +1279,17 @@ router.post('/certificates/request-reissue', authenticateToken, requireRole('Koo
  */
 router.get('/admin/certificates/reissue-requests', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
+    await ensureCertificateSchema();
     const result = await query(`
       SELECT c.*, 
-             u.full_name as participant_name, u.unique_id as participant_nim,
-             req_user.full_name as requested_by_name, req_user.username as requested_by_user
+             u.full_name as participant_name, u.unique_id as participant_nim, u.penempatan,
+             coord.full_name as coordinator_name, coord.unique_id as coordinator_npp,
+             coord.full_name as requested_by_name, coord.unique_id as requested_by_user
       FROM certificates c
       JOIN users u ON c.user_id = u.user_id
-      LEFT JOIN users req_user ON c.reissue_requested_by = req_user.user_id
+      LEFT JOIN users coord ON COALESCE(c.reissue_requested_by, c.issued_by, u.coordinator_id) = coord.user_id
       WHERE c.reissue_requested = TRUE
-      ORDER BY c.reissue_requested_at DESC
+      ORDER BY c.reissue_requested_at DESC NULLS LAST
     `);
     return res.json({ success: true, data: result.rows });
   } catch (error) {
@@ -1293,7 +1328,7 @@ router.post('/admin/certificates/approve-reissue', authenticateToken, requireRol
       req,
       userId: req.user.user_id,
       action: 'CERTIFICATE_PURGED_AND_REISSUED',
-      details: `Admin ${req.user.username} menyetujui koreksi dan MENGHAPUS BERSIH sertifikat (${cert.certificate_number}) milik ${cert.participant_name} dari database. Izin penerbitan ulang telah dibuka.`
+      details: `Admin ${req.user.full_name || req.user.unique_id || "Sistem"} menyetujui koreksi dan MENGHAPUS BERSIH sertifikat (${cert.certificate_number}) milik ${cert.participant_name} dari database. Izin penerbitan ulang telah dibuka.`
     });
 
     return res.json({
@@ -1338,6 +1373,7 @@ router.post('/admin/certificates/reject-reissue', authenticateToken, requireRole
  */
 router.get('/admin/certificates/monitoring-logs', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
+    await ensureCertificateSchema();
     const result = await query(`
       SELECT c.*, 
              u.full_name as participant_name, u.unique_id as participant_nim, u.penempatan,

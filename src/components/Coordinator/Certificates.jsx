@@ -47,16 +47,15 @@ const Certificates = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submittingReissue, setSubmittingReissue] = useState(false);
 
-  // Form states
+  // Form states - Type determines the design automatically!
   const [formData, setFormData] = useState({
     participant_id: '',
-    type: 'Completion',
-    design_theme: 'emerald',
+    type: 'Kelulusan',
     password: ''
   });
 
   // Bulk form states
-  const [bulkTheme, setBulkTheme] = useState('emerald');
+  const [bulkType, setBulkType] = useState('Kelulusan');
   const [bulkPassword, setBulkPassword] = useState('');
   const [bulkSelectedIds, setBulkSelectedIds] = useState([]);
 
@@ -122,15 +121,14 @@ const Certificates = () => {
       setSubmitting(true);
       const res = await api.post('/certificates/generate', {
         user_id: formData.participant_id,
-        predicate: formData.type === 'Completion' ? 'Sangat Memuaskan (Grade A)' : 'Pencapaian Khusus (Grade A+)',
-        design_theme: formData.design_theme,
+        certificate_type: formData.type,
         password: formData.password
       });
 
       if (res.data.success) {
         toast.success(res.data.message || 'E-Sertifikat terverifikasi berhasil diterbitkan!');
         setShowGenerateModal(false);
-        setFormData({ participant_id: '', type: 'Completion', design_theme: 'emerald', password: '' });
+        setFormData({ participant_id: '', type: 'Kelulusan', password: '' });
         loadData();
       }
     } catch (err) {
@@ -156,8 +154,7 @@ const Certificates = () => {
       setSubmitting(true);
       const res = await api.post('/certificates/bulk-generate', {
         user_ids: bulkSelectedIds,
-        design_theme: bulkTheme,
-        predicate: 'Sangat Memuaskan (Grade A)',
+        certificate_type: bulkType,
         password: bulkPassword
       });
 
@@ -209,6 +206,9 @@ const Certificates = () => {
     try {
       const cId = cert.certificate_id || cert.id;
       setDownloadingCertId(cId);
+      const rawType = (cert.certificate_type || cert.type || '').toLowerCase();
+      const certType = rawType.includes('prestasi') ? 'Prestasi' : rawType.includes('partisipasi') ? 'Partisipasi' : 'Kelulusan';
+
       await downloadCertificateDirectly(cert, {
         recipientName: cert.participant_name || cert.participant || cert.report_name,
         recipientNim: cert.participant_nim || cert.nim || cert.unique_id,
@@ -221,7 +221,7 @@ const Certificates = () => {
         mentorName: cert.mentor_name || cert.coordinator_name,
         mentorNpp: cert.mentor_npp || cert.coordinator_npp,
         mentorSignature: cert.mentor_signature,
-        theme: cert.design_theme || 'emerald'
+        certificateType: certType
       });
       toast.success(`Sertifikat ${cert.certificate_number || ''} berhasil didownload langsung!`);
     } catch (err) {
@@ -241,8 +241,18 @@ const Certificates = () => {
   });
 
   const totalIssued = certificates.length;
-  const totalCompletion = certificates.filter(c => (c.type || 'Completion') === 'Completion').length;
-  const totalAchievement = certificates.filter(c => c.type === 'Achievement').length;
+  const totalCompletion = certificates.filter(c => {
+    const t = (c.certificate_type || c.type || '').toLowerCase();
+    return !t.includes('prestasi') && !t.includes('partisipasi');
+  }).length;
+  const totalAchievement = certificates.filter(c => {
+    const t = (c.certificate_type || c.type || '').toLowerCase();
+    return t.includes('prestasi') || t.includes('achievement');
+  }).length;
+  const totalParticipation = certificates.filter(c => {
+    const t = (c.certificate_type || c.type || '').toLowerCase();
+    return t.includes('partisipasi') || t.includes('participation');
+  }).length;
   const pendingReissues = certificates.filter(c => c.reissue_requested).length;
 
   return (
@@ -260,7 +270,7 @@ const Certificates = () => {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Manajemen Sertifikat</h1>
             <p className="text-sm text-[#121214]/60 mt-1">
-              Penerbitan aman berotentikasi sandi, 3 desain tematik resmi, proteksi anti-fraud 1 peserta 1 sertifikat, dan download instan.
+              Penerbitan 3 jenis sertifikat resmi (Kelulusan, Prestasi, Partisipasi) dengan desain unik masing-masing, proteksi anti-fraud 1 peserta 1 sertifikat, dan otorisasi kata sandi.
             </p>
           </div>
           
@@ -298,37 +308,37 @@ const Certificates = () => {
 
         {/* 4 Pastel Bento Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-[#FCE373]/30 rounded-[22px] border border-[#FCE373] p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-[#121214]/70">Total Sertifikat Sah</span>
-              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
-                <Award className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{totalIssued}</div>
-            <p className="text-xs text-[#121214]/60 mt-1">Telah disahkan & bernomor seri</p>
-          </div>
-
           <div className="bg-[#B8C96E]/30 rounded-[22px] border border-[#B8C96E] p-5 shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-[#121214]/70">Kelulusan Program</span>
+              <span className="text-xs font-bold text-[#121214]/70">Sertifikat Kelulusan</span>
               <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
                 <FileText className="w-3.5 h-3.5" />
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{totalCompletion}</div>
-            <p className="text-xs text-[#121214]/60 mt-1">Sertifikat Kelulusan Resmi</p>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-900">{totalCompletion}</div>
+            <p className="text-xs text-[#121214]/60 mt-1">Desain Emerald Classic</p>
+          </div>
+
+          <div className="bg-[#FCE373]/30 rounded-[22px] border border-[#FCE373] p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-[#121214]/70">Sertifikat Prestasi</span>
+              <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
+                <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-amber-900">{totalAchievement}</div>
+            <p className="text-xs text-[#121214]/60 mt-1">Desain Royal Gold & Navy</p>
           </div>
 
           <div className="bg-[#BDD4F2]/30 rounded-[22px] border border-[#BDD4F2] p-5 shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-[#121214]/70">Belum Disertifikasi</span>
+              <span className="text-xs font-bold text-[#121214]/70">Sertifikat Partisipasi</span>
               <div className="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center text-[#121214]">
-                <Users className="w-3.5 h-3.5" />
+                <Award className="w-3.5 h-3.5 text-blue-700" />
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#121214]">{unissuedParticipants.length}</div>
-            <p className="text-xs text-[#121214]/60 mt-1">Peserta bimbingan tersisa</p>
+            <div className="text-2xl sm:text-3xl font-black text-blue-900">{totalParticipation}</div>
+            <p className="text-xs text-[#121214]/60 mt-1">Desain Geometric Platinum</p>
           </div>
 
           <div className="bg-[#F5C6EC]/30 rounded-[22px] border border-[#F5C6EC] p-5 shadow-sm">
@@ -402,7 +412,7 @@ const Certificates = () => {
                 <thead>
                   <tr className="border-b border-[#EAE9E4] bg-[#FAF9F6] text-[#121214]/60 font-bold uppercase text-[11px] tracking-wider">
                     <th className="px-5 py-3.5">Penerima & Nomor Sertifikat</th>
-                    <th className="px-5 py-3.5">Tema Desain</th>
+                    <th className="px-5 py-3.5">Jenis Sertifikat</th>
                     <th className="px-5 py-3.5">Predikat & Nilai</th>
                     <th className="px-5 py-3.5">Tanggal Terbit</th>
                     <th className="px-5 py-3.5">Status Validasi</th>
@@ -413,7 +423,10 @@ const Certificates = () => {
                   {filteredCertificates.map((cert) => {
                     const certNum = cert.certificate_number || `BPJSTK/MAGANG/${new Date().getFullYear()}/${String(cert.id || 1).padStart(3, '0')}`;
                     const certName = cert.participant_name || cert.participant || cert.report_name;
-                    const certTheme = cert.design_theme || 'emerald';
+                    const rawType = (cert.certificate_type || cert.type || '').toLowerCase();
+                    const isPrestasi = rawType.includes('prestasi') || rawType.includes('achievement');
+                    const isPartisipasi = rawType.includes('partisipasi') || rawType.includes('participation');
+
                     const isDownloading = downloadingCertId === (cert.certificate_id || cert.id);
                     const isReissuePending = !!cert.reissue_requested;
 
@@ -421,8 +434,14 @@ const Certificates = () => {
                       <tr key={cert.certificate_id || cert.id} className="hover:bg-[#FAF9F6]/60 transition-colors">
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-xl bg-[#FCE373]/40 border border-[#FCE373] flex items-center justify-center text-[#856B12] shrink-0 font-extrabold text-xs">
-                              {certTheme === 'royal_gold' ? '👑' : certTheme === 'platinum' ? '💎' : '🌿'}
+                            <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 font-extrabold text-sm ${
+                              isPrestasi 
+                                ? 'bg-amber-100 border-amber-300 text-amber-800' 
+                                : isPartisipasi 
+                                ? 'bg-slate-100 border-slate-300 text-slate-800' 
+                                : 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                            }`}>
+                              {isPrestasi ? '👑' : isPartisipasi ? '💎' : '🌿'}
                             </div>
                             <div>
                               <p className="font-bold text-[#121214] text-xs sm:text-sm">
@@ -435,16 +454,17 @@ const Certificates = () => {
                           </div>
                         </td>
 
-                        {/* Theme Badge */}
+                        {/* Distinct Certificate Type Badge */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                            certTheme === 'royal_gold' 
-                              ? 'bg-amber-100 text-amber-900 border-amber-300'
-                              : certTheme === 'platinum'
-                              ? 'bg-slate-100 text-slate-800 border-slate-300'
-                              : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${
+                            isPrestasi 
+                              ? 'bg-amber-50 text-amber-900 border-amber-300'
+                              : isPartisipasi 
+                              ? 'bg-slate-50 text-slate-900 border-slate-300'
+                              : 'bg-emerald-50 text-emerald-900 border-emerald-300'
                           }`}>
-                            {certTheme === 'royal_gold' ? 'Royal Gold & Navy' : certTheme === 'platinum' ? 'Geometric Platinum' : 'Emerald Classic'}
+                            <span>{isPrestasi ? '👑' : isPartisipasi ? '💎' : '🌿'}</span>
+                            <span>{isPrestasi ? 'Sertifikat Prestasi' : isPartisipasi ? 'Sertifikat Partisipasi' : 'Sertifikat Kelulusan'}</span>
                           </span>
                         </td>
 
@@ -483,12 +503,12 @@ const Certificates = () => {
                               <span className="hidden sm:inline">Lihat</span>
                             </button>
 
-                            {/* Direct Download Button (Saves directly to computer as PNG) */}
+                            {/* Direct Download Button */}
                             <button
                               onClick={() => handleDirectDownload(cert)}
                               disabled={isDownloading}
                               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#008F4C] hover:bg-[#00753e] text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-                              title={`Download langsung file Sertifikat Kelulusan - BPJSTK - ${certName}`}
+                              title={`Download langsung file ${isPrestasi ? 'Sertifikat Prestasi' : isPartisipasi ? 'Sertifikat Partisipasi' : 'Sertifikat Kelulusan'} milik ${certName}`}
                             >
                               {isDownloading ? (
                                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -525,7 +545,7 @@ const Certificates = () => {
         </div>
 
         {/* =========================================================================
-            MODAL 1: SINGLE GENERATE CERTIFICATE (With Password & 3-Theme Selection)
+            MODAL 1: SINGLE GENERATE CERTIFICATE (With Password & Dedicated Type Design)
         ========================================================================== */}
         {showGenerateModal && (
           <div className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -537,7 +557,7 @@ const Certificates = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-extrabold text-[#121214]">Terbitkan Sertifikat Resmi</h3>
-                    <p className="text-xs text-[#121214]/50">Otorisasi penerbitan e-sertifikat berbadan hukum</p>
+                    <p className="text-xs text-[#121214]/50">Pilih jenis sertifikat dan lakukan otorisasi kata sandi</p>
                   </div>
                 </div>
                 <button 
@@ -577,77 +597,40 @@ const Certificates = () => {
                   </select>
                 </div>
 
-                {/* 3 Themes Card Selector */}
+                {/* Certificate Type Selection (Auto Determines Visual Design & Wording) */}
                 <div>
                   <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
-                    Pilih Desain Tema Resmi Sertifikat
+                    Pilih Jenis Sertifikat
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {/* Theme 1: Emerald Classic */}
-                    <div 
-                      onClick={() => setFormData({ ...formData, design_theme: 'emerald' })}
-                      className={`p-3 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between ${
-                        formData.design_theme === 'emerald'
-                          ? 'border-emerald-700 bg-emerald-50 shadow-[3px_3px_0px_#008F4C]'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-black text-emerald-900">Emerald Classic</span>
-                        {formData.design_theme === 'emerald' && <Check className="w-3.5 h-3.5 text-emerald-700 stroke-[3]" />}
-                      </div>
-                      <div className="h-2 w-full rounded bg-emerald-600 mb-1.5" />
-                      <p className="text-[10px] text-gray-500 font-medium">Hijau Zamrud & Ornamen Emas Tradisional</p>
-                    </div>
-
-                    {/* Theme 2: Royal Gold & Navy */}
-                    <div 
-                      onClick={() => setFormData({ ...formData, design_theme: 'royal_gold' })}
-                      className={`p-3 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between ${
-                        formData.design_theme === 'royal_gold'
-                          ? 'border-amber-600 bg-amber-50 shadow-[3px_3px_0px_#D4AF37]'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-black text-amber-900">Royal Gold Elite</span>
-                        {formData.design_theme === 'royal_gold' && <Check className="w-3.5 h-3.5 text-amber-700 stroke-[3]" />}
-                      </div>
-                      <div className="h-2 w-full rounded bg-amber-500 mb-1.5" />
-                      <p className="text-[10px] text-gray-500 font-medium">Navy Gelap & Emas Megah Prestasi</p>
-                    </div>
-
-                    {/* Theme 3: Modern Geometric Platinum */}
-                    <div 
-                      onClick={() => setFormData({ ...formData, design_theme: 'platinum' })}
-                      className={`p-3 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between ${
-                        formData.design_theme === 'platinum'
-                          ? 'border-slate-800 bg-slate-50 shadow-[3px_3px_0px_#1E293B]'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-black text-slate-900">Modern Platinum</span>
-                        {formData.design_theme === 'platinum' && <Check className="w-3.5 h-3.5 text-slate-800 stroke-[3]" />}
-                      </div>
-                      <div className="h-2 w-full rounded bg-teal-600 mb-1.5" />
-                      <p className="text-[10px] text-gray-500 font-medium">Slate Platinum & Sian Teal Modern</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Certificate Type */}
-                <div>
-                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">Jenis Sertifikat</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                     className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
                   >
-                    <option value="Completion">Sertifikat Kelulusan (Completion)</option>
-                    <option value="Achievement">Sertifikat Prestasi (Achievement)</option>
-                    <option value="Participation">Sertifikat Partisipasi (Participation)</option>
+                    <option value="Kelulusan">🌿 Sertifikat Kelulusan (Completion)</option>
+                    <option value="Prestasi">👑 Sertifikat Prestasi (Achievement)</option>
+                    <option value="Partisipasi">💎 Sertifikat Partisipasi (Participation)</option>
                   </select>
+
+                  {/* Informative Preview Card for the Type */}
+                  <div className={`mt-2.5 p-3 rounded-2xl border text-xs leading-relaxed transition ${
+                    formData.type === 'Prestasi'
+                      ? 'bg-amber-50 border-amber-300 text-amber-950'
+                      : formData.type === 'Partisipasi'
+                      ? 'bg-slate-50 border-slate-300 text-slate-900'
+                      : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                  }`}>
+                    <div className="font-extrabold flex items-center gap-1.5 mb-1">
+                      <span>{formData.type === 'Prestasi' ? '👑 Desain Khusus Prestasi Unggul:' : formData.type === 'Partisipasi' ? '💎 Desain Partisipasi Aktif:' : '🌿 Desain Resmi Kelulusan Magang:'}</span>
+                    </div>
+                    <p className="text-[11px]">
+                      {formData.type === 'Prestasi'
+                        ? 'Judul: SERTIFIKAT PRESTASI. Menggunakan ornamen Royal Gold & Navy Elite dengan stempel dinas emas prestisius untuk peserta dengan capaian kinerja terbaik.'
+                        : formData.type === 'Partisipasi'
+                        ? 'Judul: SERTIFIKAT PARTISIPASI. Menggunakan desain Modern Geometric Platinum (Slate & Sian Teal) untuk tanda dedikasi dan kepesertaan aktif di lapangan.'
+                        : 'Judul: SERTIFIKAT KELULUSAN. Menggunakan desain Emerald Classic BPJSTK (Hijau Zamrud & Emas Klasik) sebagai surat tanda tamat resmi magang industri.'}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Coordinator Password Authorization */}
@@ -792,19 +775,19 @@ const Certificates = () => {
                   )}
                 </div>
 
-                {/* Bulk Theme Selection */}
+                {/* Bulk Certificate Type Selection */}
                 <div>
                   <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#121214] mb-1.5">
-                    Pilih Desain Tema E-Sertifikat
+                    Jenis Sertifikat untuk Penerbitan Massal
                   </label>
                   <select
-                    value={bulkTheme}
-                    onChange={(e) => setBulkTheme(e.target.value)}
+                    value={bulkType}
+                    onChange={(e) => setBulkType(e.target.value)}
                     className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
                   >
-                    <option value="emerald">Emerald Classic BPJSTK (Hijau Zamrud & Emas)</option>
-                    <option value="royal_gold">Royal Gold & Navy Elite (Biru Dongker & Emas Megah)</option>
-                    <option value="platinum">Modern Geometric Platinum (Slate & Sian Teal)</option>
+                    <option value="Kelulusan">🌿 Sertifikat Kelulusan (Desain Emerald Classic BPJSTK)</option>
+                    <option value="Prestasi">👑 Sertifikat Prestasi (Desain Royal Gold & Navy Elite)</option>
+                    <option value="Partisipasi">💎 Sertifikat Partisipasi (Desain Modern Geometric Platinum)</option>
                   </select>
                 </div>
 

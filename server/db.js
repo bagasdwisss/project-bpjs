@@ -173,5 +173,43 @@ export const query = async (text, params) => {
   }
 };
 
+let certSchemaEnsured = false;
+export async function ensureCertificateSchema() {
+  if (certSchemaEnsured) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS certificates (
+        certificate_id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        certificate_number VARCHAR(100) NOT NULL UNIQUE,
+        issue_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        predicate VARCHAR(100) DEFAULT 'Sangat Memuaskan (Grade A)',
+        score_average NUMERIC(5, 2) DEFAULT 90.00,
+        digital_signature_hash VARCHAR(255) NOT NULL,
+        batch_name VARCHAR(100) DEFAULT 'Batch 1 - Gelombang Berjalan',
+        status VARCHAR(50) DEFAULT 'Terbit',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      ALTER TABLE certificates 
+      ADD COLUMN IF NOT EXISTS certificate_type VARCHAR(50) DEFAULT 'Kelulusan',
+      ADD COLUMN IF NOT EXISTS design_theme VARCHAR(50) DEFAULT 'emerald',
+      ADD COLUMN IF NOT EXISTS issued_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS digital_signature VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS signature_algorithm VARCHAR(32) DEFAULT 'HMAC-SHA256',
+      ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS reissue_requested BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS reissue_reason TEXT,
+      ADD COLUMN IF NOT EXISTS reissue_requested_at TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS reissue_requested_by INT REFERENCES users(user_id) ON DELETE SET NULL;
+    `);
+    certSchemaEnsured = true;
+  } catch (err) {
+    console.warn('[DB Init] Schema ensure notice:', err.message);
+  }
+}
+
+// Ensure certificate table & columns on server boot
+ensureCertificateSchema().catch(() => {});
+
 export { pool };
 export default pool;

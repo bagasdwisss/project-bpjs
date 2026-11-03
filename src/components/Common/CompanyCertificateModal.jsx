@@ -4,34 +4,25 @@ import {
   Printer, 
   Download, 
   ShieldCheck, 
-  ExternalLink, 
   Award, 
   CheckCircle2, 
   Lock, 
-  QrCode,
-  Sparkles,
-  Maximize2,
-  Minimize2,
-  Check
+  Maximize2, 
+  Minimize2, 
+  Check,
+  Sparkles
 } from 'lucide-react';
 import { downloadCertificateDirectly } from '../../utils/certificateDownloader';
 
 /**
  * CompanyCertificateModal
  * Official BPJS Ketenagakerjaan Certificate Component
- * Features:
- * - 3 distinctive visual designs: 'emerald' (Classic BPJS), 'royal_gold' (Royal Gold & Navy Elite), 'platinum' (Modern Geometric Platinum)
- * - Live theme switcher preview directly in the modal toolbar
- * - Dynamic institutional metadata & dual signatures (Kepala Kantor Cabang & Mentor Pembimbing Magang)
- * - Support for drawn canvas signatures or transparent PNG extracted signatures
- * - Instant direct download button (saves directly to Downloads folder with official BPJSTK filename format)
- * - Closes on backdrop click, Escape key, or prominent 'X' button
- * - Responsive auto-scale fitting for mobile & tablet viewports
- * - Guilloche gold & emerald security border
- * - Official BPJS Ketenagakerjaan Circular Seal (Stempel Dinas Resmi)
- * - Cryptographic HMAC-SHA256 signature thumbprint
- * - Verification QR Code linking to /verify-certificate/:certNumber
- * - Native 300 DPI vector print (@page A4 landscape)
+ * 
+ * Automatically applies the distinct visual design, title, and legal wording 
+ * based on Certificate Type:
+ * 1. Sertifikat Kelulusan: Emerald Classic BPJSTK
+ * 2. Sertifikat Prestasi: Royal Gold & Navy Elite
+ * 3. Sertifikat Partisipasi: Modern Geometric Platinum
  */
 const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) => {
   const printRef = useRef(null);
@@ -40,15 +31,6 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const [containerWidth, setContainerWidth] = useState(1050);
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
-
-  // Active theme: defaults to cert design_theme or 'emerald'
-  const [currentTheme, setCurrentTheme] = useState('emerald');
-
-  useEffect(() => {
-    if (certificate?.design_theme) {
-      setCurrentTheme(certificate.design_theme);
-    }
-  }, [certificate]);
 
   // Close on ESC key
   useEffect(() => {
@@ -87,7 +69,6 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const recipientNim = certificate.participant_nim || participant?.unique_id || participant?.nim || '12345678';
   const penempatan = certificate.penempatan || participant?.penempatan || 'Bidang Kepesertaan & Pelayanan';
   const batchName = certificate.batch_name || 'Batch 1 - Gelombang Berjalan';
-  const predicate = certificate.predicate || 'Sangat Memuaskan (Grade A)';
   const score = certificate.score_average ? Number(certificate.score_average).toFixed(1) : '92.5';
   
   // Format Date (ID)
@@ -111,14 +92,60 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
 
   const sha256Hash = certificate.digital_signature_hash || certificate.digital_signature || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
-  const verifyUrl = `${window.location.origin}/verify-certificate/${encodeURIComponent(certNumber)}`;
+  const verifyUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://bpjs-magang.go.id'}/verify-certificate/${encodeURIComponent(certNumber)}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(verifyUrl)}&color=00552B&bgcolor=FFFFFF`;
+
+  // =========================================================================
+  // DEDICATED DESIGN & WORDING BY CERTIFICATE TYPE
+  // =========================================================================
+  const rawType = (
+    certificate.certificate_type ||
+    certificate.type ||
+    'Kelulusan'
+  ).toLowerCase();
+
+  let certTypeLabel = 'Kelulusan';
+  let theme = 'emerald';
+  let headerBadge = 'SURAT TANDA TAMAT PROGRAM';
+  let mainTitle = 'SERTIFIKAT KELULUSAN';
+  let subTitle = 'Certificate of Internship Completion';
+  let statementText1 = 'Telah berhasil menyelesaikan seluruh rangkaian program Praktik Kerja Lapangan / Magang Industri Terstruktur';
+  let statementText2 = `pada BPJS Ketenagakerjaan ${branchName} (${batchName}) dengan predikat kelulusan:`;
+  let displayPredicate = certificate.predicate || 'Sangat Memuaskan (Grade A)';
+
+  if (rawType.includes('prestasi') || rawType.includes('achievement')) {
+    certTypeLabel = 'Prestasi';
+    theme = 'royal_gold';
+    headerBadge = 'PENGHARGAAN ATAS CAPAIAN KINERJA TERBAIK';
+    mainTitle = 'SERTIFIKAT PRESTASI';
+    subTitle = 'Certificate of Excellence & Outstanding Achievement';
+    statementText1 = 'Diberikan sebagai bentuk penghargaan istimewa atas dedikasi luar biasa, kedisiplinan prima, dan prestasi kerja tertinggi';
+    statementText2 = `selama program magang industri pada BPJS Ketenagakerjaan ${branchName} (${batchName}) dengan capaian:`;
+    displayPredicate = certificate.predicate || 'Pencapaian Khusus / Prestasi Terbaik (Grade A+)';
+  } else if (rawType.includes('partisipasi') || rawType.includes('participation')) {
+    certTypeLabel = 'Partisipasi';
+    theme = 'platinum';
+    headerBadge = 'SURAT TANDA KEPESERTAAN & DEDIKASI';
+    mainTitle = 'SERTIFIKAT PARTISIPASI';
+    subTitle = 'Certificate of Active Internship Participation';
+    statementText1 = 'Diberikan atas kontribusi aktif, dedikasi penuh, dan partisipasi loyal dalam kegiatan operasional serta pelayanan lapangan';
+    statementText2 = `pada BPJS Ketenagakerjaan ${branchName} (${batchName}) dengan status partisipasi:`;
+    displayPredicate = certificate.predicate || 'Partisipasi Aktif & Berdedikasi';
+  }
+
+  // Visual Palette variables based on Type
+  const isRoyal = theme === 'royal_gold';
+  const isPlatinum = theme === 'platinum';
+
+  const primaryColor = isRoyal ? '#0A192F' : isPlatinum ? '#1E293B' : '#00552B';
+  const accentColor = isRoyal ? '#C5A059' : isPlatinum ? '#0D9488' : '#D4AF37';
+  const borderColorPrimary = isRoyal ? '#0A192F' : isPlatinum ? '#1E293B' : '#008F4C';
+  const borderColorSecondary = isRoyal ? '#C5A059' : isPlatinum ? '#0D9488' : '#D4AF37';
 
   const handlePrint = () => {
     window.print();
   };
 
-  // Instant direct file download with selected theme
   const handleDirectDownload = async () => {
     try {
       setDownloading(true);
@@ -134,7 +161,8 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
         mentorName,
         mentorNpp,
         mentorSignature: mentorSig,
-        theme: currentTheme
+        certificateType: certTypeLabel,
+        predicate: displayPredicate
       });
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 3000);
@@ -146,18 +174,8 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
     }
   };
 
-  // Compute responsive scale for mobile viewport
   const isMobile = containerWidth < 1030;
   const scale = isMobile && fitScreen ? Math.max(0.32, (containerWidth - 20) / 1000) : 1;
-
-  // Visual Palette variables based on currentTheme
-  const isRoyal = currentTheme === 'royal_gold';
-  const isPlatinum = currentTheme === 'platinum';
-
-  const primaryColor = isRoyal ? '#0A192F' : isPlatinum ? '#1E293B' : '#00552B';
-  const accentColor = isRoyal ? '#C5A059' : isPlatinum ? '#0D9488' : '#D4AF37';
-  const borderColorPrimary = isRoyal ? '#0A192F' : isPlatinum ? '#1E293B' : '#008F4C';
-  const borderColorSecondary = isRoyal ? '#C5A059' : isPlatinum ? '#0D9488' : '#D4AF37';
 
   return (
     <div 
@@ -179,7 +197,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
         <X className="w-5 h-5 stroke-[2.5]" />
       </button>
 
-      {/* Print Specific CSS to enforce A4 Landscape vector output */}
+      {/* Print Specific CSS */}
       <style>{`
         @page {
           size: A4 landscape;
@@ -218,58 +236,27 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
         className="relative w-full max-w-[1100px] bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-[#EAE9E4] print:border-none print:shadow-none print:rounded-none"
       >
         
-        {/* Modal Action Bar with 3-Theme Switcher */}
+        {/* Modal Action Bar */}
         <div className="no-print bg-[#121214] text-white px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2.5 border-b border-[#2C2C30]">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-[#008F4C] flex items-center justify-center text-white shadow-sm shrink-0">
+            <div 
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 font-bold"
+              style={{ backgroundColor: primaryColor }}
+            >
               <Award className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <h3 className="font-extrabold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
-                <span>E-Sertifikat Resmi BPJSTK</span>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-[#B8C96E] text-[#121214]">
-                  Dual Signature
+                <span>{mainTitle}</span>
+                <span 
+                  className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border"
+                  style={{ backgroundColor: `${accentColor}25`, borderColor: accentColor, color: accentColor }}
+                >
+                  {certTypeLabel}
                 </span>
               </h3>
               <p className="text-[10px] sm:text-[11px] text-gray-400 font-mono truncate">No: {certNumber}</p>
             </div>
-          </div>
-
-          {/* 3 THEMES SELECTOR */}
-          <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-full border border-white/20">
-            <button 
-              type="button" 
-              onClick={() => setCurrentTheme('emerald')}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-black transition cursor-pointer flex items-center gap-1 ${
-                currentTheme === 'emerald' ? 'bg-[#008F4C] text-white shadow-sm' : 'text-gray-300 hover:text-white'
-              }`}
-              title="Tema Emerald Classic BPJSTK (Hijau Zamrud & Emas Tradisional)"
-            >
-              <span>🌿</span>
-              <span className="hidden sm:inline">Emerald</span>
-            </button>
-            <button 
-              type="button" 
-              onClick={() => setCurrentTheme('royal_gold')}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-black transition cursor-pointer flex items-center gap-1 ${
-                currentTheme === 'royal_gold' ? 'bg-[#D4AF37] text-[#121214] shadow-sm' : 'text-gray-300 hover:text-white'
-              }`}
-              title="Tema Royal Gold Elite (Navy Gelap & Emas Megah Prestasi)"
-            >
-              <span>👑</span>
-              <span className="hidden sm:inline">Royal Gold</span>
-            </button>
-            <button 
-              type="button" 
-              onClick={() => setCurrentTheme('platinum')}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-black transition cursor-pointer flex items-center gap-1 ${
-                currentTheme === 'platinum' ? 'bg-cyan-700 text-white shadow-sm' : 'text-gray-300 hover:text-white'
-              }`}
-              title="Tema Modern Geometric Platinum (Slate Platinum & Sian Teal)"
-            >
-              <span>💎</span>
-              <span className="hidden sm:inline">Platinum</span>
-            </button>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
@@ -303,7 +290,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
               onClick={handleDirectDownload}
               disabled={downloading}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FCE373] hover:bg-[#ebd056] active:scale-95 text-[11px] sm:text-xs font-black text-[#121214] shadow-md transition-all cursor-pointer disabled:opacity-50"
-              title="Unduh langsung file sertifikat format resmi ke komputer"
+              title="Unduh langsung file sertifikat asli format resmi"
             >
               {downloading ? (
                 <div className="w-3.5 h-3.5 border-2 border-[#121214] border-t-transparent rounded-full animate-spin" />
@@ -340,7 +327,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
           </div>
         </div>
 
-        {/* Certificate Responsive Viewport / Sheet */}
+        {/* Certificate Viewport */}
         <div 
           ref={wrapperRef}
           className="p-2 sm:p-6 bg-[#2B2B2F] overflow-x-auto overflow-y-hidden flex flex-col items-center justify-center print:p-0 print:bg-white"
@@ -369,7 +356,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                   : 'radial-gradient(circle at 50% 50%, rgba(0, 143, 76, 0.02) 0%, rgba(212, 175, 55, 0.04) 100%)'
               }}
             >
-              {/* Theme Decorative Borders */}
+              {/* Type-Specific Decorative Borders */}
               <div 
                 className="absolute inset-4 rounded-xl pointer-events-none" 
                 style={{ border: `3.5px solid ${borderColorPrimary}` }}
@@ -385,12 +372,12 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
               <div className="absolute bottom-4 left-4 w-10 h-10 border-b-4 border-l-4 pointer-events-none" style={{ borderColor: borderColorPrimary }} />
               <div className="absolute bottom-4 right-4 w-10 h-10 border-b-4 border-r-4 pointer-events-none" style={{ borderColor: borderColorPrimary }} />
 
-              {/* Security Watermark in Center Background */}
+              {/* Watermark in Center */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.035] overflow-hidden">
                 <div className="text-center transform -rotate-12 select-none">
                   <span className="text-8xl font-black tracking-widest block" style={{ color: primaryColor }}>BPJS</span>
                   <span className="text-5xl font-black tracking-widest block" style={{ color: primaryColor }}>KETENAGAKERJAAN</span>
-                  <span className="text-2xl font-bold tracking-widest text-[#121214] block mt-2 uppercase">{branchName}</span>
+                  <span className="text-2xl font-bold tracking-widest text-[#121214] block mt-2 uppercase">{mainTitle}</span>
                 </div>
               </div>
 
@@ -435,7 +422,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                       <span>Dokumen Elektronik Resmi</span>
                     </div>
                     <p className="text-[9px] font-mono font-bold text-gray-500 mt-1">
-                      ISO/IEC 27001:2022 Terverifikasi
+                      Kategori: {certTypeLabel.toUpperCase()}
                     </p>
                   </div>
                 </div>
@@ -447,16 +434,16 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                 />
               </div>
 
-              {/* 2. CERTIFICATE TITLE */}
+              {/* 2. CERTIFICATE TITLE & STATEMENT (CLEARLY STATES CERTIFICATE TYPE) */}
               <div className="relative z-10 text-center my-auto py-1">
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] block" style={{ color: accentColor }}>
-                  SURAT TANDA TAMAT PROGRAM
+                  {headerBadge}
                 </span>
-                <h1 className="text-3xl font-black tracking-wide font-serif uppercase mt-1" style={{ color: primaryColor }}>
-                  SERTIFIKAT MAGANG KERJA
+                <h1 className="text-3xl sm:text-4xl font-black tracking-wide font-serif uppercase mt-1" style={{ color: primaryColor }}>
+                  {mainTitle}
                 </h1>
                 <p className="text-[11px] font-serif italic text-gray-500 -mt-0.5 tracking-wider">
-                  Certificate of Internship Completion
+                  {subTitle}
                 </p>
                 <div 
                   className="inline-block mt-2 px-4 py-0.5 rounded-full"
@@ -485,9 +472,9 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                   </p>
                 </div>
 
-                {/* Program Statement */}
+                {/* Dynamic Program Statement Text */}
                 <p className="text-[11.5px] leading-relaxed text-gray-700 max-w-2xl mx-auto mt-2 font-normal">
-                  Telah berhasil menyelesaikan seluruh rangkaian program <strong className="text-[#121214]">Praktik Kerja Lapangan / Magang Industri Terstruktur</strong> pada <strong style={{ color: primaryColor }}>BPJS Ketenagakerjaan {branchName}</strong> ({batchName}) dengan predikat:
+                  {statementText1} <strong style={{ color: primaryColor }}>{branchName}</strong> ({batchName}) dengan capaian:
                 </p>
 
                 {/* Predicate & Final Score Pill */}
@@ -496,7 +483,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                     className="px-4 py-1 rounded-lg text-white text-xs font-extrabold shadow-sm tracking-wide"
                     style={{ backgroundColor: primaryColor }}
                   >
-                    {predicate}
+                    {displayPredicate}
                   </div>
                   <div 
                     className="px-3 py-1 rounded-lg text-xs font-mono font-black text-[#121214]"
@@ -582,7 +569,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                       Kepala Kantor Cabang
                     </p>
 
-                    {/* Digital Signature Specimen + Authentic BPJS Circular Stamp Overlay */}
+                    {/* Digital Signature Specimen */}
                     <div className="h-16 flex items-center justify-center relative my-0.5">
                       {branchHeadSig ? (
                         <img 

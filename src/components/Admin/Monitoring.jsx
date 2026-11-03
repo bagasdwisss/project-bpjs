@@ -1100,18 +1100,25 @@ const Monitoring = () => {
                               <p className="text-[10px] text-gray-500 truncate max-w-[140px]">{cert.penempatan}</p>
                             </td>
 
-                            {/* Nomor & Desain */}
+                            {/* Nomor & Jenis Sertifikat */}
                             <td className="px-4 py-3">
                               <p className="font-mono font-bold text-[#121214] text-[11px]">{cert.certificate_number}</p>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black border mt-1 ${
-                                certTheme === 'royal_gold'
-                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                  : certTheme === 'platinum'
-                                  ? 'bg-slate-100 text-slate-800 border-slate-300'
-                                  : 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                              }`}>
-                                {certTheme === 'royal_gold' ? '👑 Royal Gold' : certTheme === 'platinum' ? '💎 Platinum' : '🌿 Emerald'}
-                              </span>
+                              {(() => {
+                                const raw = (cert.certificate_type || cert.type || '').toLowerCase();
+                                const isPrestasi = raw.includes('prestasi') || raw.includes('achievement');
+                                const isPartisipasi = raw.includes('partisipasi') || raw.includes('participation');
+                                return (
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black border mt-1 ${
+                                    isPrestasi
+                                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                      : isPartisipasi
+                                      ? 'bg-slate-100 text-slate-800 border-slate-300'
+                                      : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                  }`}>
+                                    {isPrestasi ? '👑 Sertifikat Prestasi' : isPartisipasi ? '💎 Sertifikat Partisipasi' : '🌿 Sertifikat Kelulusan'}
+                                  </span>
+                                );
+                              })()}
                             </td>
 
                             {/* Predikat & Nilai */}

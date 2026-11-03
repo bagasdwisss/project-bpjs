@@ -4,9 +4,13 @@ import { drawQrToCanvas } from './qrMatrix';
 /**
  * Direct Download Engine for BPJS Ketenagakerjaan Official Certificates
  * Features:
- * - 3 distinctive designs: 'emerald' (Classic BPJS), 'royal_gold' (Prestasi Elite), 'platinum' (Kompetensi Modern)
+ * - 3 distinctive designs strictly bound to Certificate Type:
+ *   1. Sertifikat Kelulusan: Emerald Classic BPJSTK (Hijau Zamrud & Ornamen Emas Tradisional Resmi)
+ *   2. Sertifikat Prestasi: Royal Gold & Navy Elite (Navy Gelap & Emas Megah Prestasi Unggul)
+ *   3. Sertifikat Partisipasi: Modern Geometric Platinum (Slate Platinum & Sian Teal Modern)
  * - Zero external network dependency for QR Code (prevents browser canvas tainting)
- * - Immediate browser download with naming format: "Sertifikat Kelulusan - BPJSTK - [Nama] - [No]"
+ * - Immediate browser download with exact naming:
+ *   "Sertifikat_[Tipe]_BPJSTK_[Nama]_[No].png"
  */
 
 export async function downloadCertificateDirectly(certificate, options = {}) {
@@ -22,17 +26,15 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
       const recipientNim = certificate.participant_nim || options.recipientNim || '12345678';
       const penempatan = certificate.penempatan || options.penempatan || 'Bidang Kepesertaan & Pelayanan';
       const batchName = certificate.batch_name || 'Batch 1 - Gelombang Berjalan';
-      const predicate = certificate.predicate || 'Sangat Memuaskan (Grade A)';
       const score = certificate.score_average ? Number(certificate.score_average).toFixed(1) : '92.5';
-      const theme = certificate.design_theme || options.theme || 'emerald';
 
       const branchHeadName = certificate.branch_head_name || options.branchHeadName || 'Dr. Hendra Wijaya, S.E., M.M.';
       const branchHeadNpp = certificate.branch_head_npp || options.branchHeadNpp || '9876543210';
       const branchName = certificate.branch_name || options.branchName || 'BPJS Ketenagakerjaan Kantor Cabang Jakarta Gambir';
       const branchAddress = certificate.branch_address || options.branchAddress || 'Jl. Kebon Sirih No. 40, Jakarta Pusat 10110';
       
-      const mentorName = certificate.mentor_name || certificate.default_coordinator_name || options.mentorName || 'Budi Santoso, S.Kom., M.T.';
-      const mentorNpp = certificate.mentor_npp || certificate.default_coordinator_npp || options.mentorNpp || '8765432109';
+      const mentorName = certificate.mentor_name || certificate.coordinator_name || options.mentorName || 'Budi Santoso, S.Kom., M.T.';
+      const mentorNpp = certificate.mentor_npp || certificate.coordinator_npp || options.mentorNpp || '8765432109';
       
       const branchHeadSig = certificate.branch_head_signature || options.branchHeadSignature || null;
       const mentorSig = certificate.mentor_signature || options.mentorSignature || null;
@@ -44,10 +46,53 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
         year: 'numeric'
       });
 
-      // THEME COLOR PALETTES
-      let primaryColor = '#00552B'; // Deep Forest
+      // =========================================================================
+      // MAP CERTIFICATE TYPE TO ITS DISTINCT DESIGN, TITLE, STATEMENT & PALETTE
+      // =========================================================================
+      const rawType = (
+        certificate.certificate_type ||
+        certificate.type ||
+        options.certificateType ||
+        options.type ||
+        'Kelulusan'
+      ).toLowerCase();
+
+      let certTypeLabel = 'Kelulusan';
+      let theme = 'emerald';
+      let headerBadge = 'SURAT TANDA TAMAT PROGRAM';
+      let mainTitle = 'SERTIFIKAT KELULUSAN';
+      let subTitle = 'Certificate of Internship Completion';
+      let statement1 = 'Telah berhasil menyelesaikan seluruh rangkaian program Praktik Kerja Lapangan / Magang Industri Terstruktur';
+      let statement2 = `pada BPJS Ketenagakerjaan ${branchName} (${batchName}) dengan predikat kelulusan:`;
+      let filePrefix = 'Sertifikat_Kelulusan_BPJSTK';
+      let displayPredicate = certificate.predicate || options.predicate || 'Sangat Memuaskan (Grade A)';
+
+      if (rawType.includes('prestasi') || rawType.includes('achievement')) {
+        certTypeLabel = 'Prestasi';
+        theme = 'royal_gold';
+        headerBadge = 'PENGHARGAAN ATAS CAPAIAN KINERJA TERBAIK';
+        mainTitle = 'SERTIFIKAT PRESTASI';
+        subTitle = 'Certificate of Excellence & Outstanding Achievement';
+        statement1 = 'Diberikan sebagai bentuk penghargaan istimewa atas dedikasi luar biasa, kedisiplinan prima, dan prestasi kerja tertinggi';
+        statement2 = `selama program magang industri pada BPJS Ketenagakerjaan ${branchName} (${batchName}) dengan capaian:`;
+        filePrefix = 'Sertifikat_Prestasi_BPJSTK';
+        displayPredicate = certificate.predicate || options.predicate || 'Pencapaian Khusus / Prestasi Terbaik (Grade A+)';
+      } else if (rawType.includes('partisipasi') || rawType.includes('participation')) {
+        certTypeLabel = 'Partisipasi';
+        theme = 'platinum';
+        headerBadge = 'SURAT TANDA KEPESERTAAN & DEDIKASI';
+        mainTitle = 'SERTIFIKAT PARTISIPASI';
+        subTitle = 'Certificate of Active Internship Participation';
+        statement1 = 'Diberikan atas kontribusi aktif, dedikasi penuh, dan partisipasi loyal dalam kegiatan operasional serta pelayanan lapangan';
+        statement2 = `pada BPJS Ketenagakerjaan ${branchName} (${batchName}) dengan status partisipasi:`;
+        filePrefix = 'Sertifikat_Partisipasi_BPJSTK';
+        displayPredicate = certificate.predicate || options.predicate || 'Partisipasi Aktif & Berdedikasi';
+      }
+
+      // PALETTE BASED ON THE TYPE'S DEDICATED DESIGN
+      let primaryColor = '#00552B'; // Deep Forest Emerald
       let accentColor = '#D4AF37';  // Gold
-      let subAccent = '#008F4C';    // Green
+      let subAccent = '#008F4C';    // BPJSTK Green
       let bgBase = '#FFFDF9';
 
       if (theme === 'royal_gold') {
@@ -73,125 +118,152 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
       ctx.fillStyle = radial;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Borders based on theme
+      // 2. Distinct Borders based on Type
       if (theme === 'royal_gold') {
-        // Triple Royal Borders
+        // Triple Royal Gold Borders for Prestasi
         ctx.strokeStyle = primaryColor;
-        ctx.lineWidth = 9;
+        ctx.lineWidth = 10;
         ctx.strokeRect(32, 32, canvas.width - 64, canvas.height - 64);
 
         ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 3.5;
+        ctx.lineWidth = 4;
         ctx.strokeRect(48, 48, canvas.width - 96, canvas.height - 96);
 
-        ctx.strokeStyle = `${accentColor}55`;
+        ctx.strokeStyle = `${accentColor}66`;
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(58, 58, canvas.width - 116, canvas.height - 116);
+        ctx.strokeRect(60, 60, canvas.width - 120, canvas.height - 120);
+
+        // Gold Stars in 4 Corners
+        const starCorners = [
+          [80, 80],
+          [canvas.width - 80, 80],
+          [80, canvas.height - 80],
+          [canvas.width - 80, canvas.height - 80]
+        ];
+        ctx.fillStyle = accentColor;
+        ctx.font = 'bold 26px sans-serif';
+        ctx.textAlign = 'center';
+        starCorners.forEach(([x, y]) => {
+          ctx.fillText('★', x, y + 9);
+        });
+
       } else if (theme === 'platinum') {
-        // Geometric Modern Dual Borders
+        // Modern Geometric Dual Borders for Partisipasi
         ctx.strokeStyle = primaryColor;
         ctx.lineWidth = 8;
         ctx.strokeRect(36, 36, canvas.width - 72, canvas.height - 72);
 
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = 3;
-        ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
+        ctx.strokeRect(52, 52, canvas.width - 104, canvas.height - 104);
+
+        // Geometric corner tick marks
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 3;
+        const tickSize = 30;
+        // Top Left
+        ctx.beginPath();
+        ctx.moveTo(36, 36 + tickSize); ctx.lineTo(36 + tickSize, 36); ctx.stroke();
+        // Top Right
+        ctx.beginPath();
+        ctx.moveTo(canvas.width - 36 - tickSize, 36); ctx.lineTo(canvas.width - 36, 36 + tickSize); ctx.stroke();
+        // Bottom Left
+        ctx.beginPath();
+        ctx.moveTo(36, canvas.height - 36 - tickSize); ctx.lineTo(36 + tickSize, canvas.height - 36); ctx.stroke();
+        // Bottom Right
+        ctx.beginPath();
+        ctx.moveTo(canvas.width - 36 - tickSize, canvas.height - 36); ctx.lineTo(canvas.width - 36, canvas.height - 36 - tickSize); ctx.stroke();
+
       } else {
-        // Emerald Classic Borders
+        // Emerald Classic Borders for Kelulusan
         ctx.strokeStyle = subAccent;
         ctx.lineWidth = 7;
         ctx.strokeRect(36, 36, canvas.width - 72, canvas.height - 72);
 
         ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2.5;
         ctx.strokeRect(52, 52, canvas.width - 104, canvas.height - 104);
+
+        // Corner Ornamental Brackets
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = subAccent;
+        const cLen = 70;
+        // Top Left
+        ctx.beginPath(); ctx.moveTo(36, 36 + cLen); ctx.lineTo(36, 36); ctx.lineTo(36 + cLen, 36); ctx.stroke();
+        // Top Right
+        ctx.beginPath(); ctx.moveTo(canvas.width - 36 - cLen, 36); ctx.lineTo(canvas.width - 36, 36); ctx.lineTo(canvas.width - 36, 36 + cLen); ctx.stroke();
+        // Bottom Left
+        ctx.beginPath(); ctx.moveTo(36, canvas.height - 36 - cLen); ctx.lineTo(36, canvas.height - 36); ctx.lineTo(36 + cLen, canvas.height - 36); ctx.stroke();
+        // Bottom Right
+        ctx.beginPath(); ctx.moveTo(canvas.width - 36 - cLen, canvas.height - 36); ctx.lineTo(canvas.width - 36, canvas.height - 36); ctx.lineTo(canvas.width - 36, canvas.height - 36 - cLen); ctx.stroke();
       }
 
-      // Corner Brackets
-      ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 8;
-      // Top-Left
-      ctx.beginPath();
-      ctx.moveTo(36, 95); ctx.lineTo(36, 36); ctx.lineTo(95, 36); ctx.stroke();
-      // Top-Right
-      ctx.beginPath();
-      ctx.moveTo(canvas.width - 95, 36); ctx.lineTo(canvas.width - 36, 36); ctx.lineTo(canvas.width - 36, 95); ctx.stroke();
-      // Bottom-Left
-      ctx.beginPath();
-      ctx.moveTo(36, canvas.height - 95); ctx.lineTo(36, canvas.height - 36); ctx.lineTo(95, canvas.height - 36); ctx.stroke();
-      // Bottom-Right
-      ctx.beginPath();
-      ctx.moveTo(canvas.width - 95, canvas.height - 36); ctx.lineTo(canvas.width - 36, canvas.height - 36); ctx.lineTo(canvas.width - 36, canvas.height - 95); ctx.stroke();
+      // 3. Subtle Background Watermark
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(-10 * Math.PI / 180);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = `${primaryColor}09`;
+      ctx.font = '900 130px sans-serif';
+      ctx.fillText('BPJS', 0, -40);
+      ctx.font = '900 70px sans-serif';
+      ctx.fillText('KETENAGAKERJAAN', 0, 45);
+      ctx.font = 'bold 30px sans-serif';
+      ctx.fillText(mainTitle, 0, 100);
+      ctx.restore();
 
-      // 3. Header Text
+      // 4. Header: Official Agency Banner
+      ctx.textAlign = 'left';
       ctx.fillStyle = primaryColor;
       ctx.font = '900 36px serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('BPJS KETENAGAKERJAAN', 110, 120);
+      ctx.fillText('BPJS Ketenagakerjaan', 130, 135);
 
       ctx.fillStyle = '#121214';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.fillText('Badan Penyelenggara Jaminan Sosial Ketenagakerjaan', 110, 155);
+      ctx.font = 'bold 19px sans-serif';
+      ctx.fillText('Badan Penyelenggara Jaminan Sosial Ketenagakerjaan', 130, 168);
 
       ctx.fillStyle = '#666666';
       ctx.font = 'normal 17px sans-serif';
-      ctx.fillText(`${branchName} • ${branchAddress}`, 110, 185);
+      ctx.fillText(`${branchName}   •   ${branchAddress}`, 130, 198);
 
-      // Header Right (Theme Badge)
-      ctx.fillStyle = primaryColor;
+      // Header Right: Security Badge
       ctx.textAlign = 'right';
+      ctx.fillStyle = primaryColor;
       ctx.font = 'bold 18px sans-serif';
-      ctx.fillText(
-        theme === 'royal_gold' ? 'SERTIFIKAT PENGHARGAAN PRESTASI' :
-        theme === 'platinum' ? 'SERTIFIKAT KOMPETENSI EKSEKUTIF' :
-        'DOKUMEN RESMI ELEKTRONIK',
-        canvas.width - 110, 130
-      );
-      ctx.fillStyle = '#777777';
-      ctx.font = 'normal 15px monospace';
-      ctx.fillText('ISO/IEC 27001 Terverifikasi', canvas.width - 110, 160);
+      ctx.fillText('DOKUMEN ELEKTRONIK RESMI', canvas.width - 130, 140);
+      ctx.fillStyle = '#666666';
+      ctx.font = 'normal 16px monospace';
+      ctx.fillText('ISO/IEC 27001:2022 TERVERIFIKASI', canvas.width - 130, 170);
+      ctx.fillText(`Kategori: ${certTypeLabel.toUpperCase()}`, canvas.width - 130, 198);
 
       // Header Divider Line
       ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(100, 215); ctx.lineTo(canvas.width - 100, 215); ctx.stroke();
+      ctx.moveTo(130, 225); ctx.lineTo(canvas.width - 130, 225); ctx.stroke();
 
-      // Accent Ribbon
       ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(100, 222); ctx.lineTo(canvas.width - 100, 222); ctx.stroke();
+      ctx.moveTo(130, 230); ctx.lineTo(canvas.width - 130, 230); ctx.stroke();
 
-      // 4. Center Content
+      // 5. Center Title & Wording (Specific to Certificate Type)
       ctx.textAlign = 'center';
 
+      // Header Badge
       ctx.fillStyle = accentColor;
-      ctx.font = '900 20px sans-serif';
-      ctx.fillText(
-        theme === 'royal_gold' ? 'SURAT TANDA PRESTASI DAN KELULUSAN' :
-        theme === 'platinum' ? 'SURAT TANDA KOMPETENSI INDUSTRI' :
-        'SURAT TANDA TAMAT PROGRAM',
-        canvas.width / 2, 280
-      );
+      ctx.font = '900 21px sans-serif';
+      ctx.fillText(headerBadge, canvas.width / 2, 285);
 
+      // Main Title (Distinct)
       ctx.fillStyle = primaryColor;
-      ctx.font = '900 58px serif';
-      ctx.fillText(
-        theme === 'royal_gold' ? 'SERTIFIKAT PRESTASI KERJA' :
-        theme === 'platinum' ? 'SERTIFIKAT KOMPETENSI MAGANG' :
-        'SERTIFIKAT MAGANG KERJA',
-        canvas.width / 2, 355
-      );
+      ctx.font = '900 62px serif';
+      ctx.fillText(mainTitle, canvas.width / 2, 360);
 
+      // Sub-title
       ctx.fillStyle = '#777777';
       ctx.font = 'italic 22px serif';
-      ctx.fillText(
-        theme === 'royal_gold' ? 'Certificate of Distinguished Excellence' :
-        theme === 'platinum' ? 'Professional Competency Certificate' :
-        'Certificate of Internship Completion',
-        canvas.width / 2, 395
-      );
+      ctx.fillText(subTitle, canvas.width / 2, 400);
 
       // Certificate Number Pill
       ctx.fillStyle = '#FAF5EB';
@@ -199,48 +271,48 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
       ctx.font = 'bold 22px monospace';
       const noWidth = ctx.measureText(certNoText).width + 60;
       ctx.beginPath();
-      ctx.roundRect((canvas.width - noWidth) / 2, 425, noWidth, 42, 21);
+      ctx.roundRect((canvas.width - noWidth) / 2, 430, noWidth, 42, 21);
       ctx.fill();
       ctx.strokeStyle = accentColor;
       ctx.lineWidth = 2;
       ctx.stroke();
 
       ctx.fillStyle = '#121214';
-      ctx.fillText(certNoText, canvas.width / 2, 453);
+      ctx.fillText(certNoText, canvas.width / 2, 458);
 
-      // Introduction
+      // Awarded To Statement
       ctx.fillStyle = '#555555';
       ctx.font = 'normal 22px sans-serif';
-      ctx.fillText('Badan Penyelenggara Jaminan Sosial Ketenagakerjaan menyatakan bahwa:', canvas.width / 2, 530);
+      ctx.fillText('Badan Penyelenggara Jaminan Sosial Ketenagakerjaan menyatakan bahwa:', canvas.width / 2, 535);
 
       // Recipient Name (Bold, Underlined)
       ctx.fillStyle = '#121214';
       ctx.font = '900 50px sans-serif';
       const nameUpper = recipientName.toUpperCase();
-      ctx.fillText(nameUpper, canvas.width / 2, 605);
+      ctx.fillText(nameUpper, canvas.width / 2, 610);
 
       const nameWidth = ctx.measureText(nameUpper).width;
       ctx.strokeStyle = primaryColor;
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo((canvas.width - nameWidth) / 2, 622);
-      ctx.lineTo((canvas.width + nameWidth) / 2, 622);
+      ctx.moveTo((canvas.width - nameWidth) / 2, 627);
+      ctx.lineTo((canvas.width + nameWidth) / 2, 627);
       ctx.stroke();
 
       // NIM & Penempatan
       ctx.fillStyle = '#555555';
       ctx.font = 'bold 22px monospace';
-      ctx.fillText(`NIM / Registrasi: ${recipientNim}   •   Penempatan: ${penempatan}`, canvas.width / 2, 670);
+      ctx.fillText(`NIM / Registrasi: ${recipientNim}   •   Penempatan: ${penempatan}`, canvas.width / 2, 675);
 
-      // Statement
+      // Dynamic Statement Text for Type
       ctx.fillStyle = '#444444';
       ctx.font = 'normal 21px sans-serif';
-      ctx.fillText(`Telah berhasil menyelesaikan seluruh rangkaian program Praktik Kerja Lapangan / Magang Industri Terstruktur`, canvas.width / 2, 735);
-      ctx.fillText(`pada BPJS Ketenagakerjaan ${branchName} (${batchName}) dengan capaian evaluasi akhir:`, canvas.width / 2, 770);
+      ctx.fillText(statement1, canvas.width / 2, 735);
+      ctx.fillText(statement2, canvas.width / 2, 770);
 
-      // Predicate Pills
+      // Predicate & Score Pills
       ctx.fillStyle = primaryColor;
-      const predText = predicate;
+      const predText = displayPredicate;
       ctx.font = 'bold 22px sans-serif';
       const pWidth = ctx.measureText(predText).width + 40;
       ctx.beginPath();
@@ -262,7 +334,7 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
       ctx.fillStyle = '#121214';
       ctx.fillText(scoreText, (canvas.width / 2) + (sWidth / 2) + 15, 842);
 
-      // 5. Signatures Grid
+      // 6. Signatures Grid
       // Left: Mentor Pembimbing Magang
       const leftCenterX = 450;
       ctx.fillStyle = '#555555';
@@ -281,18 +353,19 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
             mentorImg.onerror = r;
             mentorImg.src = mentorSig;
           });
-          if (mentorImg.width) {
+          if (mentorImg.width > 0) {
             ctx.drawImage(mentorImg, leftCenterX - 110, 1030, 220, 110);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Failed to draw mentor signature image:', e);
+        }
       } else {
-        // Fallback Stylized stroke
+        // Fallback Signature Path
         ctx.strokeStyle = primaryColor;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3.5;
         ctx.beginPath();
-        ctx.moveTo(leftCenterX - 80, 1100);
-        ctx.quadraticCurveTo(leftCenterX - 30, 1030, leftCenterX, 1090);
-        ctx.quadraticCurveTo(leftCenterX + 40, 1050, leftCenterX + 80, 1110);
+        ctx.moveTo(leftCenterX - 90, 1080);
+        ctx.bezierCurveTo(leftCenterX - 30, 1040, leftCenterX + 10, 1120, leftCenterX + 80, 1060);
         ctx.stroke();
       }
 
@@ -310,22 +383,18 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
       ctx.font = 'normal 18px monospace';
       ctx.fillText(`NPP. ${mentorNpp}`, leftCenterX, 1230);
 
-      // Center: Local Pure-JS QR Code without CORS taint
-      const verifyUrl = `${window.location.origin}/verify-certificate/${encodeURIComponent(certNumber)}`;
-      drawQrToCanvas(ctx, verifyUrl, (canvas.width / 2) - 75, 1010, 150, { fgColor: primaryColor });
-
-      // Border around QR
-      ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3;
-      ctx.strokeRect((canvas.width / 2) - 75, 1010, 150, 150);
+      // Center: Local QR Code
+      const qrCenterX = canvas.width / 2;
+      const verifyUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://bpjs-magang.go.id'}/verify-certificate/${encodeURIComponent(certNumber)}`;
+      drawQrToCanvas(ctx, verifyUrl, qrCenterX - 75, 985, 150);
 
       ctx.fillStyle = primaryColor;
-      ctx.font = '900 17px sans-serif';
-      ctx.fillText('SCAN UNTUK VERIFIKASI', canvas.width / 2, 1195);
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText('SCAN VERIFIKASI RESMI', qrCenterX, 1160);
 
       ctx.fillStyle = '#777777';
-      ctx.font = 'normal 13px monospace';
-      ctx.fillText(`HASH: ${sha256Hash.substring(0, 24)}...`, canvas.width / 2, 1220);
+      ctx.font = 'normal 12px monospace';
+      ctx.fillText(`DIGEST: ${sha256Hash.substring(0, 24)}...`, qrCenterX, 1185);
 
       // Right: Kepala Kantor Cabang
       const rightCenterX = canvas.width - 450;
@@ -345,34 +414,40 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
             headImg.onerror = r;
             headImg.src = branchHeadSig;
           });
-          if (headImg.width) {
+          if (headImg.width > 0) {
             ctx.drawImage(headImg, rightCenterX - 110, 1030, 220, 110);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Failed to draw branch head signature image:', e);
+        }
       } else {
-        // Fallback Stylized Stroke
+        // Fallback Signature Path
         ctx.strokeStyle = primaryColor;
-        ctx.lineWidth = 4.5;
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.moveTo(rightCenterX - 85, 1080);
-        ctx.quadraticCurveTo(rightCenterX - 40, 1020, rightCenterX - 10, 1085);
-        ctx.quadraticCurveTo(rightCenterX + 35, 1035, rightCenterX + 85, 1090);
+        ctx.moveTo(rightCenterX - 90, 1070);
+        ctx.bezierCurveTo(rightCenterX - 20, 1030, rightCenterX + 20, 1130, rightCenterX + 90, 1060);
         ctx.stroke();
       }
 
-      // Draw Official Circular Stamp Overlay
+      // Draw Official BPJS Circular Seal (Stempel Dinas)
       ctx.save();
-      ctx.translate(rightCenterX - 110, 1050);
-      ctx.rotate(-14 * (Math.PI / 180));
-      const stampColor = theme === 'royal_gold' ? '#B8860B' : theme === 'platinum' ? '#0F766E' : '#00875A';
-      ctx.strokeStyle = stampColor;
-      ctx.fillStyle = stampColor;
+      ctx.translate(rightCenterX - 60, 1085);
+      ctx.rotate(-12 * Math.PI / 180);
+      ctx.strokeStyle = `${primaryColor}CC`;
+      ctx.fillStyle = `${primaryColor}CC`;
       ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(0, 0, 75, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, 75, 0, 2 * Math.PI);
+      ctx.stroke();
       ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(0, 0, 68, 0, Math.PI * 2); ctx.stroke();
-      ctx.lineWidth = 1.8;
-      ctx.beginPath(); ctx.arc(0, 0, 48, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, 68, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 48, 0, 2 * Math.PI);
+      ctx.stroke();
 
       ctx.font = '900 13px sans-serif';
       ctx.textAlign = 'center';
@@ -399,7 +474,7 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
       ctx.font = 'normal 18px monospace';
       ctx.fillText(`NPP. ${branchHeadNpp}`, rightCenterX, 1230);
 
-      // 6. Legal Footer
+      // 7. Legal Footer
       ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -412,11 +487,11 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
       ctx.textAlign = 'right';
       ctx.fillText('Dokumen elektronik sah terdaftar di pangkalan data resmi BPJSTK.', canvas.width - 100, 1455);
 
-      // 7. Instant Direct Browser Download
-      // Filename format: Sertifikat_Kelulusan_BPJSTK_[Nama]_[No].png
+      // 8. Instant Direct Browser Download
+      // Filename format: Sertifikat_[Kelulusan|Prestasi|Partisipasi]_BPJSTK_[Nama]_[No].png
       const safeRecipient = recipientName.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
       const safeCertNo = certNumber.replace(/\//g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
-      const downloadFilename = `Sertifikat_Kelulusan_BPJSTK_${safeRecipient}_${safeCertNo}.png`;
+      const downloadFilename = `${filePrefix}_${safeRecipient}_${safeCertNo}.png`;
 
       canvas.toBlob((blob) => {
         if (!blob) {
@@ -433,7 +508,7 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
         document.body.removeChild(a);
 
         setTimeout(() => URL.revokeObjectURL(url), 2000);
-        resolve({ success: true, filename: downloadFilename });
+        resolve({ success: true, filename: downloadFilename, certType: certTypeLabel });
       }, 'image/png', 1.0);
 
     } catch (err) {
