@@ -621,29 +621,34 @@ const Calendar = () => {
 
             {/* Month Navigation */}
             {view === 'month' && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <button 
+                  type="button"
                   onClick={goToPreviousMonth} 
-                  className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] border border-[#EAE9E4] flex items-center justify-center transition-colors text-[#121214]"
+                  aria-label="Bulan sebelumnya"
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] border border-[#EAE9E4] flex items-center justify-center transition-colors text-[#121214] touch-target cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
                 {/* Signature Intelly Pink Month Pill */}
-                <span className="px-4 py-1.5 bg-[#F5C6EC] text-[#121214] font-bold text-xs rounded-full shadow-sm">
+                <span className="px-3.5 sm:px-4 py-1.5 bg-[#F5C6EC] text-[#121214] font-bold text-xs rounded-full shadow-sm">
                   {currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
                 </span>
 
                 <button 
+                  type="button"
                   onClick={goToNextMonth} 
-                  className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] border border-[#EAE9E4] flex items-center justify-center transition-colors text-[#121214]"
+                  aria-label="Bulan berikutnya"
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] border border-[#EAE9E4] flex items-center justify-center transition-colors text-[#121214] touch-target cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
 
                 <button 
+                  type="button"
                   onClick={goToToday} 
-                  className="px-3.5 py-1.5 bg-[#121214] text-white text-xs font-bold rounded-full hover:bg-neutral-800 transition-colors shadow-sm ml-1"
+                  className="px-3.5 py-1.5 bg-[#121214] text-white text-xs font-bold rounded-full hover:bg-neutral-800 transition-colors shadow-sm sm:ml-1 cursor-pointer"
                 >
                   Hari Ini
                 </button>

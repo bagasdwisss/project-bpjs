@@ -104,22 +104,24 @@ Daftar mudah sekarang melalui petugas binaan BPJSTK!`;
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#121214]/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-150"
     >
-      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-3xl shadow-[6px_6px_0px_#121214] w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden overscroll-contain">
+      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl sm:rounded-3xl shadow-[4px_4px_0px_#121214] sm:shadow-[6px_6px_0px_#121214] w-full max-w-2xl max-h-[88dvh] flex flex-col overflow-hidden overscroll-contain">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b-2 border-[#121214] bg-[#FCE373]">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
-              <Calculator className="w-5 h-5 text-[#121214]" />
+        <div className="flex items-center justify-between gap-2 p-3.5 sm:p-5 border-b-2 border-[#121214] bg-[#FCE373]">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] shrink-0">
+              <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-[#121214]" />
             </div>
-            <div>
-              <h3 className="font-black text-lg text-[#121214] leading-tight">Kalkulator Simulasi Iuran & Manfaat BPJSTK</h3>
-              <p className="text-xs font-bold text-[#121214]/80">Perlindungan Sektor BPU (Bukan Penerima Upah)</p>
+            <div className="min-w-0">
+              <h3 className="font-black text-sm sm:text-lg text-[#121214] leading-tight">Kalkulator Simulasi Iuran &amp; Manfaat BPJSTK</h3>
+              <p className="text-[11px] sm:text-xs font-bold text-[#121214]/80 truncate">Perlindungan Sektor BPU (Bukan Penerima Upah)</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full border-2 border-[#121214] bg-white hover:bg-neutral-100 text-[#121214] transition-colors shadow-[2px_2px_0px_#121214]"
+            aria-label="Tutup kalkulator"
+            className="p-2 rounded-full border-2 border-[#121214] bg-white hover:bg-neutral-100 text-[#121214] transition-colors shadow-[2px_2px_0px_#121214] shrink-0 touch-target cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

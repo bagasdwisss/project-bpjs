@@ -355,8 +355,9 @@ const Notifications = () => {
                     {/* Working Action Buttons (Delete Individual) */}
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-start pt-1 sm:pt-0">
                       <button
+                        type="button"
                         onClick={(e) => handleDeleteNotification(notification.notification_id, e)}
-                        className="p-2 rounded-xl bg-white hover:bg-rose-50 text-[#121214]/50 hover:text-rose-600 border border-[#EAE9E4] hover:border-rose-300 transition shadow-sm"
+                        className="p-2 rounded-xl bg-white hover:bg-rose-50 text-[#121214]/50 hover:text-rose-600 border border-[#EAE9E4] hover:border-rose-300 transition shadow-sm touch-target cursor-pointer"
                         title="Hapus notifikasi ini"
                         aria-label="Hapus notifikasi"
                       >

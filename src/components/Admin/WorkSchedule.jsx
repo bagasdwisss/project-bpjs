@@ -752,23 +752,25 @@ const WorkSchedule = () => {
             onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
             onKeyDown={(e) => { if (e.key === 'Escape') setIsModalOpen(false); }}
           >
-            <div className="bg-white border-2 border-[#121214] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-[8px_8px_0px_#121214] animate-in zoom-in-95 duration-150">
-              <div className="p-4 bg-[#FCE373] border-b-2 border-[#121214] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-[#121214]" />
-                  <h3 className="text-sm font-black text-[#121214] uppercase tracking-wide">
+            <div className="bg-white border-2 border-[#121214] rounded-2xl w-full max-w-lg max-h-[88dvh] overflow-y-auto overscroll-contain shadow-[4px_4px_0px_#121214] sm:shadow-[8px_8px_0px_#121214] animate-in zoom-in-95 duration-150">
+              <div className="p-3.5 sm:p-4 bg-[#FCE373] border-b-2 border-[#121214] flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Calendar className="w-5 h-5 text-[#121214] shrink-0" />
+                  <h3 className="text-xs sm:text-sm font-black text-[#121214] uppercase tracking-wide truncate">
                     {editingHoliday ? 'Edit Hari Libur Nasional' : 'Tambah Hari Libur Nasional Baru'}
                   </h3>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1 rounded-lg hover:bg-black/10 active:scale-95 transition-all text-[#121214] cursor-pointer"
+                  aria-label="Tutup dialog hari libur"
+                  className="p-1.5 rounded-lg hover:bg-black/10 active:scale-95 transition-all text-[#121214] cursor-pointer shrink-0 touch-target"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmitHoliday} className="p-6 space-y-4">
+              <form onSubmit={handleSubmitHoliday} className="p-4 sm:p-6 space-y-4">
                 {/* Tanggal Libur */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-[#121214] flex items-center gap-1.5">

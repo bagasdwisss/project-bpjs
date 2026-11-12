@@ -198,7 +198,7 @@ const BroadcastPopup = () => {
           role="alertdialog"
           aria-modal="true"
         >
-          <div className="pointer-events-auto w-full max-w-lg bg-white rounded-[28px] border-3 border-[#121214] shadow-[10px_10px_0px_#121214] overflow-hidden p-6 sm:p-7 text-center transform animate-in zoom-in-95 duration-200 relative select-none">
+          <div className="pointer-events-auto w-full max-w-lg max-h-[88dvh] overflow-y-auto overscroll-contain bg-white rounded-[22px] sm:rounded-[28px] border-3 border-[#121214] shadow-[5px_5px_0px_#121214] sm:shadow-[10px_10px_0px_#121214] p-4 sm:p-7 text-center transform animate-in zoom-in-95 duration-200 relative select-none">
             
             {/* Top Accent Strip */}
             <div className="absolute top-0 left-0 right-0 h-3 bg-[#BE185D] border-b-2 border-[#121214]"></div>
@@ -279,7 +279,7 @@ const BroadcastPopup = () => {
       {/*    TETAP SEPERTI BIASA DENGAN TOMBOL TUTUP DAN MENGERTI                   */}
       {/* ========================================================================= */}
       {activeToastBroadcasts.length > 0 && (
-        <div className="fixed top-4 right-3 sm:right-5 sm:top-5 z-[9990] flex flex-col gap-3 sm:max-w-md w-auto sm:w-full pointer-events-none">
+        <div className="fixed top-4 left-3 right-3 sm:left-auto sm:right-5 sm:top-5 z-[9990] flex flex-col gap-3 sm:max-w-md sm:w-full pointer-events-none">
           {activeToastBroadcasts.map((toast) => (
             <div
               key={toast.broadcast_id}
@@ -304,8 +304,9 @@ const BroadcastPopup = () => {
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => handleDismissBiasa(toast)}
-                  className="p-1 rounded-lg text-[#121214] hover:bg-black/10 transition shrink-0"
+                  className="p-1.5 rounded-lg text-[#121214] hover:bg-black/10 transition shrink-0 touch-target cursor-pointer"
                   aria-label="Tutup notifikasi"
                 >
                   <X className="w-4 h-4" />

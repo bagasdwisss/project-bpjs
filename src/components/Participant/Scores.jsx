@@ -493,12 +493,12 @@ const Scores = () => {
                 <div key={score.id} className="p-5 sm:p-6 hover:bg-[#FAF9F6] transition-colors">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-[#FCE373] text-[#121214] flex items-center justify-center font-bold text-base shadow-sm shrink-0">
                           {getScoreIcon(score.score)}
                         </div>
-                        <div>
-                          <h3 className="font-bold text-sm sm:text-base text-[#121214]">{score.title}</h3>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-sm sm:text-base text-[#121214] break-words">{score.title}</h3>
                           <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-[#6E6D6A]">
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="w-3.5 h-3.5" />

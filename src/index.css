@@ -262,3 +262,29 @@ html, body {
   max-width: 100%;
   overflow-x: clip;
 }
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-wrap: anywhere;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+p, li {
+  text-wrap: pretty;
+}
+
+/* Touch-device hit-target extension (>=44px effective target while preserving compact visual icon buttons) */
+@media (pointer: coarse) {
+  .touch-target {
+    position: relative;
+  }
+  .touch-target::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+}

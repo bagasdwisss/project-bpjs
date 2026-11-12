@@ -159,15 +159,15 @@ const BpuCalculatorSettings = () => {
           {/* KOLOM KIRI: FORM PENGATURAN TARIF (50%) */}
           {/* ======================================================== */}
           <div className="space-y-6">
-            <form onSubmit={handleSaveRates} className="bg-white border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] space-y-5">
-              <div className="flex items-center justify-between border-b-2 border-gray-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#FCE373] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214]">
+            <form onSubmit={handleSaveRates} className="bg-white border-2 border-[#121214] rounded-2xl p-4 sm:p-6 shadow-[4px_4px_0px_#121214] space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-gray-100 pb-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#FCE373] border border-[#121214] flex items-center justify-center text-[#121214] shadow-[2px_2px_0px_#121214] shrink-0">
                     <Shield className="w-4 h-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-sm font-black text-[#121214] uppercase tracking-wide">
-                      Ketentuan Tarif Iuran & Santunan
+                      Ketentuan Tarif Iuran &amp; Santunan
                     </h2>
                     <p className="text-xs text-gray-500 font-medium">
                       Mengatur nilai parameter dasar kalkulasi BPU di database.
@@ -178,7 +178,7 @@ const BpuCalculatorSettings = () => {
                 <button
                   type="button"
                   onClick={handleResetDefaultRates}
-                  className="text-[11px] font-black text-[#121214] bg-white hover:bg-gray-100 border-2 border-[#121214] px-2.5 py-1.5 rounded-lg shadow-[2px_2px_0px_#121214] transition-all cursor-pointer active:scale-95 inline-flex items-center gap-1"
+                  className="text-[11px] font-black text-[#121214] bg-white hover:bg-gray-100 border-2 border-[#121214] px-3 py-1.5 rounded-lg shadow-[2px_2px_0px_#121214] transition-all cursor-pointer active:scale-95 inline-flex items-center justify-center gap-1 self-start sm:self-auto shrink-0"
                 >
                   <Sparkles className="w-3 h-3" />
                   Reset Regulasi

@@ -128,12 +128,14 @@ const CoordinatorForum = () => {
 
         {selectedTopic ? (
           /* Topic Thread Detail View */
-          <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-sm overflow-hidden flex flex-col h-[75vh]">
-            <div className="p-4 sm:p-5 border-b border-[#EAE9E4] flex items-center justify-between bg-[#FAF9F6]">
-              <div className="flex items-center gap-3 min-w-0">
+          <div className="bg-white rounded-[22px] sm:rounded-[26px] border border-[#EAE9E4] shadow-sm overflow-hidden flex flex-col h-[72dvh] min-h-[420px]">
+            <div className="p-3.5 sm:p-5 border-b border-[#EAE9E4] flex items-center justify-between gap-2 bg-[#FAF9F6]">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                 <button
+                  type="button"
                   onClick={() => setSelectedTopic(null)}
-                  className="w-9 h-9 rounded-full bg-white hover:bg-[#EAE9E4] border border-[#EAE9E4] text-[#121214] flex items-center justify-center transition-colors shrink-0"
+                  aria-label="Kembali ke daftar topik"
+                  className="w-9 h-9 rounded-full bg-white hover:bg-[#EAE9E4] border border-[#EAE9E4] text-[#121214] flex items-center justify-center transition-colors shrink-0 touch-target cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
@@ -148,7 +150,7 @@ const CoordinatorForum = () => {
             </div>
 
             {/* Messages Scroll Area */}
-            <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-[#F5F4F0]/40">
+            <div className="flex-1 p-3.5 sm:p-6 overflow-y-auto space-y-4 bg-[#F5F4F0]/40 overscroll-contain">
               {loadingMessages ? (
                 <div className="flex flex-col items-center justify-center py-16 space-y-2">
                   <div className="w-8 h-8 border-2 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
@@ -162,22 +164,22 @@ const CoordinatorForum = () => {
                 messages.map((msg) => {
                   const isMe = msg.user_id === user?.user_id;
                   return (
-                    <div key={msg.message_id} className={`flex gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div key={msg.message_id} className={`flex gap-2.5 sm:gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}>
                       {!isMe && (
                         <div className="w-8 h-8 rounded-full bg-[#F5C6EC] text-[#121214] flex items-center justify-center font-bold text-xs shadow-sm shrink-0">
                           {msg.author_name ? msg.author_name.charAt(0) : 'U'}
                         </div>
                       )}
-                      <div className={`max-w-md sm:max-w-lg rounded-[22px] p-4 space-y-1 shadow-sm ${
+                      <div className={`max-w-[85%] sm:max-w-md lg:max-w-lg min-w-0 rounded-[20px] sm:rounded-[22px] p-3.5 sm:p-4 space-y-1 shadow-sm ${
                         isMe 
                           ? 'bg-[#121214] text-white rounded-tr-none' 
                           : 'bg-white text-[#121214] border border-[#EAE9E4] rounded-tl-none'
                       }`}>
-                        <div className="flex items-center justify-between gap-4 text-[10px] opacity-70">
-                          <span className="font-bold">{msg.author_name} ({msg.author_role || 'Peserta'})</span>
-                          <span>{new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB</span>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] opacity-70">
+                          <span className="font-bold truncate">{msg.author_name} ({msg.author_role || 'Peserta'})</span>
+                          <span className="shrink-0">{new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB</span>
                         </div>
-                        <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{msg.message_content}</p>
+                        <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.message_content}</p>
                       </div>
                     </div>
                   );

@@ -56,29 +56,31 @@ const QRCodeModal = ({ isOpen, onClose, user }) => {
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-150"
     >
-      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] w-full max-w-md max-h-[92vh] overflow-y-auto overscroll-contain flex flex-col">
+      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] sm:shadow-[6px_6px_0px_#121214] w-full max-w-md max-h-[88dvh] overflow-y-auto overscroll-contain flex flex-col">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b-2 border-[#121214] bg-[#BDD4F2]">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
+        <div className="flex items-center justify-between gap-2 p-3.5 sm:p-5 border-b-2 border-[#121214] bg-[#BDD4F2]">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] shrink-0">
               <QrCode className="w-5 h-5 text-[#121214]" />
             </div>
-            <div>
-              <h3 className="font-black text-lg text-[#121214] leading-tight">QR Code Referral BPU</h3>
-              <p className="text-xs font-medium text-[#121214]/80">Pendaftaran Mandiri Pekerja Informal</p>
+            <div className="min-w-0">
+              <h3 className="font-black text-base sm:text-lg text-[#121214] leading-tight truncate">QR Code Referral BPU</h3>
+              <p className="text-[11px] sm:text-xs font-medium text-[#121214]/80 truncate">Pendaftaran Mandiri Pekerja Informal</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg border-2 border-[#121214] bg-white hover:bg-red-50 text-[#121214] transition-colors shadow-[2px_2px_0px_#121214]"
+            aria-label="Tutup QR Code"
+            className="p-2 rounded-lg border-2 border-[#121214] bg-white hover:bg-red-50 text-[#121214] transition-colors shadow-[2px_2px_0px_#121214] shrink-0 touch-target cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 flex flex-col items-center text-center space-y-4">
+        <div className="p-4 sm:p-6 flex flex-col items-center text-center space-y-4">
           
           {/* Badge */}
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#FCE373] border-2 border-[#121214] text-xs font-black shadow-[2px_2px_0px_#121214]">
@@ -126,7 +128,7 @@ const QRCodeModal = ({ isOpen, onClose, user }) => {
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t-2 border-[#121214] bg-white grid grid-cols-2 gap-2">
+        <div className="p-4 border-t-2 border-[#121214] bg-white grid grid-cols-1 min-[360px]:grid-cols-2 gap-2">
           <button
             type="button"
             onClick={handleCopyLink}

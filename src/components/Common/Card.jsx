@@ -36,15 +36,15 @@ export const Card = ({
       )}
 
       {(title || subtitle || action) && (
-        <div className={`px-6 pt-5 pb-3 flex items-center justify-between border-b ${variant === 'white' ? 'border-[#EAE9E4]' : 'border-black/10'} ${headerClassName}`}>
-          <div>
+        <div className={`px-4 sm:px-6 pt-4 sm:pt-5 pb-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 border-b ${variant === 'white' ? 'border-[#EAE9E4]' : 'border-black/10'} ${headerClassName}`}>
+          <div className="min-w-0 flex-1">
             {title && <h3 className="text-base sm:text-lg font-bold tracking-tight">{title}</h3>}
             {subtitle && <p className="text-xs text-[#6E6D6A] mt-0.5">{subtitle}</p>}
           </div>
-          {action && <div className="shrink-0 ml-4">{action}</div>}
+          {action && <div className="shrink-0 sm:ml-4">{action}</div>}
         </div>
       )}
-      <div className={`p-6 ${bodyClassName}`}>{children}</div>
+      <div className={`p-4 sm:p-6 ${bodyClassName}`}>{children}</div>
     </div>
   );
 };

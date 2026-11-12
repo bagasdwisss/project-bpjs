@@ -105,37 +105,40 @@ export const WhistleblowingModal = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto overscroll-contain"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto overscroll-contain"
       role="dialog"
       aria-modal="true"
       aria-label="Pusat Konseling dan Pengaduan Anonim"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white border-2 border-[#121214] rounded-[24px] shadow-[6px_6px_0px_#121214] max-w-xl w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 relative animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white border-2 border-[#121214] rounded-[22px] sm:rounded-[24px] shadow-[4px_4px_0px_#121214] sm:shadow-[6px_6px_0px_#121214] max-w-xl w-full max-h-[88dvh] overflow-y-auto overscroll-contain p-4 sm:p-6 relative animate-in fade-in zoom-in-95 duration-200">
         
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 w-8 h-8 rounded-full border-2 border-[#121214] bg-[#FAF9F6] hover:bg-[#F5C6EC] flex items-center justify-center transition"
+          aria-label="Tutup dialog pengaduan"
+          className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 w-9 h-9 rounded-full border-2 border-[#121214] bg-[#FAF9F6] hover:bg-[#F5C6EC] flex items-center justify-center transition touch-target cursor-pointer"
         >
           <X className="w-4 h-4 text-[#121214]" />
         </button>
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-[#BDD4F2] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
+        <div className="flex items-center gap-3 mb-5 pr-10">
+          <div className="w-10 h-10 rounded-xl bg-[#BDD4F2] border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] shrink-0">
             <Shield className="w-5 h-5 text-[#121214]" />
           </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-black text-[#121214]">Pusat Konseling & Pengaduan Rahasia</h2>
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-xl font-black text-[#121214]">Pusat Konseling &amp; Pengaduan Rahasia</h2>
             <p className="text-xs text-[#121214]/60 font-semibold flex items-center gap-1.5 mt-0.5">
-              <EyeOff className="w-3.5 h-3.5 text-[#121214]/80" /> Identitas Anda 100% anonim dan terlindungi
+              <EyeOff className="w-3.5 h-3.5 text-[#121214]/80 shrink-0" />
+              <span>Identitas Anda 100% anonim dan terlindungi</span>
             </p>
           </div>
         </div>
 
         {/* Tab Controls */}
-        <div className="flex border-2 border-[#121214] rounded-xl p-1 bg-[#FAF9F6] mb-5 gap-1">
+        <div className="flex flex-wrap border-2 border-[#121214] rounded-xl p-1 bg-[#FAF9F6] mb-5 gap-1">
           <button
             type="button"
             onClick={() => setActiveTab('submit')}

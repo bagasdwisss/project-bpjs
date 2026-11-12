@@ -856,13 +856,13 @@ const GradingSettings = () => {
                     </div>
 
                     {/* Signature Columns Preview (Mentor & Kepala Cabang) */}
-                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-300">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-gray-300">
                       {/* Mentor Stamp */}
                       <div className="text-center space-y-1">
                         <span className="text-[10px] font-bold text-gray-600 block">Mengetahui,</span>
                         <span className="text-[10px] font-black text-[#121214] block">Mentor Pembimbing Magang</span>
                         
-                        <div className="my-1.5 p-1.5 bg-white border border-dashed border-[#121214]/40 rounded-lg inline-block min-w-[140px] min-h-[55px] flex items-center justify-center">
+                        <div className="my-1.5 p-1.5 bg-white border border-dashed border-[#121214]/40 rounded-lg w-full max-w-[160px] mx-auto min-h-[55px] flex items-center justify-center">
                           {instConfig.mentor_signature ? (
                             <img 
                               src={instConfig.mentor_signature} 
@@ -890,7 +890,7 @@ const GradingSettings = () => {
                         <span className="text-[10px] font-bold text-gray-600 block">Menyetujui,</span>
                         <span className="text-[10px] font-black text-[#121214] block">Kepala Kantor Cabang</span>
 
-                        <div className="my-1.5 p-1.5 bg-white border border-dashed border-[#121214]/40 rounded-lg inline-block min-w-[140px] min-h-[55px] flex items-center justify-center relative">
+                        <div className="my-1.5 p-1.5 bg-white border border-dashed border-[#121214]/40 rounded-lg w-full max-w-[160px] mx-auto min-h-[55px] flex items-center justify-center relative">
                           {instConfig.branch_head_signature ? (
                             <img 
                               src={instConfig.branch_head_signature} 

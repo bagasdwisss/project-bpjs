@@ -131,8 +131,8 @@ const Participants = () => {
               Pantau progress akuisisi target, bimbingan lapangan, dan performa akademik seluruh peserta.
             </p>
           </div>
-          <div className="flex items-center gap-2.5">
-            <div className="px-4 py-2 bg-[#FCE373] text-[#121214] rounded-full text-xs font-bold shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="px-3.5 py-2 bg-[#FCE373] text-[#121214] rounded-full text-xs font-bold shadow-sm">
               Rata-rata: {averageProgress}% Capaian
             </div>
             <span className="px-3.5 py-2 bg-[#121214] text-white rounded-full text-xs font-bold shadow-sm">
@@ -142,8 +142,8 @@ const Participants = () => {
         </div>
 
         {/* Search & Filters (Neo-Brutalist) */}
-        <div className="bg-white p-4 rounded-2xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] flex flex-col md:flex-row gap-3">
-          <div className="flex-1 relative">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] flex flex-col md:flex-row gap-3">
+          <div className="flex-1 relative min-w-0">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#121214]/60" />
             <input
               type="text"
@@ -159,7 +159,7 @@ const Participants = () => {
             <select
               value={placementFilter}
               onChange={(e) => setPlacementFilter(e.target.value)}
-              className="px-3.5 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
+              className="flex-1 sm:flex-initial min-w-[130px] px-3 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
               title="Filter Penempatan Kerja"
             >
               <option value="all">Semua Penempatan</option>
@@ -171,7 +171,7 @@ const Participants = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3.5 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
+              className="flex-1 sm:flex-initial min-w-[120px] px-3 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
             >
               <option value="all">Semua Status</option>
               <option value="aktif">Aktif</option>
@@ -182,7 +182,7 @@ const Participants = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3.5 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
+              className="flex-1 sm:flex-initial min-w-[130px] px-3 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer transition-all"
             >
               <option value="name">Urut Nama (A-Z)</option>
               <option value="progress">Capaian Tertinggi</option>
@@ -190,8 +190,10 @@ const Participants = () => {
 
             {/* Refresh */}
             <button
+              type="button"
               onClick={loadParticipants}
-              className="p-2.5 rounded-2xl border-2 border-[#121214] bg-white text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#FAF9F6] active:translate-y-0.5 transition-all"
+              aria-label="Segarkan data peserta"
+              className="p-2.5 rounded-2xl border-2 border-[#121214] bg-white text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#FAF9F6] active:translate-y-0.5 transition-all shrink-0 touch-target cursor-pointer"
               title="Segarkan Data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -209,8 +211,8 @@ const Participants = () => {
               Tidak ada peserta yang cocok dengan kriteria pencarian.
             </div>
           ) : (
-            <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Peserta Magang">
-              <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+            <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Peserta Magang">
+              <table className="w-full min-w-[720px] divide-y divide-[#EAE9E4] text-xs">
                 <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
                   <tr>
                     <th className="px-5 py-3.5 text-left">ID</th>

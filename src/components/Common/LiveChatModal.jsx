@@ -177,20 +177,20 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-150"
     >
-      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[8px_8px_0px_#121214] w-full max-w-4xl h-[94vh] sm:h-[620px] flex flex-col overflow-hidden overscroll-contain">
+      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] sm:shadow-[8px_8px_0px_#121214] w-full max-w-4xl h-[92dvh] sm:h-[620px] flex flex-col overflow-hidden overscroll-contain">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b-2 border-[#121214] bg-[#F5C6EC]">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214]">
+        <div className="flex items-center justify-between gap-2 p-3 sm:p-4 border-b-2 border-[#121214] bg-[#F5C6EC]">
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] shrink-0">
               <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-[#121214]" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center space-x-2">
-                <h3 className="font-black text-sm sm:text-lg text-[#121214]">Chat Bimbingan BPJSTK</h3>
-                <span className="hidden sm:inline bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded">Jalur Resmi</span>
+                <h3 className="font-black text-sm sm:text-lg text-[#121214] truncate">Chat Bimbingan BPJSTK</h3>
+                <span className="hidden sm:inline bg-[#121214] text-white text-[10px] font-bold px-2 py-0.5 rounded shrink-0">Jalur Resmi</span>
               </div>
-              <p className="text-[11px] sm:text-xs font-medium text-[#121214]/80">
+              <p className="text-[11px] sm:text-xs font-medium text-[#121214]/80 truncate">
                 {currentUser.role === 'Koordinator' 
                   ? 'Saluran khusus komunikasi dengan anak didik & admin'
                   : currentUser.role === 'Peserta'
@@ -200,8 +200,10 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg border-2 border-[#121214] bg-white hover:bg-red-50 text-[#121214] shadow-[2px_2px_0px_#121214] cursor-pointer"
+            aria-label="Tutup chat bimbingan"
+            className="p-2 rounded-lg border-2 border-[#121214] bg-white hover:bg-red-50 text-[#121214] shadow-[2px_2px_0px_#121214] cursor-pointer shrink-0 touch-target"
           >
             <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>

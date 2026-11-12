@@ -169,13 +169,13 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
                     key={r.id}
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, role_id: r.id }))}
-                    className={`py-2 px-3 rounded-2xl border-2 border-[#121214] text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition-all ${
+                    className={`py-2 px-1.5 sm:px-3 rounded-2xl border-2 border-[#121214] text-[11px] sm:text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
                       isActive
                         ? 'bg-[#121214] text-white shadow-[3px_3px_0px_#B8C96E]'
                         : 'bg-[#FAF9F6] text-[#121214] shadow-[2px_2px_0px_#121214] hover:bg-[#EAE9E4]'
                     }`}
                   >
-                    <span>{r.label}</span>
+                    <span className="truncate max-w-full">{r.label}</span>
                     <span className={`text-[9px] uppercase font-mono px-1.5 py-0.2 rounded ${
                       isActive ? 'bg-[#FAF9F6] text-[#121214]' : 'bg-[#EAE9E4] text-[#6E6D6A]'
                     }`}>

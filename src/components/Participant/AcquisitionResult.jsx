@@ -52,8 +52,8 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
   const { bg, icon, badge } = getColorConfig();
 
   return (
-    <div className="fixed top-5 right-5 z-[9999] animate-in slide-in-from-top-3 duration-200">
-      <div className={`${bg} px-4 py-3 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-start justify-between gap-3 min-w-[280px] max-w-sm sm:max-w-md`}>
+    <div className="fixed top-4 left-3 right-3 sm:left-auto sm:top-5 sm:right-5 sm:max-w-sm z-[9999] animate-in slide-in-from-top-3 duration-200">
+      <div className={`${bg} px-4 py-3 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-start justify-between gap-3 w-full`}>
         <div className="flex items-start gap-2.5 min-w-0">
           <div className="w-6 h-6 rounded-lg bg-[#121214] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-[1px_1px_0px_#121214]">
             {icon}
@@ -68,8 +68,9 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
           </div>
         </div>
         <button
+          type="button"
           onClick={onClose}
-          className="p-1 rounded-lg hover:bg-black/10 active:scale-95 transition-all text-[#121214] shrink-0 mt-0.5"
+          className="p-1.5 rounded-lg hover:bg-black/10 active:scale-95 transition-all text-[#121214] shrink-0 mt-0.5 touch-target cursor-pointer"
           aria-label="Tutup notifikasi"
         >
           <XCircle className="w-4 h-4" />

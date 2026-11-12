@@ -278,8 +278,8 @@ const BpuAcquisitions = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Akuisisi BPU">
-              <table className="min-w-full divide-y-2 divide-[#121214] text-xs">
+            <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Akuisisi BPU">
+              <table className="w-full min-w-[700px] divide-y-2 divide-[#121214] text-xs">
                 <thead className="bg-[#FAF9F6]">
                   <tr>
                     <th className="px-5 py-4 text-left font-black uppercase tracking-wider text-[#121214]">Calon Peserta BPU</th>
@@ -510,7 +510,7 @@ const BpuAcquisitions = () => {
                     Konfirmasi Pembayaran Lunas
                   </button>
                 )}
-                <div className="ml-auto">
+                <div className="w-full sm:w-auto sm:ml-auto">
                   <button
                     type="button"
                     onClick={() => setSelectedItem(null)}

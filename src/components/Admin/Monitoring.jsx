@@ -390,7 +390,7 @@ const Monitoring = () => {
               </div>
 
               <div className="overflow-x-auto overscroll-x-contain max-h-[520px] focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Log Audit Forensik">
-                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+                <table className="w-full min-w-[720px] divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider sticky top-0">
                     <tr>
                       <th className="px-4 py-3 text-left">Pengguna &amp; Peran</th>
@@ -538,8 +538,8 @@ const Monitoring = () => {
                 </span>
               </div>
 
-              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Status Indeks BRIN PostgreSQL">
-                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+              <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Status Indeks BRIN PostgreSQL">
+                <table className="w-full min-w-[600px] divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
                       <th className="px-4 py-3 text-left">Nama Indeks</th>
@@ -597,8 +597,8 @@ const Monitoring = () => {
                 </h3>
               </div>
 
-              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Alamat IP yang Dibekukan">
-                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+              <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Alamat IP yang Dibekukan">
+                <table className="w-full min-w-[620px] divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
                       <th className="px-4 py-3 text-left">Alamat IP Penyerang</th>
@@ -665,8 +665,8 @@ const Monitoring = () => {
                 </span>
               </div>
 
-              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Laporan Whistleblowing">
-                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+              <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Laporan Whistleblowing">
+                <table className="w-full min-w-[680px] divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
                       <th className="px-4 py-3 text-left">Kode Tiket</th>
@@ -739,10 +739,10 @@ const Monitoring = () => {
                 aria-label="Tanggapan Whistleblowing"
                 onClick={(e) => { if (e.target === e.currentTarget) setWhistleResponseModal(null); }}
               >
-                <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 space-y-4">
-                  <div className="flex items-center justify-between border-b border-[#EAE9E4] pb-2">
-                    <h4 className="font-black text-sm text-[#121214]">Tindak Lanjut: {whistleResponseModal.ticket_code}</h4>
-                    <button onClick={() => setWhistleResponseModal(null)} className="text-gray-500 hover:text-black">✕</button>
+                <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] sm:shadow-[6px_6px_0px_#121214] max-w-lg w-full max-h-[88dvh] overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
+                  <div className="flex items-center justify-between gap-2 border-b border-[#EAE9E4] pb-2">
+                    <h4 className="font-black text-sm text-[#121214] truncate">Tindak Lanjut: {whistleResponseModal.ticket_code}</h4>
+                    <button type="button" onClick={() => setWhistleResponseModal(null)} aria-label="Tutup dialog" className="text-gray-500 hover:text-black p-1 touch-target shrink-0 cursor-pointer">✕</button>
                   </div>
 
                   <div>
@@ -862,8 +862,8 @@ const Monitoring = () => {
                 <p className="text-xs text-gray-500">Peringkat produktivitas akuisisi pekerja rentan BPU di masing-masing kantor cabang</p>
               </div>
 
-              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Komparasi Efektivitas Wilayah Binaan">
-                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+              <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Komparasi Efektivitas Wilayah Binaan">
+                <table className="w-full min-w-[680px] divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
                       <th className="px-4 py-3 text-left">Kantor Cabang</th>
@@ -1101,8 +1101,8 @@ const Monitoring = () => {
               </div>
 
               {/* Table */}
-              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Log Penerbitan Sertifikat">
-                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+              <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Log Penerbitan Sertifikat">
+                <table className="w-full min-w-[760px] divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
                       <th className="px-4 py-3 text-left">Waktu & Jam Kerja</th>
@@ -1236,22 +1236,22 @@ const Monitoring = () => {
             aria-label="Konfirmasi Hapus Bersih Sertifikat"
             onClick={(e) => { if (e.target === e.currentTarget && !approvingId) setShowPurgeConfirmModal(null); }}
           >
-            <div className="bg-white border-2 border-rose-600 rounded-3xl shadow-[8px_8px_0px_#E11D48] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white border-2 border-rose-600 rounded-2xl sm:rounded-3xl shadow-[5px_5px_0px_#E11D48] sm:shadow-[8px_8px_0px_#E11D48] max-w-lg w-full max-h-[88dvh] overflow-y-auto overscroll-contain p-4 sm:p-7 space-y-4 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center gap-3 pb-3 border-b-2 border-rose-200">
-                <div className="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700 shrink-0">
                   <AlertOctagon className="w-6 h-6" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-black text-base text-rose-950">Konfirmasi Hapus Bersih Sertifikat</h3>
                   <p className="text-xs text-rose-800 font-medium">Protokol Pembersihan Data Permanen</p>
                 </div>
               </div>
 
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-2 text-xs text-rose-950 leading-relaxed">
+              <div className="p-3.5 sm:p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-2 text-xs text-rose-950 leading-relaxed">
                 <p>
                   Anda akan menyetujui koreksi dan <strong className="underline font-black">MENGHAPUS BERSIH</strong> sertifikat berikut secara permanen dari basis data sistem:
                 </p>
-                <div className="p-3 bg-white rounded-xl border border-rose-300 font-mono space-y-0.5">
+                <div className="p-3 bg-white rounded-xl border border-rose-300 font-mono space-y-0.5 break-words">
                   <p><strong>Nomor:</strong> {showPurgeConfirmModal.certificate_number}</p>
                   <p><strong>Peserta:</strong> {showPurgeConfirmModal.participant_name} ({showPurgeConfirmModal.participant_nim})</p>
                   <p><strong>Alasan Koreksi:</strong> "{showPurgeConfirmModal.reissue_reason}"</p>
@@ -1261,12 +1261,12 @@ const Monitoring = () => {
                 </p>
               </div>
 
-              <div className="flex justify-end gap-2.5 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-2">
                 <button
                   type="button"
                   disabled={approvingId}
                   onClick={() => setShowPurgeConfirmModal(null)}
-                  className="px-4 py-2 border-2 border-[#121214] rounded-xl text-xs font-bold hover:bg-[#FAF9F6] transition cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2 border-2 border-[#121214] rounded-xl text-xs font-bold hover:bg-[#FAF9F6] transition cursor-pointer"
                 >
                   Batal
                 </button>
@@ -1274,7 +1274,7 @@ const Monitoring = () => {
                   type="button"
                   disabled={approvingId}
                   onClick={() => handleApproveReissue(showPurgeConfirmModal.certificate_id)}
-                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black border-2 border-[#121214] shadow-[2px_2px_0px_#121214] active:scale-95 transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  className="w-full sm:w-auto px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black border-2 border-[#121214] shadow-[2px_2px_0px_#121214] active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   {approvingId ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1293,16 +1293,16 @@ const Monitoring = () => {
         ========================================================================== */}
         {rejectModalTarget && (
           <div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overscroll-contain"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overscroll-contain"
             role="dialog"
             aria-modal="true"
             aria-label="Tolak Permohonan Koreksi Sertifikat"
             onClick={(e) => { if (e.target === e.currentTarget && !rejectingId) setRejectModalTarget(null); }}
           >
-            <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-[#EAE9E4]">
+            <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] sm:shadow-[6px_6px_0px_#121214] max-w-md w-full max-h-[88dvh] overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#EAE9E4]">
                 <h4 className="font-black text-sm text-[#121214]">Tolak Permohonan Koreksi Sertifikat</h4>
-                <button onClick={() => setRejectModalTarget(null)} className="text-gray-500 hover:text-black">✕</button>
+                <button type="button" onClick={() => setRejectModalTarget(null)} aria-label="Tutup dialog" className="text-gray-500 hover:text-black p-1 touch-target cursor-pointer">✕</button>
               </div>
 
               <div className="text-xs space-y-1">

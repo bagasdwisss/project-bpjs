@@ -467,8 +467,8 @@ const Grading = () => {
                 <p className="mt-1 text-sm text-gray-500">{search || coordinatorFilter ? 'Tidak ada assignment yang sesuai dengan filter.' : 'Tidak ada assignment tersedia untuk grading.'}</p>
               </div>
             ) : (
-              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Penilaian Peserta">
-                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+              <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Penilaian Peserta">
+                <table className="w-full min-w-[700px] divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
                     <tr>
                       <th className="px-5 py-3.5 text-left">PESERTA</th>
@@ -663,26 +663,29 @@ const Grading = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end items-center gap-2.5 pt-3 border-t border-[#EAE9E4]">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end items-stretch sm:items-center gap-2.5 pt-3 border-t border-[#EAE9E4]">
                   <button
+                    type="button"
                     onClick={() => {
                       setShowAddParticipantModal(false);
                       setError(null);
                     }}
-                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
                   >
                     Tutup
                   </button>
                   <button 
+                    type="button"
                     onClick={fetchAvailableParticipants} 
-                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
                   >
                     Segarkan
                   </button>
                   <button
+                    type="button"
                     onClick={addMultipleParticipantsToGrading}
                     disabled={selectedParticipants.length === 0}
-                    className={`px-6 py-2.5 rounded-full text-xs font-bold transition shadow-sm ${
+                    className={`w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-bold transition shadow-sm ${
                       selectedParticipants.length === 0
                         ? 'bg-[#121214]/20 text-[#121214]/40 cursor-not-allowed'
                         : 'bg-[#121214] hover:bg-black text-white'
@@ -877,16 +880,18 @@ const Grading = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end items-center gap-2.5 pt-4 border-t border-[#EAE9E4]">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end items-stretch sm:items-center gap-2.5 pt-4 border-t border-[#EAE9E4]">
                   <button 
+                    type="button"
                     onClick={() => setShowGradeModal(false)} 
-                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
                   >
                     Batal
                   </button>
                   <button 
+                    type="button"
                     onClick={saveAllData} 
-                    className="px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm"
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm"
                   >
                     Simpan Perubahan Nilai
                   </button>

@@ -152,26 +152,28 @@ export default function DigitalIdCard() {
   const barcodeBars = generateCode128Bars(barcodeValue);
 
   return (
-    <div className="w-full max-w-md mx-auto my-4 sm:my-8 px-2 sm:px-0">
+    <div className="w-full max-w-md mx-auto my-2 sm:my-8 px-1 sm:px-0">
       
       {/* Action Toolbar */}
-      <div className="flex items-center justify-between mb-3 px-1 text-xs font-black">
-        <div className="flex items-center gap-1.5 text-[#121214]">
-          <Sparkles className="w-4 h-4 text-emerald-600" />
-          <span className="uppercase tracking-wider">Kartu Tanda Peserta Digital</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-1 text-xs font-black">
+        <div className="flex items-center gap-1.5 text-[#121214] min-w-0">
+          <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span className="uppercase tracking-wider truncate">Kartu Tanda Peserta Digital</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
+            type="button"
             onClick={handleCopyScanData}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border-2 border-[#121214] text-[11px] font-bold shadow-[2px_2px_0px_#121214] hover:bg-[#F5C6EC] transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white border-2 border-[#121214] text-[11px] font-bold shadow-[2px_2px_0px_#121214] hover:bg-[#F5C6EC] transition-all cursor-pointer touch-target"
             title="Salin isi data yang terbaca saat di-scan kamera"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#121214]" />}
             <span>{copied ? 'Tersalin!' : 'Salin Teks Scan'}</span>
           </button>
           <button
+            type="button"
             onClick={handlePrintCard}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border-2 border-[#121214] text-[11px] font-bold shadow-[2px_2px_0px_#121214] hover:bg-[#FCE373] transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white border-2 border-[#121214] text-[11px] font-bold shadow-[2px_2px_0px_#121214] hover:bg-[#FCE373] transition-all cursor-pointer touch-target"
             title="Cetak ID Card Fisik"
           >
             <Printer className="w-3.5 h-3.5 text-[#121214]" />
@@ -183,7 +185,7 @@ export default function DigitalIdCard() {
       {/* Official BPJS Ketenagakerjaan ID Card Container */}
       <div 
         id="official-intern-id-card"
-        className="relative overflow-hidden bg-gradient-to-br from-[#064E3B] via-[#047857] to-[#0F172A] rounded-3xl border-4 border-[#121214] shadow-[8px_8px_0px_#121214] p-5 sm:p-6 text-white select-none transition-all"
+        className="relative overflow-hidden bg-gradient-to-br from-[#064E3B] via-[#047857] to-[#0F172A] rounded-3xl border-4 border-[#121214] shadow-[4px_4px_0px_#121214] sm:shadow-[8px_8px_0px_#121214] p-4 sm:p-6 text-white select-none transition-all"
       >
         {/* Holographic Watermark Sheen */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-emerald-400/10 to-transparent pointer-events-none transform -skew-y-12 animate-pulse" />

@@ -236,34 +236,36 @@ const CoordinatorDashboard = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
             <button
+              type="button"
               onClick={() => {
                 setChatRecipientId(null);
                 setChatModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FCE373] hover:bg-[#ebd056] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+              className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#FCE373] hover:bg-[#ebd056] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
+              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
               <span>Live Chat Bimbingan</span>
             </button>
             <button
+              type="button"
               onClick={() => {
                 loadParticipants();
                 loadEarlyWarnings();
                 loadPendingLeaves();
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all"
+              className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Segarkan Data
+              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${loading ? 'animate-spin' : ''}`} />
+              <span>Segarkan Data</span>
             </button>
             <Link
               to="/coordinator/grading"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+              className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
             >
-              <Award className="w-3.5 h-3.5" />
-              Kelola Penilaian
+              <Award className="w-3.5 h-3.5 shrink-0" />
+              <span>Kelola Penilaian</span>
             </Link>
           </div>
         </div>
@@ -344,7 +346,7 @@ const CoordinatorDashboard = () => {
               {pendingLeaves.map((leave) => (
                 <div key={leave.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <span className="font-black text-xs text-[#121214]">{leave.participant_name}</span>
                       <span className="text-[11px] bg-[#BDD4F2] px-2 py-0.2 rounded font-bold border border-[#121214]">
                         {leave.leave_type}
@@ -398,7 +400,7 @@ const CoordinatorDashboard = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2.5 min-[380px]:gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Kantor</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
@@ -447,7 +449,7 @@ const CoordinatorDashboard = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2.5 min-[380px]:gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Akuisisi</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalAkuisisi} /></p>
@@ -531,15 +533,15 @@ const CoordinatorDashboard = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pb-3">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2.5 min-[380px]:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Seminar</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalSeminar} /> Sesi</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalSeminar} /> Sesi</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Terlaksana</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Sosialisasi</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalSosialisasi} /> Kegiatan</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalSosialisasi} /> Kegiatan</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Masyarakat</p>
                 </div>
                 <div>
@@ -561,14 +563,14 @@ const CoordinatorDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
           {/* Left Column: Participant's List */}
           <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 sm:p-6 shadow-[4px_4px_0px_#121214] space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <h3 className="text-base font-bold text-[#121214]">Daftar Peserta (List)</h3>
                 <p className="text-xs text-[#6E6D6A]">Klik baris untuk melihat detail bimbingan</p>
               </div>
 
               {/* Filter pill */}
-              <div className="flex items-center gap-1 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full p-1 text-xs">
+              <div className="flex items-center gap-1 bg-[#FAF9F6] border border-[#EAE9E4] rounded-full p-1 text-xs self-start sm:self-auto">
                 <button
                   onClick={() => setFilterType('all')}
                   className={`px-3 py-1 rounded-full font-bold transition-all ${
@@ -706,25 +708,25 @@ const CoordinatorDashboard = () => {
                 </div>
 
                 {/* Action CTA Buttons */}
-                <div className="pt-2 flex items-center gap-2">
+                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <button
                     type="button"
                     onClick={() => openChatWith(selectedParticipant.user_id)}
-                    className="flex-1 bg-[#121214] hover:bg-neutral-800 text-white font-bold text-xs py-3 px-3 rounded-full text-center transition-all shadow-sm flex items-center justify-center space-x-1.5"
+                    className="w-full sm:flex-1 bg-[#121214] hover:bg-neutral-800 text-white font-bold text-xs py-2.5 sm:py-3 px-3 rounded-full text-center transition-all shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-[#FCE373]" />
+                    <MessageSquare className="w-3.5 h-3.5 text-[#FCE373] shrink-0" />
                     <span>Chat Bimbingan</span>
                   </button>
                   <Link
                     to="/coordinator/grading"
-                    className="flex-1 bg-white hover:bg-[#FAF9F6] text-[#121214] font-bold text-xs py-3 px-3 rounded-full text-center transition-all shadow-sm border border-[#121214] flex items-center justify-center space-x-1.5"
+                    className="w-full sm:flex-1 bg-white hover:bg-[#FAF9F6] text-[#121214] font-bold text-xs py-2.5 sm:py-3 px-3 rounded-full text-center transition-all shadow-sm border border-[#121214] flex items-center justify-center space-x-1.5"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
+                    <Edit3 className="w-3.5 h-3.5 shrink-0" />
                     <span>Ubah Nilai</span>
                   </Link>
                   <Link
                     to="/coordinator/participants"
-                    className="bg-white/80 hover:bg-white text-[#121214] font-bold text-xs py-3 px-4 rounded-full text-center transition-all shadow-sm border border-[#E59CD8]"
+                    className="w-full sm:w-auto bg-white/80 hover:bg-white text-[#121214] font-bold text-xs py-2.5 sm:py-3 px-4 rounded-full text-center transition-all shadow-sm border border-[#E59CD8]"
                   >
                     Lihat Semua
                   </Link>

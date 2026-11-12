@@ -123,30 +123,32 @@ const ParticipantDetails = ({ participant, onClose }) => {
       aria-label={`Detail Peserta ${participant.full_name}`}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-[26px] border border-[#EAE9E4] max-w-4xl w-full max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl">
+      <div className="bg-white rounded-[22px] sm:rounded-[26px] border border-[#EAE9E4] max-w-4xl w-full max-h-[88dvh] overflow-y-auto overscroll-contain shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#EAE9E4]">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#F5C6EC] flex items-center justify-center text-[#121214] font-bold text-sm shadow-sm">
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-[#EAE9E4]">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#F5C6EC] flex items-center justify-center text-[#121214] font-bold text-sm shadow-sm shrink-0">
               {participant.full_name?.charAt(0) || 'P'}
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-[#121214]">
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold text-[#121214] truncate">
                 {participant.full_name}
               </h2>
-              <p className="text-xs text-[#6E6D6A]">Detail Perkembangan & Rekapitulasi Capaian Magang</p>
+              <p className="text-xs text-[#6E6D6A] truncate">Detail Perkembangan &amp; Rekapitulasi Capaian Magang</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] text-[#121214] flex items-center justify-center transition-colors"
+            aria-label="Tutup detail peserta"
+            className="w-9 h-9 rounded-full bg-[#FAF9F6] hover:bg-[#EAE9E4] text-[#121214] flex items-center justify-center transition-colors shrink-0 touch-target cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-2">
               <div className="w-8 h-8 border-2 border-[#121214] border-t-transparent rounded-full animate-spin"></div>
@@ -284,20 +286,21 @@ const ParticipantDetails = ({ participant, onClose }) => {
               </div>
 
               {/* Pitch Black Summary Card */}
-              <div className="bg-[#121214] text-white rounded-[22px] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                <div>
+              <div className="bg-[#121214] text-white rounded-[20px] sm:rounded-[22px] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-sm">
+                <div className="min-w-0">
                   <h3 className="text-sm font-bold text-white">Ringkasan Performa Magang</h3>
                   <p className="text-xs text-[#9CA3AF] mt-0.5">
                     Total {progressData.metrics.hasilAkuisisiBPU} BPU dari {progressData.metrics.kunjunganBPU} kunjungan terlaksana
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
                   <span className="text-xs font-bold bg-[#F5C6EC] text-[#121214] px-4 py-1.5 rounded-full">
                     {progressData.metrics.totalPoin} Poin Akumulasi
                   </span>
                   <button
+                    type="button"
                     onClick={onClose}
-                    className="px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold rounded-full transition-colors"
+                    className="px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold rounded-full transition-colors cursor-pointer"
                   >
                     Tutup
                   </button>

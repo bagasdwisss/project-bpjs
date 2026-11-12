@@ -189,7 +189,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* 3 Metric Columns */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2.5 min-[380px]:gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Peserta</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.activeParticipants ?? 0} /></p>
@@ -245,7 +245,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* 3 Metrics: AVERAGE, HADIR, TEPAT WAKTU */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2.5 min-[380px]:gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Rata-Rata Hadir</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.attendanceRate ?? 0} />%</p>
@@ -291,7 +291,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* 3 Metrics: STABLE, FAIR, CRITICAL */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2.5 min-[380px]:gap-1.5 sm:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade A (&ge;85)</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.gradeA ?? 0} /> Peserta</p>
@@ -334,7 +334,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* 3 Metrics: BATCH AKTIF, MODUL, DURASI */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2.5 min-[380px]:gap-1.5 sm:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Batch</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.totalBatches ?? 0} /> Gelombang</p>

@@ -291,25 +291,27 @@ const Certificates = () => {
             </p>
           </div>
           
-          <div className="flex items-center gap-2.5 flex-wrap self-start md:self-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
             {/* Bulk Issuance Button */}
             <button
+              type="button"
               onClick={() => {
                 setBulkSelectedIds(unissuedParticipants.map(p => p.user_id));
                 setShowBulkModal(true);
               }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-[#FAF9F6] border-2 border-[#121214] text-[#121214] text-xs font-extrabold hover:bg-white shadow-[2px_2px_0px_#121214] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-[#FAF9F6] border-2 border-[#121214] text-[#121214] text-xs font-extrabold hover:bg-white shadow-[2px_2px_0px_#121214] active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer"
             >
-              <Layers className="w-4 h-4 text-emerald-700" />
+              <Layers className="w-4 h-4 text-emerald-700 shrink-0" />
               <span>Terbitkan Massal ({unissuedParticipants.length})</span>
             </button>
 
             {/* Single Issuance Button */}
             <button
+              type="button"
               onClick={() => setShowGenerateModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-black transition shadow-sm active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-black transition shadow-sm active:scale-95 cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-[#FCE373]" />
+              <Plus className="w-4 h-4 text-[#FCE373] shrink-0" />
               <span>Terbitkan Sertifikat</span>
             </button>
           </div>
@@ -509,7 +511,7 @@ const Certificates = () => {
                         </td>
 
                         <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end space-x-1.5 flex-wrap gap-y-1">
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
                             {/* Preview Modal Button */}
                             <button
                               onClick={() => setSelectedCertificate(cert)}

@@ -246,10 +246,10 @@ const OfficeLocation = () => {
                       onChange={(e) => setOfficeGeofence({ ...officeGeofence, radius_meters: parseInt(e.target.value, 10) || 150 })}
                       className="w-full cursor-pointer accent-[#121214]"
                     />
-                    <div className="flex justify-between text-[10px] text-gray-400">
-                      <span>50m (Ketat)</span>
-                      <span>150m (Standar Gedung)</span>
-                      <span>500m (Longgar / Cuaca Buruk)</span>
+                    <div className="flex justify-between gap-1 text-[10px] text-gray-400">
+                      <span>50m<span className="hidden sm:inline"> (Ketat)</span></span>
+                      <span>150m<span className="hidden sm:inline"> (Standar Gedung)</span></span>
+                      <span>500m<span className="hidden sm:inline"> (Longgar)</span></span>
                       <span>1000m</span>
                     </div>
                   </div>

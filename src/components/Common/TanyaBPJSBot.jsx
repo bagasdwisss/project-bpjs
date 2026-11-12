@@ -206,26 +206,26 @@ const TanyaBPJSBot = () => {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center space-x-2.5 px-4 py-3 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#121214] font-black text-xs transition-all duration-150 cursor-pointer"
+          className="fixed bottom-[max(1rem,env(safe-area-inset-bottom,0px))] right-3 sm:bottom-5 sm:right-5 z-40 flex items-center space-x-2 sm:space-x-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#121214] font-black text-xs transition-all duration-150 cursor-pointer touch-target"
           title="Tanya BPJSTK Smart Agent (Tool-Calling AI)"
         >
-          <div className="w-6 h-6 rounded-lg bg-white border border-[#121214] flex items-center justify-center">
+          <div className="w-6 h-6 rounded-lg bg-white border border-[#121214] flex items-center justify-center shrink-0">
             <Bot className="w-4 h-4 text-[#121214]" />
           </div>
           <span className="hidden sm:inline">Tanya BPJSTK AI</span>
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-[#121214] animate-pulse"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-[#121214] animate-pulse shrink-0"></span>
         </button>
       )}
 
       {/* Chat Window Panel */}
       {isOpen && (
         <div
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[94vw] sm:w-[440px] h-[590px] max-h-[88vh] bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[8px_8px_0px_#121214] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-200"
+          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 w-auto sm:w-[440px] h-[min(590px,calc(100dvh-1.5rem))] max-h-[88dvh] bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] sm:shadow-[8px_8px_0px_#121214] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-200"
           role="dialog"
           aria-label="BPJSTK Smart Agent"
         >
           {/* Header */}
-          <div className="p-3.5 bg-[#FCE373] border-b-2 border-[#121214] flex items-center justify-between gap-2">
+          <div className="p-3 sm:p-3.5 bg-[#FCE373] border-b-2 border-[#121214] flex items-center justify-between gap-2">
             <div className="flex items-center space-x-2.5 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-white border-2 border-[#121214] flex items-center justify-center shadow-[2px_2px_0px_#121214] shrink-0">
                 <Bot className="w-5 h-5 text-[#121214]" />
@@ -249,7 +249,7 @@ const TanyaBPJSBot = () => {
                 onClick={handleResetChat}
                 title="Mulai percakapan baru"
                 aria-label="Reset percakapan"
-                className="p-1.5 rounded-lg border-2 border-[#121214] bg-white hover:bg-[#FAF9F6] text-[#121214] shadow-[1px_1px_0px_#121214] cursor-pointer"
+                className="p-2 rounded-lg border-2 border-[#121214] bg-white hover:bg-[#FAF9F6] text-[#121214] shadow-[1px_1px_0px_#121214] cursor-pointer touch-target"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
@@ -258,7 +258,7 @@ const TanyaBPJSBot = () => {
                 onClick={() => setIsOpen(false)}
                 title="Tutup asisten"
                 aria-label="Tutup asisten"
-                className="p-1.5 rounded-lg border-2 border-[#121214] bg-white hover:bg-red-50 text-[#121214] shadow-[1px_1px_0px_#121214] cursor-pointer"
+                className="p-2 rounded-lg border-2 border-[#121214] bg-white hover:bg-red-50 text-[#121214] shadow-[1px_1px_0px_#121214] cursor-pointer touch-target"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

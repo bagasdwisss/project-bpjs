@@ -121,8 +121,8 @@ const Login = () => {
               Perlindungan jaminan sosial ketenagakerjaan yang menyeluruh bagi seluruh insan pekerja Indonesia. Masuk ke portal resmi untuk mengakses layanan presensi, capaian kinerja, dan pelaporan terpadu.
             </p>
 
-            {/* Trust Indicators: Selalu berdampingan kanan-kiri (horizontal flex-row) di seluruh device */}
-            <div className="flex flex-row items-center justify-center md:justify-start gap-2 sm:gap-3 pt-1">
+            {/* Trust Indicators: responsif wrap agar pas di layar 320px+ */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-3 pt-1">
               <div className="flex items-center gap-1.5 sm:gap-2 bg-black/35 backdrop-blur-md border border-white/20 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-2xl text-white/95 shadow-sm whitespace-nowrap shrink-0">
                 <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FCE373] shrink-0" />
                 <span className="font-semibold text-[10px] sm:text-xs">

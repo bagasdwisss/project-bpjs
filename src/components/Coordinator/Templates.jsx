@@ -288,20 +288,22 @@ const Templates = () => {
             onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}
             onKeyDown={(e) => { if (e.key === 'Escape') setShowCreateModal(false); }}
           >
-            <div className="bg-white rounded-[26px] max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-[#B8C96E]/40 border border-[#B8C96E] flex items-center justify-center text-[#3C4A11]">
+            <div className="bg-white rounded-[22px] sm:rounded-[26px] max-w-md w-full max-h-[88dvh] overflow-y-auto overscroll-contain p-4 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#EAE9E4]">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-2xl bg-[#B8C96E]/40 border border-[#B8C96E] flex items-center justify-center text-[#3C4A11] shrink-0">
                     <FileText className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h3 className="text-base font-bold text-[#121214]">Tambah Template Dokumen</h3>
-                    <p className="text-xs text-[#121214]/50">Tambahkan berkas format baru untuk peserta</p>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-bold text-[#121214] truncate">Tambah Template Dokumen</h3>
+                    <p className="text-xs text-[#121214]/50 truncate">Tambahkan berkas format baru untuk peserta</p>
                   </div>
                 </div>
                 <button 
+                  type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="w-8 h-8 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition"
+                  aria-label="Tutup dialog"
+                  className="w-9 h-9 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition shrink-0 touch-target cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -330,21 +332,21 @@ const Templates = () => {
                     <option value="forms">Formulir Evaluasi</option>
                     <option value="certificates">Template Sertifikat</option>
                     <option value="reports">Format Laporan</option>
-                    <option value="letters">Surat Tugas & Keterangan</option>
+                    <option value="letters">Surat Tugas &amp; Keterangan</option>
                   </select>
                 </div>
 
-                <div className="flex justify-end gap-2.5 pt-3 border-t border-[#EAE9E4]">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-3 border-t border-[#EAE9E4]">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm"
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm"
                   >
                     Simpan Template
                   </button>

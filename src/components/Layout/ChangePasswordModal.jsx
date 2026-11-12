@@ -102,29 +102,31 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-md overflow-hidden">
+    <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200 overscroll-contain">
+      <div className="bg-white rounded-[22px] sm:rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-md max-h-[88dvh] overflow-y-auto overscroll-contain">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#EAE9E4]">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#F5C6EC] flex items-center justify-center text-[#121214] font-bold text-sm shadow-sm">
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-[#EAE9E4]">
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-[#F5C6EC] flex items-center justify-center text-[#121214] font-bold text-sm shadow-sm shrink-0">
               <Key className="w-4 h-4 text-[#121214]" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-base font-bold text-[#121214]">Ganti Kata Sandi</h2>
               <p className="text-xs text-[#6E6D6A]">Amankan akun Anda dengan kata sandi baru</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={handleClose}
-            className="w-8 h-8 rounded-full bg-[#F5F4F0] hover:bg-[#EAE9E4] text-[#121214] flex items-center justify-center transition-colors"
+            aria-label="Tutup dialog"
+            className="w-9 h-9 rounded-full bg-[#F5F4F0] hover:bg-[#EAE9E4] text-[#121214] flex items-center justify-center transition-colors shrink-0 touch-target cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {/* Current Password */}
           <div>
             <label className="block text-xs font-bold text-[#121214] uppercase tracking-wider mb-1.5">

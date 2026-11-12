@@ -200,7 +200,8 @@ const ImportExport = () => {
                   />
                   <label
                     htmlFor="importFileInput"
-                    className="cursor-pointer text-xs sm:text-sm font-black text-[#121214] hover:underline block"
+                    className="cursor-pointer text-xs sm:text-sm font-black text-[#121214] hover:underline block truncate max-w-full px-2"
+                    title={importFile ? importFile.name : undefined}
                   >
                     {importFile ? importFile.name : 'Klik untuk memilih file Excel/CSV'}
                   </label>

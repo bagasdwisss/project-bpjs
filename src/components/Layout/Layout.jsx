@@ -49,7 +49,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen bg-[#F5F4F0] overflow-hidden font-sans relative">
+    <div className="flex h-screen supports-[height:100dvh]:h-dvh bg-[#F5F4F0] overflow-hidden font-sans relative">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
@@ -59,8 +59,8 @@ const Layout = ({ children }) => {
         <Header toggleSidebar={toggleSidebar} />
         
         {/* Scrollable Viewport */}
-        <main ref={mainScrollRef} className="flex-1 overflow-y-auto bg-[#F5F4F0] px-3 sm:px-6 lg:px-8 py-5 relative">
-          <div key={location.pathname} className="max-w-[1600px] mx-auto w-full page-stage-enter">
+        <main ref={mainScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-[#F5F4F0] px-3 sm:px-6 lg:px-8 pt-4 pb-20 sm:py-5 relative">
+          <div key={location.pathname} className="max-w-[1600px] mx-auto w-full min-w-0 page-stage-enter">
             {children}
           </div>
         </main>

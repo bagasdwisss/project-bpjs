@@ -22,15 +22,15 @@ const Toast = ({ message, type = 'success', onClose, duration = 3500 }) => {
   const isSuccess = type === 'success';
 
   return (
-    <div className="fixed top-6 right-6 z-50 animate-in slide-in-from-right duration-200">
-      <div className={`px-5 py-3 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-center justify-between gap-3 text-xs font-black ${
+    <div className="fixed top-4 inset-x-3 sm:inset-x-auto sm:top-6 sm:right-6 sm:max-w-sm z-50 animate-in slide-in-from-right duration-200">
+      <div className={`px-4 py-3 sm:px-5 rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] flex items-center justify-between gap-3 text-xs font-black ${
         isSuccess ? 'bg-[#B8C96E] text-[#121214]' : 'bg-[#F5C6EC] text-[#121214]'
       }`}>
-        <div className="flex items-center gap-2">
-          {isSuccess ? <CheckCircle2 className="w-4 h-4 text-[#121214]" /> : <AlertCircle className="w-4 h-4 text-[#121214]" />}
-          <span>{message}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          {isSuccess ? <CheckCircle2 className="w-4 h-4 text-[#121214] shrink-0" /> : <AlertCircle className="w-4 h-4 text-[#121214] shrink-0" />}
+          <span className="break-words">{message}</span>
         </div>
-        <button onClick={onClose} className="p-0.5 hover:opacity-70 transition-opacity">
+        <button type="button" onClick={onClose} aria-label="Tutup pemberitahuan" className="p-1 hover:opacity-70 transition-opacity shrink-0 touch-target cursor-pointer">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>

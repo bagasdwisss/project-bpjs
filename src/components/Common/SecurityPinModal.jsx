@@ -44,29 +44,31 @@ const SecurityPinModal = ({ isOpen, onClose, onSuccess, title = 'Otorisasi Tinda
       onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}
       onKeyDown={(e) => { if (e.key === 'Escape' && !loading) onClose(); }}
     >
-      <div className="bg-white w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto overscroll-contain rounded-2xl border-2 border-[#121214] shadow-[6px_6px_0px_#121214]">
+      <div className="bg-white w-full max-w-sm sm:max-w-md max-h-[88dvh] overflow-y-auto overscroll-contain rounded-2xl border-2 border-[#121214] shadow-[4px_4px_0px_#121214] sm:shadow-[6px_6px_0px_#121214]">
         
         {/* Header */}
-        <div className="bg-[#F5C6EC] border-b-2 border-[#121214] p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="bg-[#F5C6EC] border-b-2 border-[#121214] p-3.5 sm:p-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-lg bg-[#121214] text-white flex items-center justify-center shrink-0">
               <ShieldAlert className="w-4 h-4 text-[#F5C6EC]" />
             </div>
-            <div>
-              <h3 className="font-black text-sm text-[#121214]">{title}</h3>
-              <p className="text-[10px] text-[#121214]/80 font-bold uppercase tracking-wider">Aturan Kontrol Ganda (Two-Person Rule)</p>
+            <div className="min-w-0">
+              <h3 className="font-black text-sm text-[#121214] truncate">{title}</h3>
+              <p className="text-[10px] text-[#121214]/80 font-bold uppercase tracking-wider truncate">Aturan Kontrol Ganda (Two-Person Rule)</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-black/10 text-[#121214] transition-all"
+            aria-label="Tutup dialog keamanan"
+            className="p-1.5 rounded-lg hover:bg-black/10 text-[#121214] transition-all shrink-0 touch-target cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div className="bg-[#F5F4F0] p-3 rounded-xl border border-[#121214] text-xs text-gray-700 leading-relaxed font-medium">
             <span className="font-black text-[#121214] block mb-1">Peringatan Keamanan:</span>
             {actionDescription || 'Tindakan ini memiliki dampak tinggi pada integritas data BPJSTK. Wajib memasukkan PIN Keamanan Master administratif untuk melanjutkan.'}

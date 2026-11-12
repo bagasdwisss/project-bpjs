@@ -25,27 +25,27 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, maxWidth = '
         className="fixed inset-0 bg-[#121214]/40 backdrop-blur-sm animate-in fade-in duration-150" 
         onClick={onClose} 
       />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className={`relative w-full ${maxWidth} bg-white rounded-[26px] shadow-2xl border border-[#EAE9E4] overflow-hidden modal-surface-enter z-10`}>
+      <div className="flex min-h-full items-center justify-center p-2.5 sm:p-4">
+        <div className={`relative w-full ${maxWidth} bg-white rounded-[22px] sm:rounded-[26px] shadow-2xl border border-[#EAE9E4] overflow-hidden modal-surface-enter z-10`}>
           {title && (
-            <div className="px-6 py-5 border-b border-[#EAE9E4] flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-[#121214]">{title}</h3>
+            <div className="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-[#EAE9E4] flex items-start sm:items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-[#121214]">{title}</h3>
                 {subtitle && <p className="text-xs text-[#6E6D6A] mt-0.5">{subtitle}</p>}
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Tutup dialog"
-                className="w-8 h-8 rounded-full bg-[#F5F4F0] text-[#121214] hover:bg-[#EAE9E4] flex items-center justify-center transition-all duration-200 hover:rotate-90 cursor-pointer"
+                className="w-9 h-9 rounded-full bg-[#F5F4F0] text-[#121214] hover:bg-[#EAE9E4] flex items-center justify-center transition-all duration-200 hover:rotate-90 cursor-pointer shrink-0 touch-target"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           )}
-          <div className="p-6 max-h-[75vh] overflow-y-auto">{children}</div>
+          <div className="p-4 sm:p-6 max-h-[78dvh] overflow-y-auto overscroll-contain">{children}</div>
           {footer && (
-            <div className="px-6 py-4 bg-[#FAF9F6] border-t border-[#EAE9E4] flex justify-end gap-3">
+            <div className="px-4 py-3 sm:px-6 sm:py-4 bg-[#FAF9F6] border-t border-[#EAE9E4] flex flex-wrap justify-end gap-2 sm:gap-3">
               {footer}
             </div>
           )}

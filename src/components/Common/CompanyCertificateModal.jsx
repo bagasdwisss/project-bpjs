@@ -29,7 +29,9 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const printRef = useRef(null);
   const wrapperRef = useRef(null);
   const [fitScreen, setFitScreen] = useState(true);
-  const [containerWidth, setContainerWidth] = useState(1050);
+  const [containerWidth, setContainerWidth] = useState(() =>
+    typeof window !== 'undefined' ? Math.min(1050, Math.max(280, window.innerWidth - 32)) : 1050
+  );
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');

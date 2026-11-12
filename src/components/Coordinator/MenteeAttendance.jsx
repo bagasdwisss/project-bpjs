@@ -654,7 +654,7 @@ export default function MenteeAttendance() {
               <select
                 value={selectedMentee}
                 onChange={(e) => setSelectedMentee(e.target.value)}
-                className="bg-neutral-50 hover:bg-neutral-100 border border-neutral-300 rounded-xl text-xs font-semibold text-neutral-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#008F4C] cursor-pointer"
+                className="w-full sm:w-auto flex-1 sm:flex-initial bg-neutral-50 hover:bg-neutral-100 border border-neutral-300 rounded-xl text-xs font-semibold text-neutral-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#008F4C] cursor-pointer"
               >
                 <option value="all">Semua Anak Didik ({menteesList.length})</option>
                 {menteesList.map(m => (
@@ -668,7 +668,7 @@ export default function MenteeAttendance() {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="bg-neutral-50 hover:bg-neutral-100 border border-neutral-300 rounded-xl text-xs font-semibold text-neutral-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#008F4C] cursor-pointer"
+                className="w-full sm:w-auto flex-1 sm:flex-initial bg-neutral-50 hover:bg-neutral-100 border border-neutral-300 rounded-xl text-xs font-semibold text-neutral-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#008F4C] cursor-pointer"
               >
                 <option value="all">Semua Status</option>
                 <option value="Hadir">Hadir</option>
@@ -695,8 +695,8 @@ export default function MenteeAttendance() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Riwayat Presensi Anak Didik">
-                <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Riwayat Presensi Anak Didik">
+                <table className="w-full min-w-[750px] text-left text-xs">
                   <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-600 font-bold uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="py-3 px-4">Tanggal</th>
@@ -899,11 +899,11 @@ export default function MenteeAttendance() {
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-neutral-200 inline-block" /> Libur / Belum ada data</span>
           </div>
 
-          <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Matriks Presensi Bulanan">
-            <table className="min-w-full text-left text-xs border border-neutral-200">
+          <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Matriks Presensi Bulanan">
+            <table className="w-full min-w-[980px] text-left text-xs border border-neutral-200">
               <thead className="bg-neutral-50 text-[10px] text-neutral-600 uppercase font-bold border-b border-neutral-200">
                 <tr>
-                  <th className="py-2.5 px-3 border-r border-neutral-200 min-w-[160px] sticky left-0 bg-neutral-50 z-10">Anak Didik</th>
+                  <th className="py-2.5 px-2.5 sm:px-3 border-r border-neutral-200 min-w-[115px] max-w-[115px] sm:min-w-[160px] sm:max-w-[160px] sticky left-0 bg-neutral-50 z-10">Anak Didik</th>
                   {Array.from({ length: new Date(selectedYear, selectedMonth, 0).getDate() }, (_, i) => i + 1).map(day => (
                     <th key={day} className="py-2 px-1.5 text-center min-w-[28px] border-r border-neutral-200">
                       {day}
@@ -913,8 +913,8 @@ export default function MenteeAttendance() {
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {menteesList.map(mentee => (
-                  <tr key={mentee.user_id} className="hover:bg-neutral-50">
-                    <td className="py-2.5 px-3 font-bold text-neutral-900 border-r border-neutral-200 sticky left-0 bg-white z-10 truncate max-w-[160px]">
+                  <tr key={mentee.user_id} className="group hover:bg-neutral-50">
+                    <td className="py-2.5 px-2.5 sm:px-3 font-bold text-neutral-900 border-r border-neutral-200 sticky left-0 bg-white group-hover:bg-neutral-50 z-10 truncate min-w-[115px] max-w-[115px] sm:min-w-[160px] sm:max-w-[160px]">
                       {mentee.full_name}
                     </td>
                     {Array.from({ length: new Date(selectedYear, selectedMonth, 0).getDate() }, (_, i) => i + 1).map(day => {
@@ -949,19 +949,21 @@ export default function MenteeAttendance() {
 
       {/* DETAIL MODAL RECORD */}
       {detailModalRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 overscroll-contain" role="dialog" aria-modal="true" aria-label="Detail Catatan Kehadiran">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 overscroll-contain" role="dialog" aria-modal="true" aria-label="Detail Catatan Kehadiran">
           <div className="absolute inset-0" onClick={() => setDetailModalRecord(null)} />
-          <div className="relative bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl border border-neutral-100 z-10 text-left space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#008F4C]" />
-                <h3 className="font-extrabold text-neutral-900 text-base font-heading">
+          <div className="relative bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 max-w-lg w-full max-h-[88dvh] overflow-y-auto overscroll-contain shadow-2xl border border-neutral-100 z-10 text-left space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100 gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <ShieldCheck className="w-5 h-5 text-[#008F4C] shrink-0" />
+                <h3 className="font-extrabold text-neutral-900 text-sm sm:text-base font-heading truncate">
                   Detail Catatan Kehadiran
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setDetailModalRecord(null)}
-                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-colors cursor-pointer"
+                aria-label="Tutup detail"
+                className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-colors cursor-pointer shrink-0 touch-target"
               >
                 <X className="w-4 h-4" />
               </button>

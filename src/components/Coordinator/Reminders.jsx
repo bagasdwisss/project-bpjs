@@ -399,7 +399,7 @@ const Reminders = () => {
                   key={notification.notification_id} 
                   className="p-4 sm:p-5 rounded-2xl border border-[#EAE9E4] bg-[#FAF9F6] hover:bg-white transition-all shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
-                  <div className="space-y-2 flex-1">
+                  <div className="space-y-2 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="text-base font-bold text-[#121214]">
                         {notification.title}
@@ -408,7 +408,7 @@ const Reminders = () => {
                       {getPriorityBadge(notification.priority)}
                     </div>
                     
-                    <p className="text-xs sm:text-sm text-[#121214]/70 font-medium whitespace-pre-line">
+                    <p className="text-xs sm:text-sm text-[#121214]/70 font-medium whitespace-pre-line break-words">
                       {notification.message}
                     </p>
 

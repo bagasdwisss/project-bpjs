@@ -283,21 +283,21 @@ const SignatureCaptureInput = ({ label, roleTitle, signerName, value, onChange }
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
             <button
               type="button"
               onClick={clearCanvas}
-              className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs border border-gray-300 flex items-center gap-1 cursor-pointer"
+              className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs border border-gray-300 flex items-center justify-center gap-1 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Ulangi / Bersihkan</span>
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setMode('preview')}
-                className="px-3 py-1.5 rounded-lg bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-300 cursor-pointer"
+                className="flex-1 sm:flex-initial px-3 py-2 sm:py-1.5 rounded-lg bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-300 cursor-pointer"
               >
                 Batal
               </button>
@@ -305,9 +305,9 @@ const SignatureCaptureInput = ({ label, roleTitle, signerName, value, onChange }
                 type="button"
                 onClick={handleSaveCanvasSignature}
                 disabled={!hasDrawn}
-                className="px-4 py-1.5 rounded-lg bg-[#008F4C] hover:bg-[#00753e] text-white font-black text-xs border border-[#121214] shadow-[2px_2px_0px_#121214] flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                className="flex-1 sm:flex-initial px-4 py-2 sm:py-1.5 rounded-lg bg-[#008F4C] hover:bg-[#00753e] text-white font-black text-xs border border-[#121214] shadow-[2px_2px_0px_#121214] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                 <span>Gunakan Tanda Tangan Ini</span>
               </button>
             </div>

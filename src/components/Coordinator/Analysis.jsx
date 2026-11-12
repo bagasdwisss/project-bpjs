@@ -342,13 +342,13 @@ const Analysis = () => {
 
             {/* Charts Row 1: Distribution & Component Averages */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-5 sm:p-6 shadow-sm">
+              <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-4 sm:p-6 shadow-sm min-w-0">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
                   <h3 className="text-sm sm:text-base font-bold text-[#121214]">Distribusi Grade Peserta</h3>
                 </div>
                 {analysisData.gradeChartData && (
-                  <div className="h-64 sm:h-72">
+                  <div className="h-64 sm:h-72 relative w-full">
                     <Pie 
                       data={analysisData.gradeChartData} 
                       options={{
@@ -363,13 +363,13 @@ const Analysis = () => {
                 )}
               </div>
 
-              <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-5 sm:p-6 shadow-sm">
+              <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-4 sm:p-6 shadow-sm min-w-0">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
                   <h3 className="text-sm sm:text-base font-bold text-[#121214]">Rata-rata Nilai Tiap Komponen</h3>
                 </div>
                 {analysisData.componentAveragesData && (
-                  <div className="h-64 sm:h-72">
+                  <div className="h-64 sm:h-72 relative w-full">
                     <Bar 
                       data={analysisData.componentAveragesData} 
                       options={{
@@ -390,7 +390,7 @@ const Analysis = () => {
 
             {/* Charts Row 2: Radar Performer & Participant Scores */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-5 sm:p-6 shadow-sm">
+              <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-4 sm:p-6 shadow-sm min-w-0">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
                   <h3 className="text-sm sm:text-base font-bold text-[#121214]">
@@ -398,7 +398,7 @@ const Analysis = () => {
                   </h3>
                 </div>
                 {analysisData.highestPerformerRadarData && (
-                  <div className="h-64 sm:h-72">
+                  <div className="h-64 sm:h-72 relative w-full">
                     <Radar 
                       data={analysisData.highestPerformerRadarData} 
                       options={{
@@ -413,13 +413,13 @@ const Analysis = () => {
                 )}
               </div>
 
-              <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-5 sm:p-6 shadow-sm">
+              <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-4 sm:p-6 shadow-sm min-w-0">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
                   <h3 className="text-sm sm:text-base font-bold text-[#121214]">Nilai Per Peserta</h3>
                 </div>
                 {analysisData.participantScoresData && (
-                  <div className="h-64 sm:h-72">
+                  <div className="h-64 sm:h-72 relative w-full">
                     <Bar 
                       data={analysisData.participantScoresData} 
                       options={{

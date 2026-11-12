@@ -366,8 +366,10 @@ const Documents = () => {
                         </span>
                         
                         <button
+                          type="button"
                           onClick={() => handleDownload(doc)}
-                          className="p-2 bg-[#FAF9F6] hover:bg-[#121214] hover:text-white border border-[#EAE9E4] text-[#121214] rounded-full transition-colors"
+                          aria-label="Unduh berkas"
+                          className="p-2 bg-[#FAF9F6] hover:bg-[#121214] hover:text-white border border-[#EAE9E4] text-[#121214] rounded-full transition-colors touch-target cursor-pointer"
                           title="Unduh Berkas"
                         >
                           <Download className="w-4 h-4" />

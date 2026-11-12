@@ -260,12 +260,12 @@ const Broadcast = () => {
 
             {/* Feature 12: Browser Crash Recovery Draft Banner */}
             {hasSavedDraft && (
-              <div className="bg-[#FAF9F6] border-2 border-[#121214] rounded-xl p-3 flex items-center justify-between gap-2 shadow-xs">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#121214]">
+              <div className="bg-[#FAF9F6] border-2 border-[#121214] rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-xs">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#121214] min-w-0">
                   <Sparkles className="w-4 h-4 text-[#FCE373] shrink-0" />
                   <span>Draf siaran yang belum terkirim ditemukan dari sesi browser sebelumnya.</span>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
                   <button
                     type="button"
                     onClick={handleRestoreDraft}
@@ -325,12 +325,12 @@ const Broadcast = () => {
 
               {/* Schedule Duration (Start At & End At) */}
               <div className="p-4 bg-[#FAF9F6] rounded-2xl border-2 border-[#121214] shadow-[3px_3px_0px_#121214] space-y-3.5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#121214]" />
+                    <Clock className="w-4 h-4 text-[#121214] shrink-0" />
                     <span className="text-xs font-bold text-[#121214]">Waktu Mulai Tayang</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setStartType('immediate')}
@@ -506,8 +506,8 @@ const Broadcast = () => {
                     className="p-4 bg-[#FAF9F6] rounded-2xl space-y-2.5 border border-[#EAE9E4] hover:bg-white hover:border-[#121214] transition-all relative group"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 pr-2">
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
                           {getStatusBadge(item)}
                           {getPriorityBadge(item.priority)}
                         </div>

@@ -37,9 +37,9 @@ const VerifyCertificate = () => {
   }, [certNumber]);
 
   return (
-    <div className="min-h-screen bg-[#F5F4F0] font-sans flex flex-col justify-between p-4 sm:p-8">
+    <div className="min-h-screen supports-[min-height:100dvh]:min-h-dvh bg-[#F5F4F0] font-sans flex flex-col justify-between p-4 sm:p-8">
       {/* Top Navbar */}
-      <div className="max-w-4xl mx-auto w-full flex items-center justify-between pb-6 border-b-2 border-[#121214]">
+      <div className="max-w-4xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 sm:pb-6 border-b-2 border-[#121214]">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl bg-[#B8C96E] border-2 border-[#121214] flex items-center justify-center shadow-[3px_3px_0px_#121214]">
             <Building2 className="w-5 h-5 text-[#121214]" />

@@ -264,8 +264,8 @@ function AdminBatchManagement() {
           ) : batches.length === 0 ? (
             <div className="p-12 text-center text-xs text-[#6E6D6A]">Belum ada batch terdaftar. Silakan buat batch baru.</div>
           ) : (
-            <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Gelombang Pelatihan">
-              <table className="min-w-full divide-y-2 divide-[#121214] text-xs">
+            <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Gelombang Pelatihan">
+              <table className="w-full min-w-[620px] divide-y-2 divide-[#121214] text-xs">
                 <thead className="bg-[#121214] text-white uppercase text-[10px] font-black tracking-wider">
                   <tr>
                     <th className="px-5 py-3.5 text-left">Nama Batch</th>
@@ -298,7 +298,7 @@ function AdminBatchManagement() {
                           {batch.participant_count || 0} Peserta
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right space-x-1.5">
+                      <td className="px-5 py-4 text-right whitespace-nowrap space-x-1.5">
                         <button
                           onClick={() => handleStartFreshBatch(batch)}
                           title="Mulai Batch Ini & Reset Akun Peserta Magang"
@@ -345,7 +345,7 @@ function AdminBatchManagement() {
             aria-label={selectedBatch ? 'Edit Batch Pelatihan' : 'Tambah Batch Baru'}
             onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
           >
-            <div className="bg-white rounded-[28px] border-2 border-[#121214] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 shadow-[8px_8px_0px_#121214] space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="bg-white rounded-[22px] sm:rounded-[28px] border-2 border-[#121214] max-w-lg w-full max-h-[88dvh] overflow-y-auto overscroll-contain p-4 sm:p-6 shadow-[4px_4px_0px_#121214] sm:shadow-[8px_8px_0px_#121214] space-y-4 animate-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-[#EAE9E4] pb-3">
                 <div>
                   <h3 className="text-base font-extrabold text-[#121214]">
@@ -479,18 +479,20 @@ function AdminBatchManagement() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-[#EAE9E4]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-[#EAE9E4]">
                 <span className="text-xs font-bold text-[#121214]">{selectedUsers.length} Peserta Terpilih</span>
-                <div className="flex gap-2">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
                   <button
+                    type="button"
                     onClick={() => setShowAssignModal(false)}
-                    className="px-4 py-2 rounded-full border border-[#EAE9E4] text-xs font-bold hover:bg-[#FAF9F6]"
+                    className="w-full sm:w-auto px-4 py-2 rounded-full border border-[#EAE9E4] text-xs font-bold hover:bg-[#FAF9F6]"
                   >
                     Batal
                   </button>
                   <button
+                    type="button"
                     onClick={handleSaveAssignment}
-                    className="px-5 py-2 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-neutral-800 shadow-sm"
+                    className="w-full sm:w-auto px-5 py-2 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-neutral-800 shadow-sm"
                   >
                     Tugaskan
                   </button>

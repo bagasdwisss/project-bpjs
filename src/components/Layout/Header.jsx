@@ -16,6 +16,7 @@ const Header = ({ toggleSidebar }) => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [dlqCount, setDlqCount] = useState(0);
   const [clockStatus, setClockStatus] = useState({ isClockTampered: false, driftSeconds: 0 });
 
@@ -133,19 +134,21 @@ const Header = ({ toggleSidebar }) => {
 
   return (
     <>
-      <header className="bg-[#F5F4F0] border-b border-[#EAE9E4] sticky top-0 z-30 px-3 sm:px-6 lg:px-8 py-3.5">
-        <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between gap-4">
+      <header className="bg-[#F5F4F0] border-b border-[#EAE9E4] sticky top-0 z-30 px-3 sm:px-6 lg:px-8 py-3 sm:py-3.5">
+        <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between gap-2 sm:gap-4">
           {/* Mobile Hamburger & Logo preview */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
+              type="button"
               onClick={toggleSidebar}
-              className="lg:hidden p-2 rounded-xl bg-white border border-[#EAE9E4] text-[#121214] hover:bg-[#EAE9E4] transition-colors"
+              className="lg:hidden p-2 rounded-xl bg-white border border-[#EAE9E4] text-[#121214] hover:bg-[#EAE9E4] transition-colors shrink-0 touch-target cursor-pointer"
               aria-label="Toggle menu"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="lg:hidden font-bold text-lg tracking-tight text-[#121214]">
-              intelly <span className="text-xs text-[#F5C6EC] bg-[#121214] px-1.5 py-0.5 rounded-full">BPJSTK</span>
+            <div className="lg:hidden font-bold text-base sm:text-lg tracking-tight text-[#121214] flex items-center gap-1.5 truncate">
+              <span>intelly</span>
+              <span className="hidden min-[350px]:inline-block text-[10px] sm:text-xs text-[#F5C6EC] bg-[#121214] px-1.5 py-0.5 rounded-full shrink-0">BPJSTK</span>
             </div>
           </div>
 
@@ -247,12 +250,25 @@ const Header = ({ toggleSidebar }) => {
             )}
 
             {/* Connected Pitch-Black Pill Action Group (Intelly Signature) */}
-            <div className="flex items-center bg-[#121214] text-white rounded-full p-1 shadow-sm">
+            <div className="flex items-center bg-[#121214] text-white rounded-full p-1 shadow-sm shrink-0">
+              {/* Mobile Search Toggle (< md) */}
+              <button
+                type="button"
+                onClick={() => setShowMobileSearch((v) => !v)}
+                className="md:hidden p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-[#F5C6EC] transition-colors cursor-pointer touch-target"
+                title="Cari di portal"
+                aria-label="Cari di portal"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+
+              <div className="md:hidden w-[1px] h-4 bg-neutral-700 mx-0.5"></div>
+
               {/* Quick Command Palette Trigger (Ctrl+K) */}
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
-                className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-[#FCE373] transition-colors cursor-pointer"
+                className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-[#FCE373] transition-colors cursor-pointer touch-target"
                 title="Navigasi & Aksi Cepat (Ctrl+K)"
                 aria-label="Navigasi Cepat (Ctrl+K)"
               >
@@ -260,13 +276,13 @@ const Header = ({ toggleSidebar }) => {
                 <span className="hidden lg:inline text-[10px] font-bold tracking-wider">K</span>
               </button>
 
-              <div className="w-[1px] h-4 bg-neutral-700 mx-0.5"></div>
+              <div className="hidden sm:block w-[1px] h-4 bg-neutral-700 mx-0.5"></div>
 
               {/* Whistleblowing & Counseling Button */}
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent('open-whistleblowing'))}
-                className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-[#BDD4F2] transition-colors relative cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-[#BDD4F2] transition-colors relative cursor-pointer touch-target"
                 title="Pusat Konseling & Pengaduan Rahasia (Anonim)"
                 aria-label="Pengaduan Anonim"
               >
@@ -285,7 +301,7 @@ const Header = ({ toggleSidebar }) => {
                         setShowNotifDropdown(!showNotifDropdown);
                         setShowProfileDropdown(false);
                       }}
-                      className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-white transition-colors relative"
+                      className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-white transition-colors relative touch-target cursor-pointer"
                       title="Notifikasi Masuk"
                       aria-label="Notifikasi"
                     >
@@ -411,10 +427,10 @@ const Header = ({ toggleSidebar }) => {
 
                 {/* Profile Dropdown */}
                 {showProfileDropdown && (
-                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-[20px] shadow-xl border border-[#EAE9E4] p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 mt-3 w-56 max-w-[calc(100vw-1.5rem)] bg-white rounded-[20px] shadow-xl border border-[#EAE9E4] p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-3 py-2.5 border-b border-[#F0EFEA]">
                       <p className="text-xs font-bold text-[#121214] truncate">{user?.full_name}</p>
-                      <p className="text-[11px] text-[#6E6D6A] font-medium">{user?.role} • {user?.unique_id}</p>
+                      <p className="text-[11px] text-[#6E6D6A] font-medium truncate">{user?.role} • {user?.unique_id}</p>
                     </div>
 
                     <div className="py-1">
@@ -453,6 +469,41 @@ const Header = ({ toggleSidebar }) => {
             </div>
           </div>
         </div>
+
+        {/* Mobile Expandable Search Panel (< md) */}
+        {showMobileSearch && (
+          <form
+            onSubmit={(e) => {
+              handleHeaderSearch(e);
+              setShowMobileSearch(false);
+            }}
+            className="md:hidden mt-2.5 max-w-[1600px] mx-auto w-full flex items-center bg-[#EAE9E4] rounded-full px-2 py-1 border border-[#E0DFDA] shadow-inner gap-1.5 animate-in fade-in duration-150"
+          >
+            <button
+              type="submit"
+              aria-label="Jalankan pencarian"
+              className="w-8 h-8 rounded-full bg-[#F5C6EC] text-[#121214] flex items-center justify-center shrink-0 shadow-xs cursor-pointer"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari peserta, absensi, penilaian..."
+              className="bg-transparent border-none outline-none text-sm sm:text-xs text-[#121214] placeholder-[#8A8985] px-2 flex-1 min-w-0 font-medium"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => setShowMobileSearch(false)}
+              aria-label="Tutup pencarian"
+              className="w-8 h-8 rounded-full bg-white text-[#121214] flex items-center justify-center shrink-0 cursor-pointer touch-target"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </form>
+        )}
       </header>
 
       {/* Change Password Modal (Lazy Loaded on Demand) */}

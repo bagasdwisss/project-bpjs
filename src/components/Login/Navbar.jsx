@@ -42,10 +42,12 @@ export const Navbar = () => {
             className="absolute inset-0" 
             onClick={() => setShowHelpModal(false)} 
           />
-          <div className="relative bg-white rounded-3xl p-5 sm:p-7 max-w-md w-full shadow-2xl border border-neutral-100 z-10 animate-in zoom-in-95 duration-200 text-left">
+          <div className="relative bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 max-w-md w-full max-h-[85dvh] overflow-y-auto overscroll-contain shadow-2xl border border-neutral-100 z-10 animate-in zoom-in-95 duration-200 text-left">
             <button
+              type="button"
               onClick={() => setShowHelpModal(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-colors cursor-pointer"
+              aria-label="Tutup dialog bantuan"
+              className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-colors cursor-pointer touch-target"
             >
               <X className="w-4 h-4" />
             </button>

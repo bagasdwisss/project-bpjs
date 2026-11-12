@@ -37,9 +37,9 @@ export const StatRowSkeleton = ({ count = 4, className = '' }) => (
 
 export const TableSkeleton = ({ rows = 5, cols = 5, title = "Memuat Data..." }) => (
   <div className="w-full bg-white rounded-[22px] border border-[#EAE9E4] overflow-hidden shadow-sm">
-    <div className="p-4 bg-[#FAF9F6] border-b border-[#EAE9E4] flex items-center justify-between gap-4">
-      <Skeleton className="w-36 h-6 rounded-md" />
-      <Skeleton className="w-48 h-8 rounded-full" />
+    <div className="p-3 sm:p-4 bg-[#FAF9F6] border-b border-[#EAE9E4] flex flex-wrap items-center justify-between gap-3">
+      <Skeleton className="w-24 sm:w-36 h-6 rounded-md" />
+      <Skeleton className="w-32 sm:w-48 h-8 rounded-full" />
     </div>
     <div className="overflow-x-auto focus:outline-none" tabIndex={0} role="region" aria-label={title}>
       <table className="min-w-full divide-y divide-[#EAE9E4]">

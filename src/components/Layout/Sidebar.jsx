@@ -163,7 +163,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
       {/* Pitch-Black Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-full bg-[#121214] text-white w-64 shrink-0 z-50 flex flex-col justify-between
+        fixed top-0 left-0 h-full supports-[height:100dvh]:h-dvh lg:h-full bg-[#121214] text-white w-64 max-w-[85vw] shrink-0 z-50 flex flex-col justify-between
         transition-transform duration-300 ease-in-out border-r border-[#1C1C20]
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         lg:static lg:z-auto
@@ -184,8 +184,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </div>
 
             <button 
+              type="button"
               onClick={toggleSidebar}
-              className="lg:hidden text-[#9CA3AF] hover:text-white p-1 rounded-lg cursor-pointer"
+              aria-label="Tutup menu navigasi"
+              className="lg:hidden text-[#9CA3AF] hover:text-white p-1.5 rounded-lg cursor-pointer touch-target"
             >
               <X className="w-5 h-5" />
             </button>

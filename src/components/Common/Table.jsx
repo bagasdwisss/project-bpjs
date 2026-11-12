@@ -12,15 +12,15 @@ export const Table = ({
 }) => {
   return (
     <div className={`overflow-hidden rounded-[22px] bg-white border border-[#EAE9E4] ${className}`}>
-      <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Tabel Data">
-        <table className="min-w-full divide-y divide-[#EAE9E4]">
+      <div className="overflow-x-auto overscroll-x-contain focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Tabel Data">
+        <table className="w-full min-w-[600px] divide-y divide-[#EAE9E4]">
           <thead className="bg-[#FAF9F6]">
             <tr>
               {columns.map((col, idx) => (
                 <th
                   key={col.key || idx}
                   scope="col"
-                  className={`px-5 py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider ${col.className || ''}`}
+                  className={`px-3.5 py-3 sm:px-5 sm:py-3.5 text-left text-[11px] font-bold text-[#6E6D6A] uppercase tracking-wider ${col.className || ''}`}
                 >
                   {col.header}
                 </th>
