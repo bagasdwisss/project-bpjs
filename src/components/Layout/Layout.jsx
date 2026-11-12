@@ -59,9 +59,7 @@ const Layout = ({ children }) => {
         <Header toggleSidebar={toggleSidebar} />
         
         {/* Scrollable Viewport */}
-        <main ref={mainScrollRef} className="flex-1 overflow-y-auto bg-[#F5F4F0] px-3 sm:px-6 lg:px-8 pb-5 relative">
-          {/* Native Scroll-Driven Progress Strip */}
-          <div className="scroll-progress-strip -mx-3 sm:-mx-6 lg:-mx-8 mb-5" aria-hidden="true" />
+        <main ref={mainScrollRef} className="flex-1 overflow-y-auto bg-[#F5F4F0] px-3 sm:px-6 lg:px-8 py-5 relative">
           <div key={location.pathname} className="max-w-[1600px] mx-auto w-full page-stage-enter">
             {children}
           </div>

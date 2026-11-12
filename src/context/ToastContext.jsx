@@ -149,14 +149,6 @@ export const ToastProvider = ({ children }) => {
               >
                 <X className="w-4 h-4" />
               </button>
-
-              {item.duration > 0 && (
-                <div
-                  className="toast-progress-bar absolute bottom-0 left-0 right-0 h-[3px] bg-[#121214]/35"
-                  style={{ '--toast-duration': `${item.duration}ms` }}
-                  aria-hidden="true"
-                />
-              )}
             </div>
           );
         })}

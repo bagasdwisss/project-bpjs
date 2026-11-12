@@ -665,7 +665,8 @@ router.post('/ai/ask', authenticateToken, async (req, res) => {
     const agentResult = await runBpjstkAgent({
       user: req.user,
       question: question.trim(),
-      history: Array.isArray(history) ? history : []
+      history: Array.isArray(history) ? history : [],
+      hasOidcHeader: Boolean(req.headers?.['x-vercel-oidc-token'])
     });
 
     return res.json({

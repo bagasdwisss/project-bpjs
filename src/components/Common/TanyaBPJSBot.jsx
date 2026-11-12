@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useContext, useMemo } from 'react';
 import {
-  Bot, X, Send, Sparkles, Shield, Cpu, RotateCcw, Copy, Check, Wrench
+  Bot, X, Send, Sparkles, Shield, Cpu, RotateCcw, Copy, Check
 } from 'lucide-react';
 import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
@@ -284,21 +284,9 @@ const TanyaBPJSBot = () => {
                     renderFormattedText(msg.text)
                   )}
 
-                  {/* Agent Tool Trace & Copy Bar */}
+                  {/* Copy Answer Bar */}
                   {msg.sender === 'ai' && index > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-[#EAE9E4] flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex flex-wrap items-center gap-1">
-                        {Array.isArray(msg.toolsUsed) && msg.toolsUsed.length > 0 && msg.toolsUsed.map((t, ti) => (
-                          <span
-                            key={ti}
-                            title={t.summary}
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#FAF9F6] border border-[#121214]/25 text-[9.5px] font-bold text-[#374151]"
-                          >
-                            <Wrench className="w-2.5 h-2.5 text-[#008F4C]" />
-                            <span>{t.tool}</span>
-                          </span>
-                        ))}
-                      </div>
+                    <div className="mt-2.5 pt-2 border-t border-[#EAE9E4] flex items-center justify-end">
                       <button
                         type="button"
                         onClick={() => handleCopyAnswer(msg.text, index)}

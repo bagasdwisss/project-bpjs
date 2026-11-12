@@ -13,15 +13,6 @@ const api = axios.create({
   withCredentials: true, // Penting untuk CORS dan Sanctum
 });
 
-// Global active API request tracker for UI micro-activity progress bar
-let activeApiRequestCount = 0;
-const emitApiActivity = (delta) => {
-  activeApiRequestCount = Math.max(0, activeApiRequestCount + delta);
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('api-activity', { detail: { count: activeApiRequestCount } }));
-  }
-};
-
 // Add request interceptor
 api.interceptors.request.use(
   (config) => {
@@ -52,11 +43,6 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (!config.url?.includes('session-check') && !config.url?.includes('session-stream')) {
-      config._trackActivity = true;
-      emitApiActivity(1);
-    }
-    
     return config;
   },
   (error) => {
@@ -68,11 +54,9 @@ api.interceptors.request.use(
 // Add response interceptor
 api.interceptors.response.use(
   (response) => {
-    if (response.config?._trackActivity) emitApiActivity(-1);
     return response;
   },
   (error) => {
-    if (error.config?._trackActivity) emitApiActivity(-1);
     // Suppress console error noise for background session checks or 401 unauth checks
     const isBackgroundCheck = error.config?.url?.includes('session-check') || error.config?.url?.includes('session-stream');
     if (!isBackgroundCheck && import.meta.env.DEV) {

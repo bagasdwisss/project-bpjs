@@ -780,12 +780,17 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
 /**
  * Entry point utama BPJSTK Agent (mendukung ToolLoopAgent AI SDK + fallback otomatis).
  */
-export async function runBpjstkAgent({ user, question, history = [] }) {
+export async function runBpjstkAgent({ user, question, history = [], hasOidcHeader = false }) {
   const executionTrace = [];
   const tools = createAgentTools(user, executionTrace);
   const roleGroup = getUserRoleGroup(user);
 
-  const hasGatewayAuth = Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+  const hasGatewayAuth = Boolean(
+    process.env.AI_GATEWAY_API_KEY ||
+    process.env.VERCEL_OIDC_TOKEN ||
+    hasOidcHeader ||
+    process.env.VERCEL
+  );
   const gatewayModel = process.env.AI_GATEWAY_MODEL || 'google/gemini-3-flash';
 
   if (hasGatewayAuth) {
