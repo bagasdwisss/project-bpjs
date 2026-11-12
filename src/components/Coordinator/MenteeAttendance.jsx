@@ -9,6 +9,7 @@ import { AuthContext } from '../../context/AuthContext';
 import attendanceService from '../../services/attendanceService';
 import userService from '../../services/userService';
 import api from '../../services/api';
+import { buildAttendancePrintHtml, triggerIframeDocumentPrint } from '../../utils/attendancePrintBuilder';
 import { TableSkeleton } from '../Common/Skeleton';
 
 const MONTH_NAMES = [
@@ -296,9 +297,54 @@ export default function MenteeAttendance() {
     showToast('Rekap presensi berhasil diunduh (CSV/Excel)!');
   };
 
-  // Print Function
-  const handlePrint = () => {
-    window.print();
+  // Print Official A4 Recap via isolated srcdoc iframe
+  const handlePrint = async () => {
+    try {
+      setProcessingAction(true);
+      const instRes = await api.get('/system/institution').catch(() => null);
+      const institution = instRes?.data?.data || {};
+
+      const printTotal = filteredRecords.length;
+      const pHadir = filteredRecords.filter(r => r.status === 'Hadir').length;
+      const pTerlambat = filteredRecords.filter(r => r.status === 'Terlambat').length;
+      const pIzin = filteredRecords.filter(r => r.status === 'Izin').length;
+      const pSakit = filteredRecords.filter(r => r.status === 'Sakit').length;
+      const pAlpa = filteredRecords.filter(r => r.status === 'Alfa' || r.status === 'Alpa').length;
+      const printStats = {
+        total: printTotal,
+        hadir: pHadir,
+        terlambat: pTerlambat,
+        izin: pIzin,
+        sakit: pSakit,
+        alpa: pAlpa,
+        rate: printTotal > 0 ? Math.round(((pHadir + pTerlambat) / printTotal) * 100) : 0
+      };
+
+      const selectedMenteeObj = selectedMentee !== 'all'
+        ? menteesList.find(m => String(m.user_id) === String(selectedMentee))
+        : null;
+      const filterParts = [];
+      if (selectedMenteeObj) filterParts.push(`Anak Didik: ${selectedMenteeObj.full_name} (${selectedMenteeObj.unique_id})`);
+      if (selectedStatus !== 'all') filterParts.push(`Status: ${selectedStatus}`);
+      if (searchQuery.trim()) filterParts.push(`Pencarian: "${searchQuery.trim()}"`);
+
+      const htmlDoc = buildAttendancePrintHtml({
+        institution,
+        coordinator: user || {},
+        month: selectedMonth,
+        year: selectedYear,
+        records: filteredRecords,
+        mentees: selectedMenteeObj ? [selectedMenteeObj] : menteesList,
+        stats: printStats,
+        filterDescription: filterParts.length > 0 ? filterParts.join(' • ') : 'Semua Anak Didik & Semua Status'
+      });
+
+      await triggerIframeDocumentPrint(htmlDoc);
+    } catch (err) {
+      showToast('Gagal menyiapkan dokumen cetak rekap presensi.', 'error');
+    } finally {
+      setProcessingAction(false);
+    }
   };
 
   // Status Badge UI Helper
@@ -393,12 +439,14 @@ export default function MenteeAttendance() {
               type="button"
               onClick={handleTriggerAutoAbsence}
               disabled={processingAction}
+              title="Pindai manual & tandai 'Alfa' otomatis bagi anak didik yang belum presensi atau izin melewati batas jam masuk/kerja hari ini (WIB)"
               className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] text-xs font-black shadow-[2px_2px_0px_#121214] transition-all cursor-pointer disabled:opacity-50"
             >
               <Clock className="w-3.5 h-3.5 text-[#121214]" />
               <span>Evaluasi Auto-Alfa</span>
             </button>
             <button
+              type="button"
               onClick={() => { loadAttendanceData(); showToast('Data presensi berhasil diperbarui!'); }}
               className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
@@ -406,6 +454,7 @@ export default function MenteeAttendance() {
               <span>Segarkan</span>
             </button>
             <button
+              type="button"
               onClick={handleExportCSV}
               className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
@@ -413,11 +462,13 @@ export default function MenteeAttendance() {
               <span>Ekspor CSV</span>
             </button>
             <button
+              type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#080B09] hover:bg-neutral-900 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+              disabled={processingAction}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#080B09] hover:bg-neutral-900 text-white text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50"
             >
               <Printer className="w-3.5 h-3.5 text-[#FCE373]" />
-              <span>Cetak Rekap</span>
+              <span>{processingAction ? 'Menyiapkan Cetak...' : 'Cetak Rekap'}</span>
             </button>
           </div>
         </div>

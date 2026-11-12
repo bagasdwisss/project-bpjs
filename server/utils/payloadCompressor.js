@@ -44,7 +44,11 @@ export const decompressPayload = (compressed) => {
     const buffer = Buffer.from(base64Data, 'base64');
     const decompressedBuffer = zlib.inflateSync(buffer);
     const jsonStr = decompressedBuffer.toString('utf8');
-    return JSON.parse(jsonStr);
+    try {
+      return JSON.parse(jsonStr);
+    } catch {
+      return jsonStr;
+    }
   } catch (err) {
     console.error('Payload decompression error:', err.message);
     return compressed;

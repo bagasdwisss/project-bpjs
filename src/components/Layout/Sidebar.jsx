@@ -5,7 +5,7 @@ import {
   FolderOpen, Bell, Users, Award, 
   BarChart3, Download, Clock,
   Database, Radio, LogOut, X, ChevronRight, Sparkles, MessageSquare,
-  MapPin, Target, Calculator, ShieldCheck, Compass, Activity
+  MapPin, Target, Calculator, ShieldCheck, Compass
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
@@ -56,7 +56,6 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         ],
         tools: [
           { path: '/coordinator/mentee-attendance', icon: ClipboardList, label: 'Absensi Anak Didik' },
-          { path: '/coordinator/presence-radar', icon: Activity, label: 'Radar Presensi' },
           { path: '/coordinator/calendar', icon: Calendar, label: 'Agenda & Jadwal' },
           { path: '/coordinator/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
           { path: '/coordinator/forum', icon: MessageSquare, label: 'Forum Diskusi' },
@@ -117,7 +116,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         }
 
         const isActive = location.pathname === item.path || 
-          (item.path === '/coordinator/mentee-attendance' && (location.pathname === '/coordinator/presence-radar' || location.pathname === '/coordinator/attendance'));
+          (item.path === '/coordinator/mentee-attendance' && location.pathname === '/coordinator/attendance');
 
         return (
           <li key={item.path}>

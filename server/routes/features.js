@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { query, ensureCertificateSchema } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
+import { buildFieldChanges, formatAuditValue, logEntityChange } from '../utils/auditFormatter.js';
 import cache from '../utils/cache.js';
 import { verifyAuditChainIntegrity } from '../utils/merkleAudit.js';
 import { signCertificate, verifyCertificateSignature } from '../utils/cryptoSign.js';
@@ -301,18 +302,21 @@ router.put('/leaves/:id/status', authenticateToken, requireRole('Koordinator', '
       return res.status(400).json({ success: false, message: 'Status harus Disetujui atau Ditolak.' });
     }
 
-    // Coordinator isolation: verify leave request belongs to an assigned student
-    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
-      const check = await query(
-        `SELECT u.coordinator_id 
-         FROM leave_requests lr 
-         JOIN users u ON lr.user_id = u.user_id 
-         WHERE lr.id = $1`,
-        [id]
-      );
-      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
-        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat memproses izin anak didik Anda sendiri.' });
-      }
+    // Fetch previous state for coordinator isolation & full forensic diff logging
+    const prevLeaveRes = await query(
+      `SELECT lr.*, u.coordinator_id, u.full_name, u.unique_id
+       FROM leave_requests lr
+       JOIN users u ON lr.user_id = u.user_id
+       WHERE lr.id = $1`,
+      [id]
+    );
+    if (prevLeaveRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pengajuan izin tidak ditemukan.' });
+    }
+    const prevLeave = prevLeaveRes.rows[0];
+
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && prevLeave.coordinator_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat memproses izin anak didik Anda sendiri.' });
     }
 
     const updated = await query(
@@ -322,10 +326,6 @@ router.put('/leaves/:id/status', authenticateToken, requireRole('Koordinator', '
        RETURNING *`,
       [status, reviewerId, coordinator_notes || null, id]
     );
-
-    if (updated.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Pengajuan izin tidak ditemukan.' });
-    }
 
     const leave = updated.rows[0];
 
@@ -361,13 +361,25 @@ router.put('/leaves/:id/status', authenticateToken, requireRole('Koordinator', '
       );
     }
 
-    // Audit Log for Admin Monitoring
-    await logActivity({
-      userId: reviewerId,
-      type: status === 'Disetujui' ? 'LEAVE_APPROVAL' : 'LEAVE_REJECTED',
-      details: `Koordinator ${status.toLowerCase()} permohonan ${leave.leave_type} dari peserta ID #${leave.user_id} (${leave.start_date} s.d. ${leave.end_date})`,
-      ip: req.ip,
-      userAgent: req.headers['user-agent']
+    // Forensic Audit Log for Admin Monitoring
+    const changes = buildFieldChanges(prevLeave, leave, [
+      { key: 'status', label: 'Status Permohonan' },
+      { key: 'coordinator_notes', label: 'Catatan Verifikator' }
+    ]);
+
+    await logEntityChange({
+      req,
+      targetUser: {
+        user_id: prevLeave.user_id,
+        full_name: prevLeave.full_name,
+        unique_id: prevLeave.unique_id
+      },
+      action: status === 'Disetujui' ? 'LEAVE_APPROVAL' : 'LEAVE_REJECTED',
+      verb: status === 'Disetujui' ? 'menyetujui/mengubah' : 'menolak/mengubah',
+      entityLabel: `Permohonan ${leave.leave_type}`,
+      recordContext: `Periode: ${formatAuditValue(leave.start_date, 'date')} s.d. ${formatAuditValue(leave.end_date || leave.start_date, 'date')}`,
+      changes,
+      notes: coordinator_notes || null
     });
 
     return res.json({
@@ -2347,7 +2359,23 @@ router.get('/admin/comparison', authenticateToken, requireRole('Administrator'),
  */
 router.get('/admin/forensic-audit', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
-    const { anomaly_only } = req.query;
+    const { anomaly_only, category, search } = req.query;
+
+    const conditions = [];
+    if (anomaly_only === 'true') {
+      conditions.push(`a.is_anomaly = TRUE`);
+    }
+    if (category === 'mutations') {
+      conditions.push(`a.activity_type IN (
+        'ATTENDANCE_VERIFIED', 'LEAVE_APPROVAL', 'LEAVE_REJECTED',
+        'ACQUISITION_VERIFIED', 'ACQUISITION_UPDATED', 'ACQUISITION_DELETED', 'ACQUISITION_PAYMENT_CONFIRMED',
+        'SCORE_CREATED', 'SCORE_UPDATED', 'SCORE_DELETED',
+        'GRADING_SAVED', 'GRADING_PROGRESS_UPDATED', 'GRADING_SCORES_UPDATED',
+        'VISITS_UPDATED', 'PROGRESS_UPDATED', 'USER_UPDATED', 'USER_DELETED',
+        'OVERTIME_RECORDED', 'CERTIFICATE_ISSUED', 'CERTIFICATE_PURGED',
+        'CERTIFICATE_REISSUE_APPROVED', 'CERTIFICATE_REISSUE_REJECTED'
+      )`);
+    }
 
     let sql = `
       SELECT a.log_id, a.user_id, a.activity_type, a.details, a.ip_address,
@@ -2358,11 +2386,11 @@ router.get('/admin/forensic-audit', authenticateToken, requireRole('Administrato
       LEFT JOIN roles r ON u.role_id = r.role_id
     `;
 
-    if (anomaly_only === 'true') {
-      sql += ` WHERE a.is_anomaly = TRUE`;
+    if (conditions.length > 0) {
+      sql += ` WHERE ` + conditions.join(' AND ');
     }
 
-    sql += ` ORDER BY a.created_at DESC LIMIT 100`;
+    sql += ` ORDER BY a.created_at DESC LIMIT ${search ? 300 : 150}`;
 
     const result = await query(sql);
 
@@ -2375,6 +2403,25 @@ router.get('/admin/forensic-audit', authenticateToken, requireRole('Administrato
       FROM activity_logs
     `);
 
+    let rows = result.rows.map(r => {
+      const decoded = typeof r.details === 'string' && r.details.startsWith('zst:v1:')
+        ? decompressPayload(r.details)
+        : r.details;
+      const detailsText = decoded && typeof decoded === 'object' ? JSON.stringify(decoded) : (decoded || '');
+      return { ...r, details: detailsText };
+    });
+
+    if (search && String(search).trim()) {
+      const qLower = String(search).trim().toLowerCase();
+      rows = rows.filter(r =>
+        (r.details && String(r.details).toLowerCase().includes(qLower)) ||
+        (r.activity_type && String(r.activity_type).toLowerCase().includes(qLower)) ||
+        (r.full_name && String(r.full_name).toLowerCase().includes(qLower)) ||
+        (r.unique_id && String(r.unique_id).toLowerCase().includes(qLower)) ||
+        (r.role_name && String(r.role_name).toLowerCase().includes(qLower))
+      );
+    }
+
     return res.json({
       success: true,
       summary: {
@@ -2382,12 +2429,7 @@ router.get('/admin/forensic-audit', authenticateToken, requireRole('Administrato
         totalAnomalies: parseInt(statsRes.rows[0].total_anomalies, 10) || 0,
         uniqueIps: parseInt(statsRes.rows[0].unique_ips, 10) || 0
       },
-      data: result.rows.map(r => ({
-        ...r,
-        details: typeof r.details === 'string' && r.details.startsWith('zst:v1:')
-          ? (typeof decompressPayload(r.details) === 'object' ? JSON.stringify(decompressPayload(r.details)) : decompressPayload(r.details))
-          : r.details
-      }))
+      data: rows.slice(0, 150)
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -4087,6 +4129,17 @@ router.post(['/time-bank/record-overtime', '/api/time-bank/record-overtime'], au
       eventDesc,
       approvedBy: req.user.user_id
     });
+
+    await logEntityChange({
+      req,
+      targetUserId,
+      action: 'OVERTIME_RECORDED',
+      verb: 'mencatat',
+      entityLabel: 'Kredit Jam Lembur (Time Bank)',
+      changes: [{ label: 'Penambahan Saldo Lembur', from: '0 jam', to: `+${parseFloat(hours)} jam` }],
+      notes: eventDesc
+    });
+
     return res.json(result);
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });

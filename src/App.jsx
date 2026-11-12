@@ -140,11 +140,6 @@ function App() {
                 <CoordinatorMenteeAttendance />
               </ProtectedRoute>
             } />
-            <Route path="/coordinator/presence-radar" element={
-              <ProtectedRoute allowedRoles={['Koordinator', 'Administrator']}>
-                <CoordinatorMenteeAttendance />
-              </ProtectedRoute>
-            } />
             <Route path="/coordinator/attendance" element={
               <ProtectedRoute allowedRoles={['Koordinator', 'Administrator']}>
                 <CoordinatorMenteeAttendance />

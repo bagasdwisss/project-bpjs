@@ -1653,16 +1653,115 @@ async function runEndToEndTests() {
     idorProgSummary.duration + wrongPinAdmin.duration + createBpuRes.duration
   );
 
+  // 10.7 Forensic Audit Logging on Coordinator Verification & Mutation Routes
+  let tempAuditAttId = null;
+  let tempAuditBpuId = null;
+  let prevProgressSnapshot = null;
+  let auditAttLogged = false;
+  let auditBpuLogged = false;
+  let auditScoreLogged = false;
+  try {
+    const attIns = await query(
+      `INSERT INTO attendance_records (user_id, attendance_date, check_in_time, status, notes)
+       VALUES ($1, '2099-01-12', '08:05:00', 'Alfa', 'E2E Initial Auto-Alfa')
+       ON CONFLICT (user_id, attendance_date) DO UPDATE SET status = 'Alfa', notes = 'E2E Initial Auto-Alfa'
+       RETURNING attendance_id`,
+      [pesertaUserId]
+    );
+    tempAuditAttId = attIns.rows[0]?.attendance_id;
+    const verifyAttRes = await api(`/api/attendance/coordinator/verify/${tempAuditAttId}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${koorToken}` },
+      body: JSON.stringify({ status: 'Hadir', notes: 'E2E Verifikasi Surat Tugas' })
+    });
+
+    const bpuIns = await api('/api/participant/peserta', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${pesertaToken}` },
+      body: JSON.stringify({
+        nama_peserta: 'E2E Audit BPU Calon',
+        nik: '1271018800000002',
+        tanggal_pendaftaran: '2026-11-12',
+        no_telepon: '081288880002',
+        pekerjaan: 'Pedagang',
+        status_pendaftaran: 'MENUNGGU VERIFIKASI',
+        periode_pelatihan: '1 Bulan',
+        biaya: 16800,
+        program_terdaftar: 'JKK & JKM'
+      })
+    });
+    tempAuditBpuId = bpuIns.data?.data?.peserta_id;
+    const verifyBpuRes = tempAuditBpuId
+      ? await api(`/api/coordinator/acquisitions/${tempAuditBpuId}/verify`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${koorToken}` },
+          body: JSON.stringify({ status_pendaftaran: 'PEMBAYARAN BERHASIL' })
+        })
+      : { status: 0 };
+
+    const prevProgRes = await query(`SELECT hasil_akuisisi_bpu, nilai, grade FROM progress WHERE user_id = $1 LIMIT 1`, [pesertaUserId]);
+    prevProgressSnapshot = prevProgRes.rows[0] || null;
+    const editScoreRes = await api(`/api/grading/participants/${pesertaUserId}/scores`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${koorToken}` },
+      body: JSON.stringify({ nilai: 91, grade: 'A' })
+    });
+
+    const auditFetch = await api('/api/admin/forensic-audit?category=mutations', {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const auditRows = auditFetch.data?.data || [];
+    const attLog = auditRows.find(
+      (r) =>
+        r.activity_type === 'ATTENDANCE_VERIFIED' &&
+        String(r.details).includes('2099-01-12') &&
+        String(r.details).includes('"Alfa" -> "Hadir"') &&
+        String(r.details).includes('WIB')
+    );
+    const bpuLog = auditRows.find(
+      (r) =>
+        r.activity_type === 'ACQUISITION_VERIFIED' &&
+        String(r.details).includes('E2E Audit BPU Calon') &&
+        String(r.details).includes('-> "PEMBAYARAN BERHASIL"') &&
+        String(r.details).includes('WIB')
+    );
+    const scoreLog = auditRows.find(
+      (r) =>
+        r.activity_type === 'GRADING_SCORES_UPDATED' &&
+        String(r.details).includes('-> "91"') &&
+        String(r.details).includes('WIB')
+    );
+    auditAttLogged = verifyAttRes.status === 200 && Boolean(attLog) && Boolean(attLog?.full_name);
+    auditBpuLogged = verifyBpuRes.status === 200 && Boolean(bpuLog) && Boolean(bpuLog?.full_name);
+    auditScoreLogged = editScoreRes.status === 200 && Boolean(scoreLog) && Boolean(scoreLog?.full_name);
+  } finally {
+    if (tempAuditAttId) await query(`DELETE FROM attendance_records WHERE attendance_id = $1`, [tempAuditAttId]).catch(() => {});
+    if (tempAuditBpuId) await query(`DELETE FROM peserta WHERE peserta_id = $1`, [tempAuditBpuId]).catch(() => {});
+    if (prevProgressSnapshot) {
+      await query(
+        `UPDATE progress SET hasil_akuisisi_bpu = $1, nilai = $2, grade = $3, updated_at = CURRENT_TIMESTAMP WHERE user_id = $4`,
+        [prevProgressSnapshot.hasil_akuisisi_bpu, prevProgressSnapshot.nilai, prevProgressSnapshot.grade, pesertaUserId]
+      ).catch(() => {});
+    }
+  }
+  recordTest(
+    '10.7 Forensic Audit Logs (Presensi, Akuisisi BPU, Skor Akhir + WIB Timestamp)',
+    auditAttLogged && auditBpuLogged && auditScoreLogged,
+    `Att=${auditAttLogged}, BPU=${auditBpuLogged}, Score=${auditScoreLogged}`,
+    0
+  );
+
   // -------------------------------------------------------------
   // AUTOMATED TEST DATA CLEANUP (ANTI-SAMPAH DATABASE GUARANTEE)
   // -------------------------------------------------------------
   try {
     if (tempDocId) await query(`DELETE FROM documents WHERE document_id = $1`, [tempDocId]);
-    await query(`DELETE FROM documents WHERE file_name = 'E2E_Verify_Doc.pdf'`);
+    await query(`DELETE FROM documents WHERE file_name = 'E2E_Verify_Doc.pdf' OR description ILIKE '%E2E%'`);
     if (tempLeaveId) await query(`DELETE FROM leave_requests WHERE id = $1`, [tempLeaveId]);
+    await query(`DELETE FROM leave_requests WHERE reason ILIKE '%E2E%'`);
     if (tempBpuId) await query(`DELETE FROM peserta WHERE peserta_id = $1`, [tempBpuId]);
-    await query(`DELETE FROM peserta WHERE nama_peserta = 'E2E Test BPU NonSelfApprove'`);
-    await query(`DELETE FROM attendance_records WHERE attendance_date IN ('2099-01-10', '2099-01-11') AND user_id = $1`, [pesertaUserId]);
+    await query(`DELETE FROM peserta WHERE nama_peserta IN ('E2E Test BPU NonSelfApprove', 'E2E Audit BPU Calon')`);
+    await query(`DELETE FROM attendance_records WHERE attendance_date IN ('2099-01-10', '2099-01-11', '2099-01-12') AND user_id = $1`, [pesertaUserId]);
     if (tempBatchId) await query(`DELETE FROM batches WHERE batch_id = $1`, [tempBatchId]);
     await query(`DELETE FROM batches WHERE batch_name = 'E2E_TEMP_BATCH'`);
     await query(`DELETE FROM broadcast_messages WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR content ILIKE '%e2e%' OR content ILIKE '%end-to-end%' OR content ILIKE '%pengujian%'`);

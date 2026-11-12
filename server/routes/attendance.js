@@ -6,6 +6,7 @@ import { logActivity } from '../utils/logger.js';
 import { validateNetworkProximity } from '../utils/networkProximityValidator.js';
 import { runAutoAbsenceCheck } from '../utils/autoAbsenceManager.js';
 import { getJakartaNow } from '../utils/jakartaTime.js';
+import { buildFieldChanges, formatAuditValue, logEntityChange } from '../utils/auditFormatter.js';
 import { broadcastPresenceEvent } from './features.js';
 
 const parseWorkDaysSet = (workDaysStr) => {
@@ -756,17 +757,21 @@ router.put(['/coordinator/verify/:id', '/verify/:id'], authenticateToken, async 
     const { id } = req.params;
     const { status, notes } = req.body;
 
-    if (isCoordinator) {
-      const check = await query(`
-        SELECT a.attendance_id 
-        FROM attendance_records a
-        JOIN users u ON a.user_id = u.user_id
-        WHERE a.attendance_id = $1 AND u.coordinator_id = $2
-      `, [id, req.user.user_id]);
+    const existingRes = await query(`
+      SELECT a.attendance_id, a.user_id, a.attendance_date, a.status, a.notes,
+             u.coordinator_id, u.full_name, u.unique_id
+      FROM attendance_records a
+      JOIN users u ON a.user_id = u.user_id
+      WHERE a.attendance_id = $1
+    `, [id]);
 
-      if (check.rows.length === 0) {
-        return res.status(403).json({ success: false, message: 'Akses ditolak. Catatan ini bukan milik anak didik Anda.' });
-      }
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data presensi tidak ditemukan.' });
+    }
+
+    const existingRow = existingRes.rows[0];
+    if (isCoordinator && existingRow.coordinator_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Catatan ini bukan milik anak didik Anda.' });
     }
 
     let updateSql = `UPDATE attendance_records SET `;
@@ -788,8 +793,29 @@ router.put(['/coordinator/verify/:id', '/verify/:id'], authenticateToken, async 
 
     updateSql += updates.join(', ') + ` WHERE attendance_id = $1 RETURNING *`;
     const result = await query(updateSql, params);
+    const updatedRow = result.rows[0];
 
-    return res.json({ success: true, message: 'Status kehadiran berhasil diperbarui.', data: result.rows[0] });
+    const changes = buildFieldChanges(existingRow, updatedRow, [
+      { key: 'status', label: 'Status Presensi' },
+      { key: 'notes', label: 'Catatan Presensi' }
+    ]);
+
+    await logEntityChange({
+      req,
+      targetUser: {
+        user_id: existingRow.user_id,
+        full_name: existingRow.full_name,
+        unique_id: existingRow.unique_id
+      },
+      action: 'ATTENDANCE_VERIFIED',
+      verb: 'memverifikasi/mengubah',
+      entityLabel: 'Status Presensi',
+      recordContext: `Tanggal Presensi: ${formatAuditValue(existingRow.attendance_date, 'date')}`,
+      changes,
+      notes: notes !== undefined ? notes : null
+    });
+
+    return res.json({ success: true, message: 'Status kehadiran berhasil diperbarui.', data: updatedRow });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

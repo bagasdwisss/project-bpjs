@@ -6,6 +6,7 @@ import { checkSubmissionVelocityDb, checkDuplicateNikRecent } from '../utils/vel
 import { applyPdpMasking } from '../utils/pdpMasking.js';
 import { logActivity } from '../utils/logger.js';
 import { computeBlindIndex } from '../utils/blindIndex.js';
+import { buildFieldChanges, logEntityChange } from '../utils/auditFormatter.js';
 
 const router = Router();
 
@@ -191,18 +192,21 @@ const verifyAcquisitionHandler = async (req, res) => {
     const { status_pendaftaran } = req.body;
     const newStatus = status_pendaftaran || 'PEMBAYARAN BERHASIL';
 
+    const existingRes = await query(
+      `SELECT p.*, u.coordinator_id, u.full_name, u.unique_id
+       FROM peserta p
+       JOIN users u ON p.user_id = u.user_id
+       WHERE p.peserta_id = $1`,
+      [id]
+    );
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data akuisisi BPU tidak ditemukan.' });
+    }
+    const existingRow = existingRes.rows[0];
+
     // Coordinator isolation: verify acquisition belongs to an assigned student
-    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
-      const check = await query(
-        `SELECT u.coordinator_id 
-         FROM peserta p 
-         JOIN users u ON p.user_id = u.user_id 
-         WHERE p.peserta_id = $1`,
-        [id]
-      );
-      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
-        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat memverifikasi akuisisi anak didik Anda sendiri.' });
-      }
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && existingRow.coordinator_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat memverifikasi akuisisi anak didik Anda sendiri.' });
     }
 
     const result = await query(
@@ -213,9 +217,23 @@ const verifyAcquisitionHandler = async (req, res) => {
       [newStatus, id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Data akuisisi BPU tidak ditemukan.' });
-    }
+    const changes = buildFieldChanges(existingRow, result.rows[0], [
+      { key: 'status_pendaftaran', label: 'Status Pendaftaran' }
+    ]);
+
+    await logEntityChange({
+      req,
+      targetUser: {
+        user_id: existingRow.user_id,
+        full_name: existingRow.full_name,
+        unique_id: existingRow.unique_id
+      },
+      action: 'ACQUISITION_VERIFIED',
+      verb: 'memverifikasi/mengubah',
+      entityLabel: 'Status Akuisisi BPU',
+      recordContext: `Calon Peserta BPU: ${existingRow.nama_peserta} (ID #${id})`,
+      changes
+    });
 
     return res.json({
       success: true,
@@ -367,13 +385,14 @@ router.put('/peserta/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verify existing record ownership
-    const check = await query(`SELECT user_id FROM peserta WHERE peserta_id = $1`, [id]);
+    // Verify existing record ownership & snapshot before update
+    const check = await query(`SELECT * FROM peserta WHERE peserta_id = $1`, [id]);
     if (check.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
     }
 
-    const ownerId = check.rows[0].user_id;
+    const prevPeserta = check.rows[0];
+    const ownerId = prevPeserta.user_id;
     if ((req.user.role === 'Peserta' || req.user.role_id === 1) && ownerId !== req.user.user_id) {
       return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat mengubah data akuisisi Anda sendiri.' });
     }
@@ -432,6 +451,27 @@ router.put('/peserta/:id', authenticateToken, async (req, res) => {
       ]
     );
 
+    const changes = buildFieldChanges(prevPeserta, result.rows[0], [
+      { key: 'nama_peserta', label: 'Nama Calon BPU' },
+      { key: 'status_pendaftaran', label: 'Status Pendaftaran' },
+      { key: 'biaya', label: 'Biaya Iuran', type: 'number' },
+      { key: 'program_terdaftar', label: 'Program' },
+      { key: 'periode_pelatihan', label: 'Periode' },
+      { key: 'pekerjaan', label: 'Pekerjaan' }
+    ]);
+
+    if (changes.length > 0 || !isPeserta) {
+      await logEntityChange({
+        req,
+        targetUserId: ownerId,
+        action: 'ACQUISITION_UPDATED',
+        verb: 'mengubah',
+        entityLabel: 'Data Akuisisi BPU',
+        recordContext: `Calon Peserta BPU: ${result.rows[0].nama_peserta} (ID #${id})`,
+        changes
+      });
+    }
+
     return res.json({
       success: true,
       message: 'Data peserta berhasil diperbarui.',
@@ -449,13 +489,14 @@ router.delete('/peserta/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verify existing record ownership
-    const check = await query(`SELECT user_id FROM peserta WHERE peserta_id = $1`, [id]);
+    // Verify existing record ownership & snapshot before deletion
+    const check = await query(`SELECT peserta_id, user_id, nama_peserta, status_pendaftaran, program_terdaftar FROM peserta WHERE peserta_id = $1`, [id]);
     if (check.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
     }
 
-    const ownerId = check.rows[0].user_id;
+    const deletedRow = check.rows[0];
+    const ownerId = deletedRow.user_id;
     if ((req.user.role === 'Peserta' || req.user.role_id === 1) && ownerId !== req.user.user_id) {
       return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menghapus data akuisisi Anda sendiri.' });
     }
@@ -475,6 +516,17 @@ router.delete('/peserta/:id', authenticateToken, async (req, res) => {
        WHERE user_id = $1`,
       [ownerId]
     );
+
+    await logEntityChange({
+      req,
+      targetUserId: ownerId,
+      action: 'ACQUISITION_DELETED',
+      verb: 'menghapus',
+      entityLabel: 'Data Akuisisi BPU',
+      recordContext: `Calon Peserta BPU: ${deletedRow.nama_peserta} (ID #${id})`,
+      changes: [{ label: 'Status Pendaftaran', from: deletedRow.status_pendaftaran || '-', to: 'DIHAPUS' }]
+    });
+
     return res.json({ success: true, message: 'Data peserta berhasil dihapus.' });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -549,7 +601,7 @@ router.put('/acquisition-result/:id/confirm-payment', authenticateToken, async (
     const { id } = req.params;
 
     // Verify record
-    const check = await query(`SELECT user_id, bukti_pembayaran_link FROM peserta WHERE peserta_id = $1`, [id]);
+    const check = await query(`SELECT user_id, nama_peserta, status_pendaftaran, bukti_pembayaran_link FROM peserta WHERE peserta_id = $1`, [id]);
     if (check.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
     }
@@ -589,10 +641,26 @@ router.put('/acquisition-result/:id/confirm-payment', authenticateToken, async (
       }
     }
 
+    const prevPeserta = check.rows[0];
     const result = await query(
       `UPDATE peserta SET status_pendaftaran = 'PEMBAYARAN BERHASIL', updated_at = CURRENT_TIMESTAMP WHERE peserta_id = $1 RETURNING *`,
       [id]
     );
+
+    const changes = buildFieldChanges(prevPeserta, result.rows[0], [
+      { key: 'status_pendaftaran', label: 'Status Pendaftaran' }
+    ]);
+
+    await logEntityChange({
+      req,
+      targetUserId: ownerId,
+      action: 'ACQUISITION_PAYMENT_CONFIRMED',
+      verb: 'mengonfirmasi pembayaran',
+      entityLabel: 'Status Akuisisi BPU',
+      recordContext: `Calon Peserta BPU: ${prevPeserta.nama_peserta || `ID #${id}`} (ID #${id})`,
+      changes
+    });
+
     return res.json({ success: true, message: 'Status pembayaran berhasil dikonfirmasi.', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

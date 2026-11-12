@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
+import { buildFieldChanges, logEntityChange } from '../utils/auditFormatter.js';
 
 const router = Router();
 
@@ -303,6 +304,8 @@ router.post('/participants/create-progress', authenticateToken, requireRole('Koo
 
     const settings = await getGradingSettings();
     const { finalScore, grade } = calculateGrade(req.body, settings);
+    const existingRes = await query(`SELECT * FROM progress WHERE user_id = $1 LIMIT 1`, [targetUserId]);
+    const existing = existingRes.rows[0] || {};
 
     const result = await query(
       `INSERT INTO progress (user_id, kunjungan_bpu, hasil_akuisisi_bpu, kunjungan_pu, video_viralisasi, kehadiran_seminar, kehadiran_sosialisasi, total_poin, nilai, grade, created_at, updated_at)
@@ -333,12 +336,24 @@ router.post('/participants/create-progress', authenticateToken, requireRole('Koo
       ]
     );
 
-    await logActivity({
-      userId: req.user.user_id,
-      type: 'GRADING_SAVED',
-      details: `Menyimpan penilaian peserta ID #${targetUserId} (Nilai: ${finalScore}, Grade: ${grade})`,
-      ip: req.ip,
-      userAgent: req.headers['user-agent']
+    const savedChanges = buildFieldChanges(existing, result.rows[0], [
+      { key: 'nilai', label: 'Nilai Akhir', type: 'number' },
+      { key: 'grade', label: 'Grade' },
+      { key: 'kunjungan_bpu', label: 'Kunjungan BPU', type: 'number' },
+      { key: 'hasil_akuisisi_bpu', label: 'Akuisisi BPU', type: 'number' },
+      { key: 'kunjungan_pu', label: 'Kunjungan PU', type: 'number' },
+      { key: 'video_viralisasi', label: 'Video Viralisasi', type: 'number' },
+      { key: 'kehadiran_seminar', label: 'Seminar', type: 'number' },
+      { key: 'kehadiran_sosialisasi', label: 'Sosialisasi', type: 'number' }
+    ]);
+
+    await logEntityChange({
+      req,
+      targetUserId,
+      action: 'GRADING_SAVED',
+      verb: existingRes.rows.length > 0 ? 'mengubah' : 'menyimpan',
+      entityLabel: 'Penilaian & Progres Magang',
+      changes: savedChanges
     });
 
     return res.json({
@@ -557,11 +572,24 @@ router.put('/participants/:progressId/progress', authenticateToken, requireRole(
       ]
     );
 
-    await logActivity({
+    const progressChanges = buildFieldChanges(existing, result.rows[0], [
+      { key: 'nilai', label: 'Nilai Akhir', type: 'number' },
+      { key: 'grade', label: 'Grade' },
+      { key: 'kunjungan_bpu', label: 'Kunjungan BPU', type: 'number' },
+      { key: 'hasil_akuisisi_bpu', label: 'Akuisisi BPU', type: 'number' },
+      { key: 'kunjungan_pu', label: 'Kunjungan PU', type: 'number' },
+      { key: 'video_viralisasi', label: 'Video Viralisasi', type: 'number' },
+      { key: 'kehadiran_seminar', label: 'Seminar', type: 'number' },
+      { key: 'kehadiran_sosialisasi', label: 'Sosialisasi', type: 'number' }
+    ]);
+
+    await logEntityChange({
       req,
-      userId: req.user.user_id,
+      targetUserId,
       action: 'GRADING_PROGRESS_UPDATED',
-      description: `Memperbarui progres & nilai peserta ID #${targetUserId} (Nilai: ${finalScore}, Grade: ${grade})`
+      verb: 'memperbarui',
+      entityLabel: 'Progres & Penilaian Magang',
+      changes: progressChanges
     });
 
     return res.json({
@@ -616,6 +644,9 @@ router.put('/participants/:progressId/scores', authenticateToken, requireRole('K
       return res.status(400).json({ success: false, message: 'Nilai harus berada pada rentang 0 sampai 100.' });
     }
 
+    const prevRes = await query(`SELECT nilai, grade FROM progress WHERE user_id = $1 LIMIT 1`, [targetUserId]);
+    const prevProgress = prevRes.rows[0] || {};
+
     const result = await query(
       `INSERT INTO progress (user_id, nilai, grade, created_at, updated_at)
        VALUES ($1, COALESCE($2, 0), COALESCE($3, 'E'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -627,11 +658,18 @@ router.put('/participants/:progressId/scores', authenticateToken, requireRole('K
       [targetUserId, numericNilai, grade ?? null]
     );
 
-    await logActivity({
+    const scoreChanges = buildFieldChanges(prevProgress, result.rows[0], [
+      { key: 'nilai', label: 'Nilai Akhir', type: 'number' },
+      { key: 'grade', label: 'Grade' }
+    ]);
+
+    await logEntityChange({
       req,
-      userId: req.user.user_id,
+      targetUserId,
       action: 'GRADING_SCORES_UPDATED',
-      description: `Memperbarui skor akhir peserta ID #${targetUserId} (Nilai: ${numericNilai ?? 'unchanged'}, Grade: ${grade || 'unchanged'})`
+      verb: 'mengubah',
+      entityLabel: 'Skor Akhir & Grade Magang',
+      changes: scoreChanges
     });
 
     return res.json({

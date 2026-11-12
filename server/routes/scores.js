@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { recordScoreCdcDiff } from '../utils/cdcDiff.js';
+import { buildFieldChanges, logEntityChange } from '../utils/auditFormatter.js';
 
 const router = Router();
 
@@ -130,6 +131,19 @@ router.post('/', authenticateToken, requireRole('Koordinator', 'Administrator'),
       [targetUserId, module_id, req.user.user_id, numScore, comments || null, graded_at || null]
     );
 
+    const modRes = await query(`SELECT module_name FROM modules WHERE module_id = $1`, [module_id]).catch(() => ({ rows: [] }));
+    const modName = modRes.rows[0]?.module_name || `Modul #${module_id}`;
+    await logEntityChange({
+      req,
+      targetUserId,
+      action: 'SCORE_CREATED',
+      verb: 'menambahkan',
+      entityLabel: 'Nilai Modul',
+      recordContext: `Modul: ${modName}`,
+      changes: [{ label: 'Nilai Modul', from: 'Belum ada', to: String(numScore) }],
+      notes: comments || null
+    });
+
     return res.status(201).json({
       success: true,
       message: 'Nilai berhasil disimpan.',
@@ -157,9 +171,10 @@ router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'
 
     // Fetch previous score & check coordinator ownership
     const prevRes = await query(
-      `SELECT s.*, u.coordinator_id as student_coordinator_id
+      `SELECT s.*, u.coordinator_id as student_coordinator_id, u.full_name, u.unique_id, m.module_name
        FROM scores s
        JOIN users u ON s.user_id = u.user_id
+       LEFT JOIN modules m ON s.module_id = m.module_id
        WHERE s.score_id = $1`,
       [scoreId]
     );
@@ -189,6 +204,26 @@ router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'
         oldScore,
         newScore: numScore !== null ? numScore : oldScore.score_value,
         comments: comments !== undefined ? comments : oldScore.comments
+      });
+
+      const changes = buildFieldChanges(oldScore, result.rows[0], [
+        { key: 'score_value', label: 'Nilai Modul', type: 'number' },
+        { key: 'comments', label: 'Komentar' }
+      ]);
+
+      await logEntityChange({
+        req,
+        targetUser: {
+          user_id: oldScore.user_id,
+          full_name: oldScore.full_name,
+          unique_id: oldScore.unique_id
+        },
+        action: 'SCORE_UPDATED',
+        verb: 'mengubah',
+        entityLabel: 'Nilai Modul',
+        recordContext: `Modul: ${oldScore.module_name || `#${oldScore.module_id}`} (Score ID #${scoreId})`,
+        changes,
+        notes: comments !== undefined ? comments : null
       });
     }
 
@@ -255,19 +290,38 @@ router.delete('/:id', authenticateToken, requireRole('Koordinator', 'Administrat
     }
 
     const ownerRes = await query(
-      `SELECT s.score_id, u.coordinator_id
-       FROM scores s JOIN users u ON s.user_id = u.user_id
+      `SELECT s.*, u.coordinator_id, u.full_name, u.unique_id, m.module_name
+       FROM scores s
+       JOIN users u ON s.user_id = u.user_id
+       LEFT JOIN modules m ON s.module_id = m.module_id
        WHERE s.score_id = $1`,
       [scoreId]
     );
     if (ownerRes.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Nilai tidak ditemukan.' });
     }
-    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && ownerRes.rows[0].coordinator_id !== req.user.user_id) {
+    const oldScore = ownerRes.rows[0];
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && oldScore.coordinator_id !== req.user.user_id) {
       return res.status(403).json({ success: false, message: 'Akses dilarang. Catatan nilai bukan milik anak didik Anda.' });
     }
 
     await query(`DELETE FROM scores WHERE score_id = $1`, [scoreId]);
+
+    await logEntityChange({
+      req,
+      targetUser: {
+        user_id: oldScore.user_id,
+        full_name: oldScore.full_name,
+        unique_id: oldScore.unique_id
+      },
+      action: 'SCORE_DELETED',
+      verb: 'menghapus',
+      entityLabel: 'Nilai Modul',
+      recordContext: `Modul: ${oldScore.module_name || `#${oldScore.module_id}`} (Score ID #${scoreId})`,
+      changes: [{ label: 'Nilai Modul', from: String(oldScore.score_value ?? '-'), to: 'DIHAPUS' }],
+      notes: oldScore.comments || null
+    });
+
     return res.json({ success: true, message: 'Nilai berhasil dihapus.' });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

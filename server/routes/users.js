@@ -5,6 +5,7 @@ import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 import { globalBloomFilter } from '../utils/bloomFilter.js';
+import { buildFieldChanges, logEntityChange } from '../utils/auditFormatter.js';
 
 const router = Router();
 
@@ -425,6 +426,9 @@ router.put(['/visits/:id', '/user-visits/:id'], authenticateToken, async (req, r
       }
     }
 
+    const prevVisitRes = await query(`SELECT kunjungan_bpu, kunjungan_pu FROM progress WHERE user_id = $1 LIMIT 1`, [targetUserId]);
+    const prevVisit = prevVisitRes.rows[0] || {};
+
     const result = await query(
       `INSERT INTO progress (user_id, kunjungan_bpu, kunjungan_pu, created_at, updated_at)
        VALUES ($1, COALESCE($2, 0), COALESCE($3, 0), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -435,6 +439,20 @@ router.put(['/visits/:id', '/user-visits/:id'], authenticateToken, async (req, r
        RETURNING *`,
       [targetUserId, kunjungan_bpu ?? null, kunjungan_pu ?? null]
     );
+
+    const visitChanges = buildFieldChanges(prevVisit, result.rows[0], [
+      { key: 'kunjungan_bpu', label: 'Kunjungan BPU', type: 'number' },
+      { key: 'kunjungan_pu', label: 'Kunjungan PU', type: 'number' }
+    ]);
+
+    await logEntityChange({
+      req,
+      targetUserId,
+      action: 'VISITS_UPDATED',
+      verb: 'mengubah',
+      entityLabel: 'Data Kunjungan Lapangan',
+      changes: visitChanges
+    });
 
     return res.json({
       success: true,
@@ -513,6 +531,9 @@ router.put('/:id/progress', authenticateToken, requireRole('Koordinator', 'Admin
       grade
     } = req.body;
 
+    const prevProgressRes = await query(`SELECT * FROM progress WHERE user_id = $1 LIMIT 1`, [targetUserId]);
+    const prevProgress = prevProgressRes.rows[0] || {};
+
     const result = await query(
       `INSERT INTO progress (user_id, kunjungan_bpu, hasil_akuisisi_bpu, kunjungan_pu, video_viralisasi, kehadiran_seminar, kehadiran_sosialisasi, total_poin, nilai, grade, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -531,12 +552,24 @@ router.put('/:id/progress', authenticateToken, requireRole('Koordinator', 'Admin
       [targetUserId, kunjungan_bpu || 0, hasil_akuisisi_bpu || 0, kunjungan_pu || 0, video_viralisasi || 0, kehadiran_seminar || 0, kehadiran_sosialisasi || 0, total_poin || 0, nilai || 0, grade || 'E']
     );
 
-    await logActivity({
-      userId: req.user.user_id,
-      type: 'PROGRESS_UPDATED',
-      details: `Memperbarui progres & nilai tugas peserta ID #${targetUserId} (Nilai: ${nilai || 0}, Grade: ${grade || '-'})`,
-      ip: req.ip,
-      userAgent: req.headers['user-agent']
+    const progressChanges = buildFieldChanges(prevProgress, result.rows[0], [
+      { key: 'nilai', label: 'Nilai Akhir', type: 'number' },
+      { key: 'grade', label: 'Grade' },
+      { key: 'kunjungan_bpu', label: 'Kunjungan BPU', type: 'number' },
+      { key: 'hasil_akuisisi_bpu', label: 'Akuisisi BPU', type: 'number' },
+      { key: 'kunjungan_pu', label: 'Kunjungan PU', type: 'number' },
+      { key: 'video_viralisasi', label: 'Video Viralisasi', type: 'number' },
+      { key: 'kehadiran_seminar', label: 'Seminar', type: 'number' },
+      { key: 'kehadiran_sosialisasi', label: 'Sosialisasi', type: 'number' }
+    ]);
+
+    await logEntityChange({
+      req,
+      targetUserId,
+      action: 'PROGRESS_UPDATED',
+      verb: 'memperbarui',
+      entityLabel: 'Progres & Penilaian Tugas',
+      changes: progressChanges
     });
 
     return res.json({ success: true, message: 'Progress updated', data: result.rows[0] });
@@ -600,6 +633,18 @@ router.put('/:id', authenticateToken, requireRole('Administrator'), async (req, 
     const { id } = req.params;
     const { unique_id, full_name, password, role_id, coordinator_id, status, penempatan } = req.body;
 
+    const prevUserRes = await query(
+      `SELECT u.user_id, u.unique_id, u.full_name, u.role_id, u.coordinator_id, u.status, u.penempatan, r.role_name
+       FROM users u
+       LEFT JOIN roles r ON u.role_id = r.role_id
+       WHERE u.user_id = $1`,
+      [id]
+    );
+    if (prevUserRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const prevUser = prevUserRes.rows[0];
+
     let updateFields = [
       'full_name = COALESCE($1, full_name)',
       'status = COALESCE($2, status)',
@@ -617,7 +662,8 @@ router.put('/:id', authenticateToken, requireRole('Administrator'), async (req, 
       updateFields.push(`unique_id = $${params.length}`);
     }
 
-    if (password && password.trim().length > 0) {
+    const passwordChanged = Boolean(password && password.trim().length > 0);
+    if (passwordChanged) {
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(password, salt);
       params.push(hash);
@@ -634,16 +680,36 @@ router.put('/:id', authenticateToken, requireRole('Administrator'), async (req, 
       params
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+    const afterRoleRes = await query(`SELECT role_name FROM roles WHERE role_id = $1`, [result.rows[0].role_id]).catch(() => ({ rows: [] }));
+    const afterUser = {
+      ...result.rows[0],
+      role_name: afterRoleRes.rows[0]?.role_name || String(result.rows[0].role_id)
+    };
+
+    const userChanges = buildFieldChanges(prevUser, afterUser, [
+      { key: 'full_name', label: 'Nama Lengkap' },
+      { key: 'unique_id', label: 'ID / NIP / NPP' },
+      { key: 'role_name', label: 'Peran' },
+      { key: 'status', label: 'Status Akun' },
+      { key: 'penempatan', label: 'Penempatan' },
+      { key: 'coordinator_id', label: 'ID Pembimbing', type: 'number' }
+    ]);
+    if (passwordChanged) {
+      userChanges.push({ label: 'Kata Sandi', from: 'Lama', to: 'Diperbarui' });
     }
 
-    await logActivity({
-      userId: req.user.user_id,
-      type: 'USER_UPDATED',
-      details: `Memperbarui data akun pengguna: ${result.rows[0].full_name} (${result.rows[0].unique_id})`,
-      ip: req.ip,
-      userAgent: req.headers['user-agent']
+    await logEntityChange({
+      req,
+      targetUser: {
+        user_id: afterUser.user_id,
+        full_name: afterUser.full_name,
+        unique_id: afterUser.unique_id
+      },
+      targetRoleWord: 'pengguna',
+      action: 'USER_UPDATED',
+      verb: 'mengubah',
+      entityLabel: 'Data Akun Pengguna',
+      changes: userChanges
     });
 
     return res.json({
@@ -667,18 +733,25 @@ router.delete('/:id', authenticateToken, requireRole('Administrator'), async (re
       return res.status(400).json({ success: false, message: 'Anda tidak dapat menghapus akun Anda sendiri.' });
     }
 
-    const userToDelete = await query(`SELECT full_name, unique_id FROM users WHERE user_id = $1`, [id]);
-    const deletedName = userToDelete.rows[0]?.full_name || id;
-    const deletedUniqueId = userToDelete.rows[0]?.unique_id || '';
+    const userToDelete = await query(
+      `SELECT u.user_id, u.full_name, u.unique_id, u.status, u.penempatan, r.role_name
+       FROM users u
+       LEFT JOIN roles r ON u.role_id = r.role_id
+       WHERE u.user_id = $1`,
+      [id]
+    );
+    const targetDeleted = userToDelete.rows[0] || { user_id: id, full_name: String(id), unique_id: '' };
 
     await query(`DELETE FROM users WHERE user_id = $1`, [id]);
 
-    await logActivity({
-      userId: req.user.user_id,
-      type: 'USER_DELETED',
-      details: `Menghapus akun pengguna: ${deletedName} (${deletedUniqueId})`,
-      ip: req.ip,
-      userAgent: req.headers['user-agent']
+    await logEntityChange({
+      req,
+      targetUser: targetDeleted,
+      targetRoleWord: 'pengguna',
+      action: 'USER_DELETED',
+      verb: 'menghapus',
+      entityLabel: 'Akun Pengguna',
+      changes: [{ label: 'Status Akun', from: targetDeleted.status || 'Aktif', to: 'DIHAPUS' }]
     });
 
     return res.json({

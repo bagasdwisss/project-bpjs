@@ -14,6 +14,8 @@ const Monitoring = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('audit'); // 'audit', 'telemetry', 'honeytoken', 'whistleblowing', 'komparasi', 'certificates'
   const [anomalyOnly, setAnomalyOnly] = useState(false);
+  const [auditCategory, setAuditCategory] = useState('all'); // 'all' | 'mutations'
+  const [auditSearch, setAuditSearch] = useState('');
 
   const [systemStatus, setSystemStatus] = useState({
     cpu: 0,
@@ -56,7 +58,7 @@ const Monitoring = () => {
       setLoading(true);
       const [statsRes, auditRes, compRes, teleRes, brinRes, jailRes, trapRes, wbRes, certRes, reissueRes] = await Promise.all([
         api.get('/admin/monitoring/system-stats'),
-        api.get(`/admin/forensic-audit?anomaly_only=${anomalyOnly}`),
+        api.get(`/admin/forensic-audit?anomaly_only=${anomalyOnly}&category=${auditCategory}`),
         api.get('/admin/comparison'),
         api.get('/admin/telemetry/metrics').catch(() => ({ data: { success: false } })),
         api.get('/admin/database/brin-status').catch(() => ({ data: { success: false } })),
@@ -158,7 +160,7 @@ const Monitoring = () => {
 
   useEffect(() => {
     fetchMonitoringData();
-  }, [anomalyOnly]);
+  }, [anomalyOnly, auditCategory]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -321,104 +323,145 @@ const Monitoring = () => {
         </div>
 
         {/* TAB 1: AUDIT TRAIL FORENSIK */}
-        {activeTab === 'audit' && (
-          <div className="bg-white rounded-2xl border-2 border-[#121214] shadow-[5px_5px_0px_#121214] overflow-hidden space-y-4 p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-[#121214]">
-              <div>
-                <h2 className="text-base font-black text-[#121214] flex items-center space-x-2">
-                  <ShieldAlert className="w-5 h-5 text-red-600" />
-                  <span>Rekaman Audit Trail & Integritas Data</span>
-                </h2>
-                <p className="text-xs text-gray-500 font-medium">Pencatatan IP address, jenis perangkat, dan deteksi anomali login</p>
+        {activeTab === 'audit' && (() => {
+          const q = auditSearch.trim().toLowerCase();
+          const filteredAuditLogs = q
+            ? logs.filter((log) =>
+                String(log.details || '').toLowerCase().includes(q) ||
+                String(log.activity_type || '').toLowerCase().includes(q) ||
+                String(log.full_name || '').toLowerCase().includes(q) ||
+                String(log.unique_id || '').toLowerCase().includes(q) ||
+                String(log.role_name || '').toLowerCase().includes(q) ||
+                String(log.ip_address || '').toLowerCase().includes(q)
+              )
+            : logs;
+
+          return (
+            <div className="bg-white rounded-2xl border-2 border-[#121214] shadow-[5px_5px_0px_#121214] overflow-hidden space-y-4 p-5">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b-2 border-[#121214]">
+                <div>
+                  <h2 className="text-base font-black text-[#121214] flex items-center space-x-2">
+                    <ShieldAlert className="w-5 h-5 text-red-600" />
+                    <span>Rekaman Audit Trail &amp; Integritas Data</span>
+                  </h2>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Pencatatan perubahan status/nilai (pelaku, anak didik, sebelum → sesudah, jam &amp; tanggal WIB), IP address, perangkat, dan anomali
+                  </p>
+                </div>
+
+                {/* Search + Category + Anomaly Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={auditSearch}
+                      onChange={(e) => setAuditSearch(e.target.value)}
+                      placeholder="Cari koordinator, anak didik, status..."
+                      aria-label="Cari log audit forensik"
+                      className="pl-8 pr-3 py-1.5 w-60 sm:w-64 rounded-xl border-2 border-[#121214] text-xs font-bold bg-[#FAF9F6] focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAuditCategory(auditCategory === 'mutations' ? 'all' : 'mutations')}
+                    className={`px-3 py-1.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all flex items-center space-x-1.5 cursor-pointer ${
+                      auditCategory === 'mutations'
+                        ? 'bg-[#FCE373] text-[#121214] shadow-[2px_2px_0px_#121214]'
+                        : 'bg-[#F5F4F0] text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <FileEdit className="w-3.5 h-3.5" />
+                    <span>{auditCategory === 'mutations' ? 'Perubahan & Verifikasi' : 'Filter Perubahan'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAnomalyOnly(!anomalyOnly)}
+                    className={`px-3 py-1.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all flex items-center space-x-1.5 cursor-pointer ${
+                      anomalyOnly
+                        ? 'bg-[#F5C6EC] text-[#121214] shadow-[2px_2px_0px_#121214]'
+                        : 'bg-[#F5F4F0] text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                    <span>{anomalyOnly ? 'Anomali Saja' : 'Filter Anomali'}</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Anomaly filter toggle */}
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setAnomalyOnly(!anomalyOnly)}
-                  className={`px-3 py-1.5 rounded-xl border-2 border-[#121214] text-xs font-black transition-all flex items-center space-x-1.5 ${
-                    anomalyOnly
-                      ? 'bg-[#F5C6EC] text-[#121214] shadow-[2px_2px_0px_#121214]'
-                      : 'bg-[#F5F4F0] text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                  <span>{anomalyOnly ? 'Menampilkan Anomali Saja' : 'Filter Anomali'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto max-h-[480px] focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Log Audit Forensik">
-              <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
-                <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider sticky top-0">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Pengguna & Peran</th>
-                    <th className="px-4 py-3 text-left">Aktivitas</th>
-                    <th className="px-4 py-3 text-left">Rincian Operasi</th>
-                    <th className="px-4 py-3 text-left">Alamat IP & Perangkat</th>
-                    <th className="px-4 py-3 text-left">Waktu Akses</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F0EFEA] bg-white">
-                  {logs.length === 0 ? (
+              <div className="overflow-x-auto overscroll-x-contain max-h-[520px] focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Log Audit Forensik">
+                <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
+                  <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider sticky top-0">
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-xs text-gray-500 font-bold">
-                        Tidak ada log aktivitas yang cocok dengan filter.
-                      </td>
+                      <th className="px-4 py-3 text-left">Pengguna &amp; Peran</th>
+                      <th className="px-4 py-3 text-left">Aktivitas</th>
+                      <th className="px-4 py-3 text-left">Rincian Perubahan &amp; Operasi</th>
+                      <th className="px-4 py-3 text-left">Alamat IP &amp; Perangkat</th>
+                      <th className="px-4 py-3 text-left">Waktu Akses</th>
                     </tr>
-                  ) : (
-                    logs.map((log) => {
-                      const isAnomaly = log.is_anomaly;
-                      return (
-                        <tr
-                          key={log.log_id}
-                          className={`transition-colors ${isAnomaly ? 'bg-rose-50/70 hover:bg-rose-100/60' : 'hover:bg-[#FAF9F6]'}`}
-                        >
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="font-black text-[#121214]">{log.full_name || 'System System'}</div>
-                            <div className="text-[10px] text-gray-500 font-mono">
-                              {log.unique_id || 'SYS'} • {log.role_name || 'Internal'}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border border-[#121214] ${
-                              isAnomaly
-                                ? 'bg-[#F5C6EC] text-[#121214]'
-                                : log.activity_type === 'LOGIN'
-                                ? 'bg-[#B8C96E] text-[#121214]'
-                                : 'bg-[#FCE373] text-[#121214]'
-                            }`}>
-                              {log.activity_type}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-gray-800">
-                            <div>{log.details || '-'}</div>
-                            {isAnomaly && log.anomaly_reason && (
-                              <div className="text-[10px] text-rose-800 font-bold mt-1 bg-white/80 p-1 rounded border border-rose-300 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
-                                <span>{log.anomaly_reason}</span>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0EFEA] bg-white">
+                    {filteredAuditLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-xs text-gray-500 font-bold">
+                          Tidak ada log aktivitas yang cocok dengan filter.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredAuditLogs.map((log) => {
+                        const isAnomaly = log.is_anomaly;
+                        return (
+                          <tr
+                            key={log.log_id}
+                            className={`transition-colors ${isAnomaly ? 'bg-rose-50/70 hover:bg-rose-100/60' : 'hover:bg-[#FAF9F6]'}`}
+                          >
+                            <td className="px-4 py-3 whitespace-nowrap align-top">
+                              <div className="font-black text-[#121214]">{log.full_name || 'System System'}</div>
+                              <div className="text-[10px] text-gray-500 font-mono">
+                                {log.unique_id || 'SYS'} • {log.role_name || 'Internal'}
                               </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-xs">
-                            <div className="font-mono font-bold text-[#121214]">{log.ip_address || '-'}</div>
-                            <div className="text-[10px] text-gray-500 truncate max-w-[200px]" title={log.user_agent}>
-                              {log.user_agent ? (log.user_agent.includes('Mobile') ? 'Mobile Device' : 'Desktop Browser') : 'Direct API'}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-[11px] text-gray-600 font-mono">
-                            {new Date(log.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap align-top">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border border-[#121214] ${
+                                isAnomaly
+                                  ? 'bg-[#F5C6EC] text-[#121214]'
+                                  : log.activity_type === 'LOGIN'
+                                  ? 'bg-[#B8C96E] text-[#121214]'
+                                  : 'bg-[#FCE373] text-[#121214]'
+                              }`}>
+                                {log.activity_type}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-800 align-top">
+                              <div className="whitespace-normal break-words max-w-xl leading-relaxed font-medium text-[#121214]">
+                                {log.details || '-'}
+                              </div>
+                              {isAnomaly && log.anomaly_reason && (
+                                <div className="text-[10px] text-rose-800 font-bold mt-1 bg-white/80 p-1 rounded border border-rose-300 flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                                  <span>{log.anomaly_reason}</span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-xs align-top">
+                              <div className="font-mono font-bold text-[#121214]">{log.ip_address || '-'}</div>
+                              <div className="text-[10px] text-gray-500 truncate max-w-[200px]" title={log.user_agent}>
+                                {log.user_agent ? (log.user_agent.includes('Mobile') ? 'Mobile Device' : 'Desktop Browser') : 'Direct API'}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-[11px] text-gray-600 font-mono align-top">
+                              {new Date(log.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* TAB 2: TELEMETRI SERVER & BRIN INDEX */}
         {activeTab === 'telemetry' && (
