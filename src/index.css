@@ -279,7 +279,7 @@ p, li {
 
 /* Touch-device hit-target extension (>=44px effective target while preserving compact visual icon buttons) */
 @media (pointer: coarse) {
-  .touch-target {
+  .touch-target:not(.fixed):not(.absolute) {
     position: relative;
   }
   .touch-target::after {

@@ -1,10 +1,12 @@
 // server/utils/bpjstkAgent.js
-// Dual-Mode Multi-Tool Agentic Engine untuk "Tanya BPJSTK AI":
-// 1. Jika AI_GATEWAY_API_KEY / VERCEL_OIDC_TOKEN aktif -> menjalankan Vercel AI SDK ToolLoopAgent
-// 2. Jika tidak / terjadi gangguan gateway -> menjalankan Autonomous Deterministic Planner Agent
-// Kedua mode berbagi 7 tool RBAC terhubung langsung ke PostgreSQL Neon.
+// Multi-Provider Agentic Engine untuk "Tanya BPJSTK AI":
+// 1. Jika GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY aktif -> ToolLoopAgent langsung via Google AI Studio (gratis tanpa kartu kredit)
+// 2. Jika AI_GATEWAY_API_KEY / VERCEL_OIDC_TOKEN aktif -> ToolLoopAgent via Vercel AI Gateway
+// 3. Jika keduanya belum aktif / gangguan -> Autonomous Deterministic Planner Agent (lokal + Neon DB)
+// Ketiganya berbagi 7 tool RBAC terhubung langsung ke PostgreSQL Neon.
 
 import { ToolLoopAgent, tool, isStepCount } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import { query } from '../db.js';
 import { searchKnowledgeBase } from './indonesianFts.js';
@@ -912,64 +914,84 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
 }
 
 /**
- * Entry point utama BPJSTK Agent (mendukung ToolLoopAgent AI SDK + fallback otomatis).
+ * Entry point utama BPJSTK Agent (mendukung Google AI Studio Direct API Key, Vercel AI Gateway, & fallback otomatis).
  */
 export async function runBpjstkAgent({ user, question, history = [], hasOidcHeader = false }) {
   const executionTrace = [];
   const tools = createAgentTools(user, executionTrace);
   const roleGroup = getUserRoleGroup(user);
 
-  const hasGatewayAuth = Boolean(
-    process.env.AI_GATEWAY_API_KEY ||
-    process.env.VERCEL_OIDC_TOKEN ||
-    hasOidcHeader ||
-    process.env.VERCEL
-  );
+  const directGeminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const directModelId = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const gatewayModel = process.env.AI_GATEWAY_MODEL || 'google/gemini-3-flash';
 
-  if (hasGatewayAuth) {
-    try {
-      const instructions = [
-        'Anda adalah "BPJSTK Smart Agent", asisten ahli regulasi BPJS Ketenagakerjaan dan operasional Sistem Pemagangan BPJSTK.',
-        `Pengguna saat ini: ${user?.full_name || 'Pengguna'} (ID: ${user?.unique_id || '-'}, Peran: ${roleGroup}).`,
-        'WAJIB panggil tool database/kalkulator terlebih dahulu sebelum menjawab pertanyaan tentang angka iuran, jadwal, target nilai, progres, absensi, izin, atau sertifikat. Jangan pernah mengarang angka.',
-        'Jawablah dengan Bahasa Indonesia yang tegas, terstruktur (poin/bold Markdown ringkas), akurat sesuai hasil tool, dan patuhi batasan peran RBAC.'
-      ].join('\n');
+  const providerCandidates = [];
+  if (directGeminiKey) {
+    const googleProvider = createGoogleGenerativeAI({ apiKey: directGeminiKey });
+    providerCandidates.push({
+      label: 'Google Gemini Direct',
+      modelInstance: googleProvider(directModelId),
+      modelName: directModelId,
+      engine: 'google-ai-studio-sdk'
+    });
+  }
+  if (
+    process.env.AI_GATEWAY_API_KEY ||
+    (!directGeminiKey && (process.env.VERCEL_OIDC_TOKEN || hasOidcHeader || process.env.VERCEL))
+  ) {
+    providerCandidates.push({
+      label: 'Vercel AI Gateway',
+      modelInstance: gatewayModel,
+      modelName: gatewayModel,
+      engine: 'vercel-ai-sdk-v7'
+    });
+  }
 
-      const agent = new ToolLoopAgent({
-        model: gatewayModel,
-        instructions,
-        tools,
-        stopWhen: isStepCount(6)
-      });
+  if (providerCandidates.length > 0) {
+    const instructions = [
+      'Anda adalah "BPJSTK Smart Agent", asisten ahli regulasi BPJS Ketenagakerjaan dan operasional Sistem Pemagangan BPJSTK.',
+      `Pengguna saat ini: ${user?.full_name || 'Pengguna'} (ID: ${user?.unique_id || '-'}, Peran: ${roleGroup}).`,
+      'WAJIB panggil tool database/kalkulator terlebih dahulu sebelum menjawab pertanyaan tentang angka iuran, jadwal, target nilai, progres, absensi, izin, atau sertifikat. Jangan pernah mengarang angka.',
+      'Jawablah dengan Bahasa Indonesia yang tegas, terstruktur (poin/bold/heading Markdown ringkas), akurat sesuai hasil tool, dan patuhi batasan peran RBAC.'
+    ].join('\n');
 
-      const normalizedHistory = Array.isArray(history)
-        ? history
-            .slice(-6)
-            .filter((m) => m && (m.text || m.content))
-            .map((m) => ({
-              role: m.sender === 'user' || m.role === 'user' ? 'user' : 'assistant',
-              content: String(m.text || m.content)
-            }))
-        : [];
+    const normalizedHistory = Array.isArray(history)
+      ? history
+          .slice(-6)
+          .filter((m) => m && (m.text || m.content))
+          .map((m) => ({
+            role: m.sender === 'user' || m.role === 'user' ? 'user' : 'assistant',
+            content: String(m.text || m.content)
+          }))
+      : [];
 
-      const messages = [...normalizedHistory, { role: 'user', content: question }];
-      const result = await agent.generate({ messages });
+    const messages = [...normalizedHistory, { role: 'user', content: question }];
 
-      if (result?.text && result.text.trim()) {
-        return {
-          topic: executionTrace.length > 0 ? `Agent (${executionTrace[0].tool})` : 'BPJSTK AI Agent',
-          answer: result.text.trim(),
-          source: 'ai_sdk_tool_loop_agent',
-          engine: 'vercel-ai-sdk-v7',
-          model: gatewayModel,
-          toolsUsed: executionTrace,
-          stepsCount: Array.isArray(result.steps) ? result.steps.length : 1
-        };
+    for (const candidate of providerCandidates) {
+      try {
+        const agent = new ToolLoopAgent({
+          model: candidate.modelInstance,
+          instructions,
+          tools,
+          stopWhen: isStepCount(6)
+        });
+
+        const result = await agent.generate({ messages });
+        if (result?.text && result.text.trim()) {
+          return {
+            topic: executionTrace.length > 0 ? `Agent (${executionTrace[0].tool})` : 'BPJSTK AI Agent',
+            answer: result.text.trim(),
+            source: 'ai_sdk_tool_loop_agent',
+            engine: candidate.engine,
+            model: candidate.modelName,
+            toolsUsed: executionTrace,
+            stepsCount: Array.isArray(result.steps) ? result.steps.length : 1
+          };
+        }
+      } catch (providerErr) {
+        console.warn(`[BPJSTK Agent] ${candidate.label} unavailable, trying next fallback:`, providerErr.message);
+        executionTrace.length = 0; // Reset trace cleanly before trying next engine
       }
-    } catch (gatewayErr) {
-      console.warn('[BPJSTK Agent] AI Gateway unavailable, falling back to Autonomous Planner Agent:', gatewayErr.message);
-      executionTrace.length = 0; // Reset trace cleanly before deterministic planner run
     }
   }
 
