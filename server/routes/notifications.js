@@ -108,10 +108,25 @@ router.delete('/clear/all', authenticateToken, async (req, res) => {
  */
 router.delete('/coordinator/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    await query(
-      `DELETE FROM notifications WHERE notification_id = $1`,
-      [req.params.id]
-    );
+    const notifId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(notifId) || notifId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID notifikasi tidak valid.' });
+    }
+
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(
+        `SELECT n.notification_id
+         FROM notifications n
+         JOIN users u ON n.user_id = u.user_id
+         WHERE n.notification_id = $1 AND (u.coordinator_id = $2 OR n.user_id = $2)`,
+        [notifId, req.user.user_id]
+      );
+      if (check.rows.length === 0) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Notifikasi ini bukan milik bimbingan Anda.' });
+      }
+    }
+
+    await query(`DELETE FROM notifications WHERE notification_id = $1`, [notifId]);
     return res.json({ success: true, message: 'Notifikasi koordinator berhasil dihapus.' });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -162,12 +177,23 @@ router.get('/coordinator', authenticateToken, requireRole('Koordinator', 'Admini
 router.post('/coordinator', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { user_id, title, message, type, priority, due_date } = req.body;
+    const targetUserId = parseInt(user_id, 10);
+    if (!Number.isInteger(targetUserId) || !title || !message) {
+      return res.status(400).json({ success: false, message: 'user_id, title, dan message wajib diisi.' });
+    }
+
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && targetUserId !== req.user.user_id) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat mengirim pengingat ke anak didik Anda sendiri.' });
+      }
+    }
 
     const result = await query(
       `INSERT INTO notifications (user_id, title, message, type, priority, due_date, is_read, created_at)
        VALUES ($1, $2, $3, COALESCE($4, 'reminder'), COALESCE($5, 'medium'), $6, FALSE, CURRENT_TIMESTAMP)
        RETURNING *`,
-      [user_id, title, message, type, priority, due_date || null]
+      [targetUserId, title, message, type, priority, due_date || null]
     );
 
     return res.status(201).json({
@@ -237,25 +263,61 @@ router.get('/coordinator/participants', authenticateToken, requireRole('Koordina
 /**
  * GET /api/notifications/coordinator/reminders/settings
  */
-router.get('/coordinator/reminders/settings', authenticateToken, requireRole('Koordinator', 'Administrator'), (req, res) => {
-  return res.json({
-    success: true,
-    data: {
+router.get('/coordinator/reminders/settings', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
+  try {
+    const settingKey = `reminder_settings_${req.user.user_id}`;
+    const result = await query(
+      `SELECT setting_value FROM system_settings WHERE setting_key = $1 LIMIT 1`,
+      [settingKey]
+    );
+    const defaults = {
       attendance_reminder_time: '08:00',
       progress_reminder_day: 'Friday',
       auto_send: true
+    };
+    let parsed = defaults;
+    if (result.rows.length > 0 && result.rows[0].setting_value) {
+      try {
+        parsed = { ...defaults, ...JSON.parse(result.rows[0].setting_value) };
+      } catch {
+        parsed = defaults;
+      }
     }
-  });
+    return res.json({ success: true, data: parsed });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
  * POST /api/notifications/coordinator/reminders/settings
  */
-router.post('/coordinator/reminders/settings', authenticateToken, requireRole('Koordinator', 'Administrator'), (req, res) => {
-  return res.json({
-    success: true,
-    message: 'Pengaturan pengingat berhasil disimpan.'
-  });
+router.post('/coordinator/reminders/settings', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
+  try {
+    const { attendance_reminder_time, progress_reminder_day, auto_send } = req.body;
+    const settingKey = `reminder_settings_${req.user.user_id}`;
+    const payload = {
+      attendance_reminder_time: attendance_reminder_time || '08:00',
+      progress_reminder_day: progress_reminder_day || 'Friday',
+      auto_send: auto_send !== undefined ? Boolean(auto_send) : true
+    };
+    await query(
+      `INSERT INTO system_settings (setting_key, setting_value, updated_at, updated_by)
+       VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+       ON CONFLICT (setting_key) DO UPDATE SET
+         setting_value = EXCLUDED.setting_value,
+         updated_at = CURRENT_TIMESTAMP,
+         updated_by = EXCLUDED.updated_by`,
+      [settingKey, JSON.stringify(payload), req.user.user_id]
+    );
+    return res.json({
+      success: true,
+      message: 'Pengaturan pengingat berhasil disimpan.',
+      data: payload
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // ========================================================
@@ -375,10 +437,11 @@ router.get('/broadcasts/active', authenticateToken, async (req, res) => {
     const roleName = (req.user.role_name || req.user.role || '').toLowerCase();
     const userId = req.user.user_id;
 
-    // Target role matching:
-    // Peserta gets 'all' and 'participants'
-    // Koordinator gets 'all' and 'coordinators'
-    // Admin gets 'all'
+    // Administrator manages broadcasts rather than receiving participant/coordinator popups
+    if (roleId === 3 || roleName.includes('admin')) {
+      return res.json({ success: true, data: [] });
+    }
+
     let targetFilter = `(b.target_role = 'all'`;
     if (roleId === 1 || roleName.includes('peserta')) {
       targetFilter += ` OR b.target_role = 'participants')`;
@@ -393,14 +456,11 @@ router.get('/broadcasts/active', authenticateToken, async (req, res) => {
       FROM broadcast_messages b
       WHERE b.is_active = TRUE
         AND ${targetFilter}
-        AND (b.start_at IS NULL OR b.start_at <= CURRENT_TIMESTAMP + INTERVAL '1 hour')
-        AND (b.end_at IS NULL OR b.end_at >= CURRENT_TIMESTAMP - INTERVAL '1 hour')
-        AND (
-          b.show_on_login = TRUE 
-          OR NOT EXISTS (
-            SELECT 1 FROM broadcast_dismissals bd 
-            WHERE bd.broadcast_id = b.broadcast_id AND bd.user_id = $1
-          )
+        AND (b.start_at IS NULL OR b.start_at <= CURRENT_TIMESTAMP)
+        AND (b.end_at IS NULL OR b.end_at >= CURRENT_TIMESTAMP)
+        AND NOT EXISTS (
+          SELECT 1 FROM broadcast_dismissals bd 
+          WHERE bd.broadcast_id = b.broadcast_id AND bd.user_id = $1
         )
       ORDER BY 
         CASE 

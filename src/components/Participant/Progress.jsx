@@ -248,7 +248,7 @@ const Progress = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Rata-Rata</p>
-                  <p className="text-4xl font-black text-[#121214] mt-0.5">{progressData.metrics?.nilai || 88.5}</p>
+                  <p className="text-4xl font-black text-[#121214] mt-0.5">{progressData.metrics?.nilai ?? 0}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Skala 100</p>
                 </div>
               </div>
@@ -256,7 +256,7 @@ const Progress = () => {
 
             <div className="pt-4 mt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
               <span>Batas Kelulusan: 75.0</span>
-              <span>Status: Memenuhi Standar</span>
+              <span>{(progressData.metrics?.nilai ?? 0) >= 75 ? 'Status: Memenuhi Standar' : 'Status: Dalam Progress'}</span>
             </div>
           </div>
 

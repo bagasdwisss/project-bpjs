@@ -1,6 +1,7 @@
 // server/utils/velocityDetector.js - Spike Input Velocity & Impossible Travel Anomaly Detection
 import { query } from '../db.js';
 import { dispatchIncidentAlert } from './incidentNotifier.js';
+import { logActivity } from './logger.js';
 
 // In-memory sliding velocity tracker: userId -> array of timestamps
 const submissionTimestamps = new Map();
@@ -23,10 +24,40 @@ export const checkSubmissionVelocity = (userId, maxPerWindow = 5, windowMinutes 
     recentCount: timestamps.length,
     maxAllowed: maxPerWindow,
     windowMinutes,
-    reason: isSpike 
+    reason: isSpike
       ? `Terdeteksi lonjakan input tidak wajar (${timestamps.length} input data BPU dalam ${windowMinutes} menit). Indikasi bot/skrip otomatis.`
       : null
   };
+};
+
+/**
+ * Serverless-safe persistent submission velocity check against peserta table
+ */
+export const checkSubmissionVelocityDb = async (userId, maxPerWindow = 5, windowMinutes = 15) => {
+  const memResult = checkSubmissionVelocity(userId, maxPerWindow, windowMinutes);
+  try {
+    const dbRes = await query(
+      `SELECT COUNT(*)::int AS recent_count
+       FROM peserta
+       WHERE user_id = $1
+         AND created_at >= NOW() - ($2 * INTERVAL '1 minute')`,
+      [userId, Math.max(1, Number(windowMinutes) || 15)]
+    );
+    const dbCount = dbRes.rows[0]?.recent_count || 0;
+    const recentCount = Math.max(memResult.recentCount, dbCount);
+    const isSpike = recentCount > maxPerWindow;
+    return {
+      isSpike,
+      recentCount,
+      maxAllowed: maxPerWindow,
+      windowMinutes,
+      reason: isSpike
+        ? `Terdeteksi lonjakan input tidak wajar (${recentCount} input data BPU dalam ${windowMinutes} menit). Indikasi bot/skrip otomatis.`
+        : null
+    };
+  } catch {
+    return memResult;
+  }
 };
 
 /**
@@ -132,15 +163,14 @@ export async function checkImpossibleTravel(userId, currentLat, currentLon, ipAd
           }
         }).catch(() => {});
 
-        await query(
-          `INSERT INTO activity_logs (user_id, activity_type, details, ip_address)
-           VALUES ($1, 'ANOMALY_IMPOSSIBLE_TRAVEL', $2, $3)`,
-          [
-            userId,
-            `Anomali perpindahan lokasi mustahil: Jarak ${distanceKm.toFixed(1)} km ditempuh dalam ${(timeElapsedHours * 60).toFixed(1)} menit (${velocityKmh.toFixed(0)} km/h).`,
-            ipAddress
-          ]
-        );
+        await logActivity({
+          userId,
+          action: 'ANOMALY_IMPOSSIBLE_TRAVEL',
+          description: `Anomali perpindahan lokasi mustahil: Jarak ${distanceKm.toFixed(1)} km ditempuh dalam ${(timeElapsedHours * 60).toFixed(1)} menit (${velocityKmh.toFixed(0)} km/h).`,
+          ip: ipAddress,
+          isAnomaly: true,
+          anomalyReason: 'IMPOSSIBLE_TRAVEL'
+        });
       }
     }
 

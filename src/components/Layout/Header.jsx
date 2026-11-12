@@ -15,6 +15,7 @@ const Header = ({ toggleSidebar }) => {
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState('Semua');
+  const [searchQuery, setSearchQuery] = useState('');
   const [dlqCount, setDlqCount] = useState(0);
   const [clockStatus, setClockStatus] = useState({ isClockTampered: false, driftSeconds: 0 });
 
@@ -66,6 +67,7 @@ const Header = ({ toggleSidebar }) => {
     const interval = setInterval(loadNotificationsData, 30000);
     const handleBroadcastSent = () => loadNotificationsData();
     window.addEventListener('broadcast-sent', handleBroadcastSent);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('broadcast-sent', handleBroadcastSent);
@@ -109,6 +111,26 @@ const Header = ({ toggleSidebar }) => {
     setShowProfileDropdown(false);
   };
 
+  const handleHeaderSearch = (e) => {
+    if (e) e.preventDefault();
+    const roleId = user?.role_id;
+    const isCoord = roleId === 2 || (user?.role || '').toLowerCase().includes('koordinator');
+    const q = searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : '';
+    if (isAdmin) {
+      if (activeFilter === 'Batch') navigate(`/admin/batches${q}`);
+      else if (activeFilter === 'Status') navigate(`/admin/monitoring${q}`);
+      else navigate(`/admin/users${q}`);
+    } else if (isCoord) {
+      if (activeFilter === 'Status') navigate(`/coordinator/mentee-attendance${q}`);
+      else if (activeFilter === 'Batch') navigate(`/coordinator/grading${q}`);
+      else navigate(`/coordinator/participants${q}`);
+    } else {
+      if (activeFilter === 'Status') navigate(`/participant/attendance${q}`);
+      else if (activeFilter === 'Batch') navigate(`/participant/scores${q}`);
+      else navigate(`/participant/progress${q}`);
+    }
+  };
+
   return (
     <>
       <header className="bg-[#F5F4F0] border-b border-[#EAE9E4] sticky top-0 z-30 px-3 sm:px-6 lg:px-8 py-3.5">
@@ -128,13 +150,19 @@ const Header = ({ toggleSidebar }) => {
           </div>
 
           {/* Top Search Bar with Inline Filter Pills (Intelly Signature) */}
-          <div className="flex-1 max-w-2xl hidden md:flex items-center bg-[#EAE9E4] rounded-full px-2 py-1.5 border border-[#E0DFDA] shadow-inner">
-            <div className="w-8 h-8 rounded-full bg-[#F5C6EC] text-[#121214] flex items-center justify-center shrink-0 shadow-sm ml-0.5">
+          <form onSubmit={handleHeaderSearch} className="flex-1 max-w-2xl hidden md:flex items-center bg-[#EAE9E4] rounded-full px-2 py-1.5 border border-[#E0DFDA] shadow-inner">
+            <button
+              type="submit"
+              aria-label="Cari di portal"
+              className="w-8 h-8 rounded-full bg-[#F5C6EC] text-[#121214] flex items-center justify-center shrink-0 shadow-sm ml-0.5 hover:bg-[#eab3df] transition-colors cursor-pointer"
+            >
               <Search className="w-4 h-4" />
-            </div>
+            </button>
             
             <input 
               type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari data peserta, riwayat absensi, penilaian..." 
               className="bg-transparent border-none outline-none text-xs text-[#121214] placeholder-[#8A8985] px-3.5 flex-1 font-medium"
             />
@@ -143,8 +171,11 @@ const Header = ({ toggleSidebar }) => {
               <span className="text-[#8A8985] font-semibold text-[10px] uppercase tracking-wider ml-1">In:</span>
               <button 
                 type="button" 
-                onClick={() => setActiveFilter('Peserta')}
-                className={`px-3 py-1 rounded-full font-bold transition-all text-[11px] ${
+                onClick={() => {
+                  setActiveFilter('Peserta');
+                  navigate(isAdmin ? '/admin/users' : (user?.role_id === 2 ? '/coordinator/participants' : '/participant/progress'));
+                }}
+                className={`px-3 py-1 rounded-full font-bold transition-all text-[11px] cursor-pointer ${
                   activeFilter === 'Peserta' 
                     ? 'bg-[#121214] text-white shadow-sm' 
                     : 'text-[#6E6D6A] hover:text-[#121214]'
@@ -154,8 +185,11 @@ const Header = ({ toggleSidebar }) => {
               </button>
               <button 
                 type="button" 
-                onClick={() => setActiveFilter('Batch')}
-                className={`px-2.5 py-1 rounded-full font-semibold transition-all text-[11px] ${
+                onClick={() => {
+                  setActiveFilter('Batch');
+                  navigate(isAdmin ? '/admin/batches' : (user?.role_id === 2 ? '/coordinator/grading' : '/participant/scores'));
+                }}
+                className={`px-2.5 py-1 rounded-full font-semibold transition-all text-[11px] cursor-pointer ${
                   activeFilter === 'Batch' 
                     ? 'bg-[#121214] text-white shadow-sm' 
                     : 'text-[#6E6D6A] hover:text-[#121214]'
@@ -165,8 +199,11 @@ const Header = ({ toggleSidebar }) => {
               </button>
               <button 
                 type="button" 
-                onClick={() => setActiveFilter('Status')}
-                className={`px-2.5 py-1 rounded-full font-semibold transition-all text-[11px] ${
+                onClick={() => {
+                  setActiveFilter('Status');
+                  navigate(isAdmin ? '/admin/monitoring' : (user?.role_id === 2 ? '/coordinator/mentee-attendance' : '/participant/attendance'));
+                }}
+                className={`px-2.5 py-1 rounded-full font-semibold transition-all text-[11px] cursor-pointer ${
                   activeFilter === 'Status' 
                     ? 'bg-[#121214] text-white shadow-sm' 
                     : 'text-[#6E6D6A] hover:text-[#121214]'
@@ -175,7 +212,7 @@ const Header = ({ toggleSidebar }) => {
                 Status
               </button>
             </div>
-          </div>
+          </form>
 
           {/* Right Section: Connected Dark Pill Action Group */}
           <div className="flex items-center gap-2 sm:gap-3">
@@ -314,8 +351,9 @@ const Header = ({ toggleSidebar }) => {
                                         day: 'numeric',
                                         month: 'short',
                                         hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
+                                        minute: '2-digit',
+                                        timeZone: 'Asia/Jakarta'
+                                      })} WIB
                                     </span>
                                   </div>
                                 </div>

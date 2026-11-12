@@ -1,6 +1,7 @@
 // src/components/Coordinator/PresenceRadar.jsx - SSE Live Field Presence Radar
 import React, { useState, useEffect } from 'react';
 import { Radio, Wifi, WifiOff, Users, Clock, CheckCircle2 } from 'lucide-react';
+import api from '../../services/api';
 
 export default function PresenceRadar() {
   const [connected, setConnected] = useState(false);
@@ -11,7 +12,12 @@ export default function PresenceRadar() {
     let eventSource;
 
     try {
-      eventSource = new EventSource('/api/coordinator/presence-stream');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      const baseUrl = (api.defaults.baseURL || '/api').replace(/\/+$/, '');
+      const streamUrl = token
+        ? `${baseUrl}/coordinator/presence-stream?token=${encodeURIComponent(token)}`
+        : `${baseUrl}/coordinator/presence-stream`;
+      eventSource = new EventSource(streamUrl);
 
       eventSource.onopen = () => {
         setConnected(true);
@@ -21,7 +27,7 @@ export default function PresenceRadar() {
         try {
           const data = JSON.parse(e.data);
           if (data.type === 'HEARTBEAT') {
-            setLastHeartbeat(new Date(data.time).toLocaleTimeString());
+            setLastHeartbeat(new Date(data.time).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }));
           } else if (data.type === 'CONNECTED') {
             setConnected(true);
           } else if (data.type === 'PRESENCE_EVENT') {

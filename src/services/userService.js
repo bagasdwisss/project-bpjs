@@ -53,20 +53,18 @@ const deleteUser = (id) => {
 };
 
 /**
- * Mengimpor pengguna dari file Excel.
- * CATATAN: Endpoint backend harus mendukung upload file Excel.
- * @param {File} file - File Excel yang akan diimpor
- * @returns {Promise<object>} Hasil dari proses import
+ * Mengimpor pengguna (mendukung array JSON langsung atau file Excel .xlsx/.csv).
  */
-const importUsers = (file) => {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  return api.post('/users/import', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+const importUsers = async (input) => {
+  if (Array.isArray(input)) {
+    return api.post('/users/import', { users: input });
+  }
+  const XLSX = await import('xlsx');
+  const buf = await input.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array' });
+  const sheetName = wb.SheetNames[0];
+  const rows = sheetName ? XLSX.utils.sheet_to_json(wb.Sheets[sheetName]) : [];
+  return api.post('/users/import', { users: rows });
 };
 
 
@@ -301,7 +299,6 @@ const userService = {
   getParticipantDetail,
 
   // Progress Management
-  getUserProgress,
   getProgressSummary,
   updateUserProgress,
   getCoordinatorParticipantsProgress,

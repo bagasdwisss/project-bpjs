@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
-import { checkSubmissionVelocity, checkDuplicateNikRecent } from '../utils/velocityDetector.js';
+import { checkSubmissionVelocityDb, checkDuplicateNikRecent } from '../utils/velocityDetector.js';
 import { applyPdpMasking } from '../utils/pdpMasking.js';
 import { logActivity } from '../utils/logger.js';
 import { computeBlindIndex } from '../utils/blindIndex.js';
@@ -41,6 +41,7 @@ router.get('/progress', authenticateToken, async (req, res) => {
         const insertRes = await query(
           `INSERT INTO progress (user_id, created_at, updated_at)
            VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
            RETURNING *`,
           [userId]
         );
@@ -159,12 +160,13 @@ const getCoordinatorAcquisitionsHandler = async (req, res) => {
     const rows = result.rows;
     const totalRecords = rows.length;
     const paidRecords = rows.filter(r => r.status_pendaftaran === 'PEMBAYARAN BERHASIL').length;
-    const pendingRecords = rows.filter(r => r.status_pendaftaran === 'MENUNGGU PEMBAYARAN' || r.status_pendaftaran === 'BARU DAFTAR').length;
+    const pendingRecords = rows.filter(r => r.status_pendaftaran === 'MENUNGGU PEMBAYARAN' || r.status_pendaftaran === 'MENUNGGU VERIFIKASI' || r.status_pendaftaran === 'BARU DAFTAR').length;
     const totalRevenue = rows.reduce((acc, r) => acc + (parseFloat(r.biaya) || 0), 0);
+    const maskedRows = applyPdpMasking(rows, req.user.role);
 
     return res.json({
       success: true,
-      data: rows,
+      data: maskedRows,
       statistics: {
         total: totalRecords,
         paid: paidRecords,
@@ -254,8 +256,8 @@ router.post('/peserta', authenticateToken, async (req, res) => {
     // UU PDP Compliance: Compute HMAC Blind Index for confidential exact matching
     const nikBlindIndex = nik ? computeBlindIndex(nik) : null;
 
-    // 1. Anti-Fraud & Spike Input Velocity Detector (Feature 13)
-    const velocity = checkSubmissionVelocity(userId, 5, 15);
+    // 1. Anti-Fraud & Spike Input Velocity Detector (persistent DB-backed)
+    const velocity = await checkSubmissionVelocityDb(userId, 5, 15);
     let fraudFlag = 'NORMAL';
     if (velocity.isSpike) {
       fraudFlag = 'FLAGGED_VELOCITY_SPIKE';
@@ -270,12 +272,18 @@ router.post('/peserta', authenticateToken, async (req, res) => {
       });
     }
 
+    const isPeserta = req.user.role === 'Peserta' || req.user.role_id === 1;
+    let initialStatus = status_pendaftaran || 'BARU DAFTAR';
+    if (isPeserta && String(initialStatus).toUpperCase() === 'PEMBAYARAN BERHASIL') {
+      initialStatus = bukti_pembayaran_link ? 'MENUNGGU VERIFIKASI' : 'MENUNGGU PEMBAYARAN';
+    }
+
     const result = await query(
       `INSERT INTO peserta (
          user_id, nama_peserta, nik, nik_blind_index, tanggal_pendaftaran, no_telepon, pekerjaan, email,
          status_pendaftaran, periode_pelatihan, biaya, program_terdaftar, bukti_pembayaran_link,
          bukti_sosialisasi_link, fraud_flag, submission_velocity_ip, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_DATE), $6, $7, $8, COALESCE($9, 'BARU DAFTAR'), $10, COALESCE($11, 0), $12, $13, $14, $15, $16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ) VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_DATE), $6, $7, $8, $9, $10, COALESCE($11, 0), $12, $13, $14, $15, $16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING *`,
       [
         userId,
@@ -286,7 +294,7 @@ router.post('/peserta', authenticateToken, async (req, res) => {
         no_telepon || null,
         pekerjaan || null,
         email || null,
-        status_pendaftaran || 'BARU DAFTAR',
+        initialStatus,
         periode_pelatihan || null,
         biaya ? parseFloat(biaya) : 0,
         program_terdaftar || null,
@@ -297,12 +305,13 @@ router.post('/peserta', authenticateToken, async (req, res) => {
       ]
     );
 
-    // Increment hasil_akuisisi_bpu in progress table automatically
+    // Increment hasil_akuisisi_bpu in progress table atomically
     await query(
-      `UPDATE progress 
-       SET hasil_akuisisi_bpu = hasil_akuisisi_bpu + 1,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE user_id = $1`,
+      `INSERT INTO progress (user_id, hasil_akuisisi_bpu, created_at, updated_at)
+       VALUES ($1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id) DO UPDATE SET
+         hasil_akuisisi_bpu = progress.hasil_akuisisi_bpu + 1,
+         updated_at = CURRENT_TIMESTAMP`,
       [userId]
     );
 
@@ -345,7 +354,7 @@ router.get('/peserta/:id', authenticateToken, async (req, res) => {
       }
     }
 
-    return res.json({ success: true, data: row });
+    return res.json({ success: true, data: applyPdpMasking(row, req.user.role) });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -392,6 +401,11 @@ router.put('/peserta/:id', authenticateToken, async (req, res) => {
     } = req.body;
 
     const nikBlindIndex = nik ? computeBlindIndex(nik) : undefined;
+    const isPeserta = req.user.role === 'Peserta' || req.user.role_id === 1;
+    let safeStatus = status_pendaftaran;
+    if (isPeserta && safeStatus && String(safeStatus).toUpperCase() === 'PEMBAYARAN BERHASIL') {
+      safeStatus = undefined; // Peserta cannot self-approve final payment
+    }
 
     const result = await query(
       `UPDATE peserta
@@ -413,7 +427,7 @@ router.put('/peserta/:id', authenticateToken, async (req, res) => {
        RETURNING *`,
       [
         nama_peserta, nik, nikBlindIndex, tanggal_pendaftaran, no_telepon, pekerjaan, email,
-        status_pendaftaran, periode_pelatihan, biaya, program_terdaftar,
+        safeStatus, periode_pelatihan, biaya, program_terdaftar,
         bukti_pembayaran_link, bukti_sosialisasi_link, id
       ]
     );
@@ -454,6 +468,13 @@ router.delete('/peserta/:id', authenticateToken, async (req, res) => {
     }
 
     await query(`DELETE FROM peserta WHERE peserta_id = $1`, [id]);
+    await query(
+      `UPDATE progress
+       SET hasil_akuisisi_bpu = GREATEST(0, hasil_akuisisi_bpu - 1),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1`,
+      [ownerId]
+    );
     return res.json({ success: true, message: 'Data peserta berhasil dihapus.' });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -461,21 +482,104 @@ router.delete('/peserta/:id', authenticateToken, async (req, res) => {
 });
 
 /**
+ * POST /api/participant/acquisition-result/:id/upload-payment-proof
+ * & upload-socialization-proof
+ */
+const handleProofUpload = (fieldType) => async (req, res) => {
+  try {
+    const pesertaId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(pesertaId) || pesertaId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID peserta tidak valid.' });
+    }
+
+    const check = await query(`SELECT user_id FROM peserta WHERE peserta_id = $1`, [pesertaId]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
+    }
+    const ownerId = check.rows[0].user_id;
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && ownerId !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang.' });
+    }
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const uCheck = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [ownerId]);
+      if (uCheck.rows.length === 0 || uCheck.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang.' });
+      }
+    }
+
+    const { fileDataUri, link, file_url } = req.body;
+    const proofVal = fileDataUri || link || file_url;
+    if (!proofVal) {
+      return res.status(400).json({ success: false, message: 'Berkas atau tautan bukti wajib disertakan dalam JSON.' });
+    }
+
+    const col = fieldType === 'payment' ? 'bukti_pembayaran_link' : 'bukti_sosialisasi_link';
+    const result = await query(
+      `UPDATE peserta
+       SET ${col} = $1,
+           status_pendaftaran = CASE
+             WHEN $2 = 'payment' AND status_pendaftaran != 'PEMBAYARAN BERHASIL' THEN 'MENUNGGU VERIFIKASI'
+             ELSE status_pendaftaran
+           END,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE peserta_id = $3
+       RETURNING *`,
+      [proofVal, fieldType, pesertaId]
+    );
+
+    return res.json({
+      success: true,
+      message: `Bukti ${fieldType === 'payment' ? 'pembayaran' : 'sosialisasi'} berhasil disimpan.`,
+      data: applyPdpMasking(result.rows[0], req.user.role)
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+router.post('/acquisition-result/:id/upload-payment-proof', authenticateToken, handleProofUpload('payment'));
+router.post('/acquisition-result/:id/upload-socialization-proof', authenticateToken, handleProofUpload('socialization'));
+
+/**
  * PUT /api/participant/acquisition-result/:id/confirm-payment
+ * Restricted to Coordinator/Admin approval (or Participant submits verification request)
  */
 router.put('/acquisition-result/:id/confirm-payment', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verify ownership
-    const check = await query(`SELECT user_id FROM peserta WHERE peserta_id = $1`, [id]);
+    // Verify record
+    const check = await query(`SELECT user_id, bukti_pembayaran_link FROM peserta WHERE peserta_id = $1`, [id]);
     if (check.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Data peserta tidak ditemukan.' });
     }
 
     const ownerId = check.rows[0].user_id;
-    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && ownerId !== req.user.user_id) {
-      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat mengonfirmasi pembayaran akuisisi Anda sendiri.' });
+    const isPeserta = req.user.role === 'Peserta' || req.user.role_id === 1;
+    if (isPeserta) {
+      if (ownerId !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang.' });
+      }
+      if (!check.rows[0].bukti_pembayaran_link && !req.body?.bukti_pembayaran_link) {
+        return res.status(403).json({
+          success: false,
+          message: 'Unggah bukti pembayaran terlebih dahulu; persetujuan akhir dilakukan oleh Koordinator Pembimbing.'
+        });
+      }
+      const pendingRes = await query(
+        `UPDATE peserta
+         SET bukti_pembayaran_link = COALESCE($1, bukti_pembayaran_link),
+             status_pendaftaran = 'MENUNGGU VERIFIKASI',
+             updated_at = CURRENT_TIMESTAMP
+         WHERE peserta_id = $2
+         RETURNING *`,
+        [req.body?.bukti_pembayaran_link || null, id]
+      );
+      return res.json({
+        success: true,
+        message: 'Pengajuan verifikasi pembayaran dikirim ke Koordinator.',
+        data: applyPdpMasking(pendingRes.rows[0], req.user.role)
+      });
     }
 
     if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
@@ -507,14 +611,23 @@ router.get('/search-blind-index', authenticateToken, async (req, res) => {
     }
 
     const blindHash = computeBlindIndex(nik);
+    let sql = `
+      SELECT p.*, u.full_name as intern_name 
+      FROM peserta p 
+      JOIN users u ON p.user_id = u.user_id 
+      WHERE p.nik_blind_index = $1
+    `;
+    const params = [blindHash];
 
-    const result = await query(
-      `SELECT p.*, u.full_name as intern_name 
-       FROM peserta p 
-       JOIN users u ON p.user_id = u.user_id 
-       WHERE p.nik_blind_index = $1`,
-      [blindHash]
-    );
+    if (req.user.role === 'Peserta' || req.user.role_id === 1) {
+      params.push(req.user.user_id);
+      sql += ` AND p.user_id = $${params.length}`;
+    } else if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      params.push(req.user.user_id);
+      sql += ` AND u.coordinator_id = $${params.length}`;
+    }
+
+    const result = await query(sql, params);
 
     const masked = applyPdpMasking(result.rows, req.user.role);
     return res.json({

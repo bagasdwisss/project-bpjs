@@ -7,22 +7,38 @@ import {
   Mail, Phone, IdCard
 } from 'lucide-react';
 import userService from '../../services/userService';
+import api from '../../services/api';
 
 const ParticipantDetails = ({ participant, onClose }) => {
   const [progressData, setProgressData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [passingMin, setPassingMin] = useState(75);
   const { user } = useContext(AuthContext);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   // Fetch data dari database
   const fetchProgressData = async () => {
     try {
       setLoading(true);
       
-      // Gunakan service yang sama seperti di Dashboard
-      const response = await userService.getUserProgress(participant.user_id);
+      const [response, cfgRes] = await Promise.all([
+        userService.getUserProgress(participant.user_id),
+        api.get('/grading/configuration').catch(() => null)
+      ]);
+
+      const cfgTarget = Number(cfgRes?.data?.data?.targets?.max_akuisisi_bpu) || 20;
+      const cfgPass = Number(cfgRes?.data?.data?.cutoffs?.grade_b) || 75;
+      setPassingMin(cfgPass);
       
       if (response.data.success && response.data.data) {
-        processParticipantData(response.data.data);
+        processParticipantData(response.data.data, cfgTarget);
       } else {
         setProgressData(null);
       }
@@ -35,7 +51,7 @@ const ParticipantDetails = ({ participant, onClose }) => {
   };
 
   // Process data peserta dari database
-  const processParticipantData = (userData) => {
+  const processParticipantData = (userData, targetAkuisisi = 20) => {
     const kunjunganBPU = userData.kunjungan_bpu || 0;
     const hasilAkuisisiBPU = userData.hasil_akuisisi_bpu || 0;
     const kunjunganPU = userData.kunjungan_pu || 0;
@@ -47,7 +63,6 @@ const ParticipantDetails = ({ participant, onClose }) => {
     const grade = userData.grade || '-';
 
     // Hitung progress
-    const targetAkuisisi = 20;
     const progressAkuisisi = hasilAkuisisiBPU;
     const progressPercentage = Math.round((progressAkuisisi / targetAkuisisi) * 100);
 
@@ -101,8 +116,14 @@ const ParticipantDetails = ({ participant, onClose }) => {
   if (!participant) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-      <div className="bg-white rounded-[26px] border border-[#EAE9E4] max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div
+      className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150 overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Detail Peserta ${participant.full_name}`}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-[26px] border border-[#EAE9E4] max-w-4xl w-full max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#EAE9E4]">
           <div className="flex items-center space-x-3">
@@ -185,7 +206,7 @@ const ParticipantDetails = ({ participant, onClose }) => {
                     </div>
                   </div>
                   <div className="text-[10px] font-bold text-[#121214]/70 pt-2 border-t border-[#121214]/15">
-                    Status: {progressData.metrics.nilai >= 75 ? 'Memenuhi Standar Kelulusan' : 'Perlu Bimbingan'}
+                    Status: {progressData.metrics.nilai >= passingMin ? 'Memenuhi Standar Kelulusan' : 'Perlu Bimbingan'}
                   </div>
                 </div>
               </div>

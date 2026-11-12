@@ -20,7 +20,7 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, maxWidth = '
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain" role="dialog" aria-modal="true" aria-label={title || 'Dialog'}>
       <div 
         className="fixed inset-0 bg-[#121214]/40 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 

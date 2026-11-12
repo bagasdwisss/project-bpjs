@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { query } from '../db.js';
+import { query, pool } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 
@@ -29,6 +29,33 @@ router.get('/', authenticateToken, async (req, res) => {
 /**
  * POST /api/admin/batches
  */
+const VALID_BATCH_STATUSES = ['Aktif', 'Selesai', 'Mendatang'];
+const BATCH_STATUS_ALIASES = {
+  aktif: 'Aktif',
+  active: 'Aktif',
+  selesai: 'Selesai',
+  completed: 'Selesai',
+  done: 'Selesai',
+  mendatang: 'Mendatang',
+  direncanakan: 'Mendatang',
+  planned: 'Mendatang',
+  upcoming: 'Mendatang'
+};
+
+/** Normalize legacy/case-variant batch status names to the DB CHECK constraint values. */
+function parseBatchStatus(rawStatus, fallback = null) {
+  if (rawStatus === undefined || rawStatus === null || String(rawStatus).trim() === '') {
+    return { status: fallback };
+  }
+  const normalized = BATCH_STATUS_ALIASES[String(rawStatus).trim().toLowerCase()];
+  if (!normalized || !VALID_BATCH_STATUSES.includes(normalized)) {
+    return {
+      error: `Status batch "${rawStatus}" tidak valid. Gunakan salah satu: ${VALID_BATCH_STATUSES.join(', ')}.`
+    };
+  }
+  return { status: normalized };
+}
+
 router.post('/', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const { batch_name, start_date, end_date, status } = req.body;
@@ -40,11 +67,19 @@ router.post('/', authenticateToken, requireRole('Administrator'), async (req, re
       });
     }
 
+    const { status: normalizedStatus, error: statusError } = parseBatchStatus(status, 'Aktif');
+    if (statusError) {
+      return res.status(400).json({
+        success: false,
+        message: statusError
+      });
+    }
+
     const result = await query(
       `INSERT INTO batches (batch_name, start_date, end_date, status, created_at)
        VALUES ($1, $2, $3, COALESCE($4, 'Aktif'), CURRENT_TIMESTAMP)
        RETURNING *`,
-      [batch_name, start_date, end_date, status || 'Aktif']
+      [batch_name, start_date, end_date, normalizedStatus]
     );
 
     await logActivity({
@@ -105,6 +140,14 @@ router.put('/:id', authenticateToken, requireRole('Administrator'), async (req, 
     const { id } = req.params;
     const { batch_name, start_date, end_date, status } = req.body;
 
+    const { status: normalizedStatus, error: statusError } = parseBatchStatus(status, null);
+    if (statusError) {
+      return res.status(400).json({
+        success: false,
+        message: statusError
+      });
+    }
+
     const result = await query(
       `UPDATE batches
        SET batch_name = COALESCE($1, batch_name),
@@ -113,7 +156,7 @@ router.put('/:id', authenticateToken, requireRole('Administrator'), async (req, 
            status = COALESCE($4, status)
        WHERE batch_id = $5
        RETURNING *`,
-      [batch_name, start_date, end_date, status, id]
+      [batch_name, start_date, end_date, normalizedStatus, id]
     );
 
     if (result.rows.length === 0) {
@@ -143,16 +186,23 @@ router.put('/:id', authenticateToken, requireRole('Administrator'), async (req, 
  * Activates new batch and resets participants list (retaining only Administrator accounts)
  */
 router.post('/:id/start-fresh', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { id } = req.params;
+    const batchId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(batchId) || batchId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID batch tidak valid.' });
+    }
     const { reset_coordinators = false } = req.body;
 
+    await client.query('BEGIN');
+
     // 1. Mark other batches as Selesai
-    await query(`UPDATE batches SET status = 'Selesai' WHERE batch_id != $1`, [id]);
+    await client.query(`UPDATE batches SET status = 'Selesai' WHERE batch_id != $1`, [batchId]);
 
     // 2. Activate this batch
-    const batchRes = await query(`UPDATE batches SET status = 'Aktif' WHERE batch_id = $1 RETURNING *`, [id]);
+    const batchRes = await client.query(`UPDATE batches SET status = 'Aktif' WHERE batch_id = $1 RETURNING *`, [batchId]);
     if (batchRes.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ success: false, message: 'Batch tidak ditemukan.' });
     }
     const batch = batchRes.rows[0];
@@ -162,8 +212,10 @@ router.post('/:id/start-fresh', authenticateToken, requireRole('Administrator'),
     if (reset_coordinators) {
       deleteSql = `DELETE FROM users WHERE role_id IN (1, 2)`;
     }
-    const deletedRes = await query(deleteSql);
+    const deletedRes = await client.query(deleteSql);
     const resetCount = deletedRes.rowCount || 0;
+
+    await client.query('COMMIT');
 
     await logActivity({
       userId: req.user.user_id,
@@ -180,7 +232,10 @@ router.post('/:id/start-fresh', authenticateToken, requireRole('Administrator'),
       resetCount
     });
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
     return res.status(500).json({ success: false, message: error.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -213,29 +268,49 @@ router.delete('/:id', authenticateToken, requireRole('Administrator'), async (re
  * POST /api/admin/batches/:id/assign-users
  */
 router.post('/:id/assign-users', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { id } = req.params;
-    const { user_ids } = req.body;
+    const batchId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(batchId) || batchId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID batch tidak valid.' });
+    }
+    const { user_ids, mode = 'sync' } = req.body;
 
     if (!Array.isArray(user_ids)) {
       return res.status(400).json({ success: false, message: 'user_ids harus berupa array.' });
     }
 
-    for (const uId of user_ids) {
-      await query(
+    const batchExists = await client.query(`SELECT batch_id FROM batches WHERE batch_id = $1`, [batchId]);
+    if (batchExists.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Batch tidak ditemukan.' });
+    }
+
+    const cleanIds = [...new Set(user_ids.map(u => parseInt(u, 10)).filter(n => Number.isInteger(n) && n > 0))];
+
+    await client.query('BEGIN');
+    if (mode !== 'add') {
+      await client.query(`DELETE FROM user_batches WHERE batch_id = $1`, [batchId]);
+    }
+    for (const uId of cleanIds) {
+      await client.query(
         `INSERT INTO user_batches (user_id, batch_id, assigned_at)
          VALUES ($1, $2, CURRENT_TIMESTAMP)
-         ON CONFLICT DO NOTHING`,
-        [uId, id]
+         ON CONFLICT (user_id, batch_id) DO NOTHING`,
+        [uId, batchId]
       );
     }
+    await client.query('COMMIT');
 
     return res.json({
       success: true,
-      message: `${user_ids.length} pengguna berhasil ditugaskan ke batch.`
+      message: `${cleanIds.length} pengguna berhasil ditugaskan ke batch.`,
+      count: cleanIds.length
     });
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
     return res.status(500).json({ success: false, message: error.message });
+  } finally {
+    client.release();
   }
 });
 

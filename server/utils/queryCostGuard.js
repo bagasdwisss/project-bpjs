@@ -10,20 +10,20 @@ const budgetMetrics = {
 };
 
 /**
- * Executes a query with a strict statement_timeout budget.
- * Automatically cancels runaway queries when the budget is exceeded.
+ * Executes a query inside a transaction with a strict transaction-scoped statement_timeout budget.
  */
 export async function runBudgetedQuery(sql, params = [], timeoutMs = 2500) {
+  const safeTimeoutMs = Math.min(Math.max(parseInt(timeoutMs, 10) || 2500, 100), 30000);
   const client = await pool.connect();
   const startTime = Date.now();
   budgetMetrics.totalBudgetedQueries++;
 
   try {
-    // 1. Set local statement timeout for this specific query transaction
-    await client.query(`SET LOCAL statement_timeout = '${timeoutMs}ms'`);
+    await client.query('BEGIN');
+    await client.query(`SELECT set_config('statement_timeout', $1, true)`, [`${safeTimeoutMs}ms`]);
 
-    // 2. Execute query
     const res = await client.query(sql, params);
+    await client.query('COMMIT');
     const duration = Date.now() - startTime;
 
     budgetMetrics.queriesWithinBudget++;
@@ -35,7 +35,7 @@ export async function runBudgetedQuery(sql, params = [], timeoutMs = 2500) {
       slowQueryHistory.unshift({
         sql: sql.substring(0, 120),
         durationMs: duration,
-        budgetMs: timeoutMs,
+        budgetMs: safeTimeoutMs,
         status: 'WARNING_SLOW',
         executedAt: new Date().toISOString()
       });
@@ -44,36 +44,30 @@ export async function runBudgetedQuery(sql, params = [], timeoutMs = 2500) {
 
     return res;
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     const duration = Date.now() - startTime;
-    // Check if cancelled due to statement timeout (PostgreSQL error 57014: query_canceled)
     if (err.code === '57014' || err.message?.includes('statement timeout')) {
       budgetMetrics.cancelledByTimeout++;
       slowQueryHistory.unshift({
         sql: sql.substring(0, 120),
         durationMs: duration,
-        budgetMs: timeoutMs,
+        budgetMs: safeTimeoutMs,
         status: 'CANCELLED_EXCEEDED_BUDGET',
         executedAt: new Date().toISOString()
       });
       if (slowQueryHistory.length > 50) slowQueryHistory.pop();
 
-      const timeoutError = new Error(`Query dibatalkan otomatis oleh Query Cost Guard karena melebihi budget waktu ${timeoutMs}ms.`);
+      const timeoutError = new Error(`Query dibatalkan otomatis oleh Query Cost Guard karena melebihi budget waktu ${safeTimeoutMs}ms.`);
       timeoutError.code = 'QUERY_BUDGET_EXCEEDED';
-      timeoutError.timeoutMs = timeoutMs;
+      timeoutError.timeoutMs = safeTimeoutMs;
       throw timeoutError;
     }
     throw err;
   } finally {
-    try {
-      await client.query(`RESET statement_timeout`);
-    } catch (_) {}
     client.release();
   }
 }
 
-/**
- * Returns current metrics and slow query execution logs
- */
 export function getQueryBudgetMetrics() {
   return {
     metrics: budgetMetrics,

@@ -991,12 +991,17 @@ async function runEndToEndTests() {
   );
 
   // 8.7 Bloom Filter In-Memory Indexing untuk Cek Cepat Duplikasi NIK & NIM
-  const bloomHitRes = await api('/api/participant/check-duplicate-fast?identifier=ADM001');
-  const bloomMissRes = await api('/api/participant/check-duplicate-fast?identifier=RANDOM_NON_EXISTENT_ID_9999');
+  const bloomUnauthRes = await api('/api/participant/check-duplicate-fast?identifier=ADM001');
+  const bloomHitRes = await api('/api/participant/check-duplicate-fast?identifier=ADM001', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  const bloomMissRes = await api('/api/participant/check-duplicate-fast?identifier=RANDOM_NON_EXISTENT_ID_9999', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
   recordTest(
     '8.7 Bloom Filter In-Memory Indexing (/api/participant/check-duplicate-fast)',
-    bloomMissRes.data?.isDuplicate === false && bloomMissRes.data?.queriedDatabase === false,
-    `Miss: 0ms DB Query (100% Disjoint Match) | Duplicate Check: ${bloomHitRes.data?.isDuplicate}`,
+    bloomUnauthRes.status === 401 && bloomHitRes.status === 200 && bloomMissRes.status === 200 && bloomMissRes.data?.isDuplicate === false,
+    `Unauth: ${bloomUnauthRes.status} | Miss DB Query: ${bloomMissRes.data?.queriedDatabase} | Hit(ADM001): ${bloomHitRes.data?.isDuplicate}`,
     bloomMissRes.duration
   );
 
@@ -1131,12 +1136,17 @@ async function runEndToEndTests() {
   );
 
   // 8.18 Server-Sent Events (SSE) Heartbeat untuk Live Presence Radar
-  const sseRes = await fetch(`${BASE_URL}/api/coordinator/presence-stream`);
+  const sseUnauthRes = await fetch(`${BASE_URL}/api/coordinator/presence-stream`);
+  const sseCtrl = new AbortController();
+  const sseRes = await fetch(`${BASE_URL}/api/coordinator/presence-stream?token=${encodeURIComponent(koorToken)}`, {
+    signal: sseCtrl.signal
+  });
   const sseContentType = sseRes.headers.get('content-type') || '';
+  try { sseCtrl.abort(); } catch (_) {}
   recordTest(
     '8.18 SSE Heartbeat Presence Stream (/api/coordinator/presence-stream)',
-    sseRes.status === 200 && sseContentType.includes('text/event-stream'),
-    `Stream Content-Type: ${sseContentType}`,
+    sseUnauthRes.status === 401 && sseRes.status === 200 && sseContentType.includes('text/event-stream'),
+    `Unauth: ${sseUnauthRes.status} | Stream Content-Type: ${sseContentType}`,
     15
   );
 
@@ -1413,10 +1423,248 @@ async function runEndToEndTests() {
     1
   );
 
+  // =============================================================
+  // TAHAP 10: AUDIT REGRESI, AUTO-ABSENCE, KEAMANAN & DATA INTEGRITAS
+  // =============================================================
+  console.log(`\n${colors.bold}${colors.blue}=== TAHAP 10: AUDIT REGRESI & KEAMANAN END-TO-END ===${colors.reset}`);
+
+  // Track temporary E2E rows for cleanup
+  let tempBatchId = null;
+  let tempLeaveId = null;
+  let tempDocId = null;
+  let tempBpuId = null;
+
+  // 10.1 Auto-Absence Cron & Force Trigger (/api/cron/auto-absence + /api/attendance/trigger-auto-absence)
+  const cronAutoRes = await api('/api/cron/auto-absence', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  const forceAutoRes = await api('/api/attendance/trigger-auto-absence', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${koorToken}` },
+    body: JSON.stringify({ force: true })
+  });
+  recordTest(
+    '10.1 Auto-Absence Cron & Koordinator Sweep (/api/cron/auto-absence)',
+    cronAutoRes.status === 200 && cronAutoRes.data?.success === true && forceAutoRes.status === 200 && forceAutoRes.data?.success === true,
+    `Cron: ${cronAutoRes.data?.data?.date || 'OK'} | Sweep markedAbsent: ${forceAutoRes.data?.data?.markedAbsent ?? 0}`,
+    cronAutoRes.duration + forceAutoRes.duration
+  );
+
+  // 10.2 Batch Assign 404 Validation & Transactional Sync
+  const badBatchRes = await api('/api/admin/batches/999999/assign-users', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ user_ids: [pesertaUserId], mode: 'sync' })
+  });
+  const createBatchRes = await api('/api/admin/batches', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ batch_name: 'E2E_TEMP_BATCH', start_date: '2099-01-01', end_date: '2099-02-01', status: 'Mendatang' })
+  });
+  tempBatchId = createBatchRes.data?.data?.batch_id || null;
+  let assignSyncOk = false;
+  if (tempBatchId) {
+    const a1 = await api(`/api/admin/batches/${tempBatchId}/assign-users`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ user_ids: [pesertaUserId], mode: 'sync' })
+    });
+    const a2 = await api(`/api/admin/batches/${tempBatchId}/assign-users`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ user_ids: [], mode: 'sync' })
+    });
+    assignSyncOk = a1.status === 200 && a2.status === 200;
+    await api(`/api/admin/batches/${tempBatchId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${adminToken}` } });
+  }
+  recordTest(
+    '10.2 Batch Assign 404 & Transactional Sync (/api/admin/batches/:id/assign-users)',
+    badBatchRes.status === 404 && Boolean(tempBatchId) && assignSyncOk,
+    `Invalid Batch HTTP: ${badBatchRes.status} | Temp Sync OK: ${assignSyncOk}`,
+    badBatchRes.duration + createBatchRes.duration
+  );
+
+  // 10.3 Grading Configuration UPSERT Idempotency
+  const cfgGetRes = await api('/api/grading/configuration', {
+    headers: { Authorization: `Bearer ${adminToken}` }
+  });
+  const cfgRaw = cfgGetRes.data?.data?.raw || {};
+  const cfgPutRes = await api('/api/grading/configuration', {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify(cfgRaw)
+  });
+  recordTest(
+    '10.3 Grading Configuration UPSERT (/api/grading/configuration)',
+    cfgGetRes.status === 200 && cfgPutRes.status === 200 && cfgPutRes.data?.success === true,
+    `Target BPU: ${cfgPutRes.data?.data?.target_akuisisi_bpu}`,
+    cfgGetRes.duration + cfgPutRes.duration
+  );
+
+  // 10.4 Multi-Day Leave Backfill Overriding Auto-Alfa
+  await query(
+    `INSERT INTO attendance_records (user_id, attendance_date, check_in_time, status, notes)
+     VALUES ($1, '2099-01-10', '17:00:00', 'Alfa', 'E2E_TEST_ALFA')
+     ON CONFLICT (user_id, attendance_date) DO UPDATE SET status = 'Alfa'`,
+    [pesertaUserId]
+  );
+  const leaveCreateRes = await api('/api/leaves', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${pesertaToken}` },
+    body: JSON.stringify({
+      leave_type: 'Sakit',
+      start_date: '2099-01-10',
+      end_date: '2099-01-11',
+      reason: 'E2E_TEST_LEAVE multi-day override check'
+    })
+  });
+  tempLeaveId = leaveCreateRes.data?.data?.id || null;
+  let leaveOverrideOk = false;
+  if (tempLeaveId) {
+    const approveLeaveRes = await api(`/api/leaves/${tempLeaveId}/status`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${koorToken}` },
+      body: JSON.stringify({ status: 'Disetujui', coordinator_notes: 'E2E approved' })
+    });
+    const ovCheck = await query(
+      `SELECT attendance_date::text AS d, status FROM attendance_records WHERE user_id = $1 AND attendance_date BETWEEN '2099-01-10' AND '2099-01-11' ORDER BY attendance_date`,
+      [pesertaUserId]
+    );
+    leaveOverrideOk = approveLeaveRes.status === 200 && ovCheck.rows.length === 2 && ovCheck.rows.every(r => r.status === 'Sakit');
+  }
+  recordTest(
+    '10.4 Multi-Day Leave Overriding Auto-Alfa (/api/leaves/:id/status)',
+    Boolean(tempLeaveId) && leaveOverrideOk,
+    `Leave ID: ${tempLeaveId} | Multi-day Alfa -> Sakit: ${leaveOverrideOk}`,
+    leaveCreateRes.duration
+  );
+
+  // 10.5 Real Document Upload (DataURI) & Download Byte Verification + Count Increment
+  const testPdfB64 = 'data:application/pdf;base64,' + Buffer.from('%PDF-1.4\n%E2E_BPJSTK_DOC_VERIFY\n').toString('base64');
+  const docUpRes = await api('/api/documents/upload', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({
+      file_name: 'E2E_Verify_Doc.pdf',
+      file_data: testPdfB64,
+      file_type: 'pdf',
+      category: 'submissions',
+      description: 'E2E document persistence test'
+    })
+  });
+  tempDocId = docUpRes.data?.data?.id || null;
+  let docDlOk = false;
+  if (tempDocId) {
+    const docDlRes = await api(`/api/documents/${tempDocId}/download`, {
+      headers: { Authorization: `Bearer ${pesertaToken}` }
+    });
+    const docDbCheck = await query(`SELECT download_count FROM documents WHERE document_id = $1`, [tempDocId]);
+    docDlOk = docDlRes.status === 200 && String(docDlRes.data || '').includes('%PDF-1.4') && Number(docDbCheck.rows[0]?.download_count || 0) >= 1;
+  }
+  recordTest(
+    '10.5 Real Document Upload & Binary Download (/api/documents/upload & :id/download)',
+    docUpRes.status === 201 && docDlOk,
+    `Doc ID: ${tempDocId} | Download & Counter OK: ${docDlOk}`,
+    docUpRes.duration
+  );
+
+  // 10.6 Security & RBAC Hardening Checks
+  const idorProgSummary = await api('/api/users/progress/summary', {
+    headers: { Authorization: `Bearer ${pesertaToken}` }
+  });
+  const progSummaryKeys = Object.keys(idorProgSummary.data?.data || {});
+  const progSummaryScoped = idorProgSummary.status === 200 && progSummaryKeys.every(k => Number(k) === Number(pesertaUserId));
+  const idorCoordProgress = await api('/api/coordinator/participants/progress', {
+    headers: { Authorization: `Bearer ${pesertaToken}` }
+  });
+  const idorFuzzy = await api('/api/search/fuzzy?q=test&entity=peserta', {
+    headers: { Authorization: `Bearer ${pesertaToken}` }
+  });
+  const wrongPinAdmin = await api('/api/admin/security/verify-pin', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ pin: '000000' })
+  });
+  const pinRbacPeserta = await api('/api/admin/security/verify-pin', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${pesertaToken}` },
+    body: JSON.stringify({ pin: '000000' })
+  });
+  const wrongPassChangeRes = await api('/api/auth/change-password', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ current_password: 'DEFINITELY_WRONG_OLD_PASSWORD_E2E', new_password: 'NewPassword999!' })
+  });
+  const missingPassChangeRes = await api('/api/auth/change-password', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ new_password: 'NewPassword999!' })
+  });
+  const createBpuRes = await api('/api/participant/peserta', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${pesertaToken}` },
+    body: JSON.stringify({
+      nama_peserta: 'E2E Test BPU NonSelfApprove',
+      nik: '3271019999000099',
+      tanggal_pendaftaran: '2026-11-12',
+      no_telepon: '081299990000',
+      pekerjaan: 'Pedagang',
+      program_terdaftar: 'JKK & JKM (2 Program)',
+      periode_pelatihan: '1 Bulan',
+      biaya: 16800,
+      status_pendaftaran: 'PEMBAYARAN BERHASIL'
+    })
+  });
+  tempBpuId = createBpuRes.data?.data?.peserta_id || null;
+  let selfApproveBlocked = false;
+  if (tempBpuId) {
+    const initialStatus = createBpuRes.data?.data?.status_pendaftaran;
+    const noProofPayRes = await api(`/api/participant/acquisition-result/${tempBpuId}/confirm-payment`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${pesertaToken}` }
+    });
+    const withProofPayRes = await api(`/api/participant/acquisition-result/${tempBpuId}/confirm-payment`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${pesertaToken}` },
+      body: JSON.stringify({ bukti_pembayaran_link: 'data:image/png;base64,iVBORw0KGgo=' })
+    });
+    selfApproveBlocked =
+      initialStatus !== 'PEMBAYARAN BERHASIL' &&
+      noProofPayRes.status === 403 &&
+      withProofPayRes.status === 200 &&
+      withProofPayRes.data?.data?.status_pendaftaran === 'MENUNGGU VERIFIKASI';
+    await api(`/api/participant/peserta/${tempBpuId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${pesertaToken}` }
+    });
+    tempBpuId = null;
+  }
+  recordTest(
+    '10.6 Security Hardening (IDOR, PIN, Password, Anti Self-Approve BPU)',
+    progSummaryScoped &&
+      idorCoordProgress.status === 403 &&
+      idorFuzzy.status === 403 &&
+      wrongPinAdmin.status === 401 &&
+      pinRbacPeserta.status === 403 &&
+      wrongPassChangeRes.status === 400 &&
+      missingPassChangeRes.status === 400 &&
+      selfApproveBlocked,
+    `IDOR(${progSummaryScoped}/${idorCoordProgress.status}/${idorFuzzy.status}) PIN(${wrongPinAdmin.status}/${pinRbacPeserta.status}) Pass(${wrongPassChangeRes.status}/${missingPassChangeRes.status}) SelfPayBlocked(${selfApproveBlocked})`,
+    idorProgSummary.duration + wrongPinAdmin.duration + createBpuRes.duration
+  );
+
   // -------------------------------------------------------------
   // AUTOMATED TEST DATA CLEANUP (ANTI-SAMPAH DATABASE GUARANTEE)
   // -------------------------------------------------------------
   try {
+    if (tempDocId) await query(`DELETE FROM documents WHERE document_id = $1`, [tempDocId]);
+    await query(`DELETE FROM documents WHERE file_name = 'E2E_Verify_Doc.pdf'`);
+    if (tempLeaveId) await query(`DELETE FROM leave_requests WHERE id = $1`, [tempLeaveId]);
+    if (tempBpuId) await query(`DELETE FROM peserta WHERE peserta_id = $1`, [tempBpuId]);
+    await query(`DELETE FROM peserta WHERE nama_peserta = 'E2E Test BPU NonSelfApprove'`);
+    await query(`DELETE FROM attendance_records WHERE attendance_date IN ('2099-01-10', '2099-01-11') AND user_id = $1`, [pesertaUserId]);
+    if (tempBatchId) await query(`DELETE FROM batches WHERE batch_id = $1`, [tempBatchId]);
+    await query(`DELETE FROM batches WHERE batch_name = 'E2E_TEMP_BATCH'`);
     await query(`DELETE FROM broadcast_messages WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR content ILIKE '%e2e%' OR content ILIKE '%end-to-end%' OR content ILIKE '%pengujian%'`);
     await query(`DELETE FROM broadcast_dismissals WHERE broadcast_id NOT IN (SELECT broadcast_id FROM broadcast_messages)`);
     await query(`DELETE FROM notifications WHERE title ILIKE '%E2E%' OR title ILIKE '%Test%' OR title ILIKE '%Uji%' OR message ILIKE '%end-to-end%' OR message ILIKE '%e2e%' OR message ILIKE '%pengujian%' OR type = 'broadcast'`);

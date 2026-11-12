@@ -8,15 +8,15 @@ export default function PwaUpdateNudge() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // 1. Listen for standard Service Worker update events
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!reloading) {
-          window.location.reload();
-        }
-      });
+    const handleControllerChange = () => {
+      if (!reloading) {
+        window.location.reload();
+      }
+    };
 
-      // Check registration
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
       navigator.serviceWorker.getRegistration().then(reg => {
         if (reg) {
           reg.addEventListener('updatefound', () => {
@@ -30,17 +30,19 @@ export default function PwaUpdateNudge() {
             }
           });
         }
-      });
+      }).catch(() => {});
     }
 
-    // 2. Custom application update trigger
     const handleCustomUpdate = () => setUpdateAvailable(true);
     window.addEventListener('bpjstk:pwa-update-ready', handleCustomUpdate);
 
     return () => {
       window.removeEventListener('bpjstk:pwa-update-ready', handleCustomUpdate);
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      }
     };
-  }, [reloading]);
+  }, []);
 
   const handleApplyUpdate = () => {
     setReloading(true);

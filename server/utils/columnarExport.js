@@ -42,9 +42,10 @@ export function convertRowsToColumnarVectors(rows) {
 /**
  * Exports data in Parquet-compatible vectorised columnar format
  */
-export async function generateColumnarExport(entityType = 'attendance') {
+export async function generateColumnarExport(entityType = 'attendance', coordinatorId = null) {
   let rows = [];
   let tableName = 'attendance_records';
+  const params = coordinatorId ? [coordinatorId] : [];
 
   if (entityType === 'grades' || entityType === 'scores') {
     tableName = 'scores';
@@ -52,16 +53,18 @@ export async function generateColumnarExport(entityType = 'attendance') {
       SELECT s.score_id as id, s.user_id, u.full_name, s.module_id, s.score_value, s.comments, s.graded_at
       FROM scores s
       LEFT JOIN users u ON s.user_id = u.user_id
+      ${coordinatorId ? 'WHERE u.coordinator_id = $1' : ''}
       ORDER BY s.score_id ASC
-    `);
+    `, params);
     rows = res.rows;
   } else if (entityType === 'peserta') {
     tableName = 'peserta';
     const res = await query(`
       SELECT p.peserta_id as id, p.user_id, p.nama_peserta, p.status_pendaftaran, p.created_at
       FROM peserta p
+      ${coordinatorId ? 'JOIN users u ON p.user_id = u.user_id WHERE u.coordinator_id = $1' : ''}
       ORDER BY p.peserta_id ASC
-    `);
+    `, params);
     rows = res.rows;
   } else {
     tableName = 'attendance_records';
@@ -69,9 +72,10 @@ export async function generateColumnarExport(entityType = 'attendance') {
       SELECT a.attendance_id as id, a.user_id, u.full_name, a.attendance_date, a.check_in_time, a.status
       FROM attendance_records a
       LEFT JOIN users u ON a.user_id = u.user_id
+      ${coordinatorId ? 'WHERE u.coordinator_id = $1' : ''}
       ORDER BY a.attendance_id ASC
       LIMIT 1000
-    `);
+    `, params);
     rows = res.rows;
   }
 

@@ -17,7 +17,8 @@ import {
   Sparkles,
   ExternalLink
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../../services/api';
+import { generateQrDataUrl } from '../../utils/qrMatrix';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
 
 // Code128-B Minimal Pure JS/SVG Barcode Generator for crisp, real barcode scanning
@@ -67,13 +68,11 @@ export default function DigitalIdCard() {
   const [codeType, setCodeType] = useState('qr'); // 'qr' or 'barcode'
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
+  const [localQrDataUrl, setLocalQrDataUrl] = useState('');
 
   const fetchCardData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/participant/digital-id-card', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/participant/digital-id-card');
       if (res.data?.success) {
         setCardData(res.data);
         setSecondsRemaining(res.data.qr?.secondsRemaining || 60);
@@ -88,6 +87,16 @@ export default function DigitalIdCard() {
   useEffect(() => {
     fetchCardData();
   }, []);
+
+  useEffect(() => {
+    const payloadStr = cardData?.qr?.scanText || cardData?.qr?.payload;
+    if (!payloadStr) return;
+    let active = true;
+    generateQrDataUrl(payloadStr, { width: 260, colorDark: '#121214', colorLight: '#FFFFFF' })
+      .then((url) => { if (active) setLocalQrDataUrl(url); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [cardData?.qr?.scanText, cardData?.qr?.payload]);
 
   // 1-second countdown timer for dynamic rolling HMAC TOTP
   useEffect(() => {
@@ -135,9 +144,8 @@ export default function DigitalIdCard() {
   const { card, qr } = cardData;
   const progressPct = Math.round((secondsRemaining / 60) * 100);
 
-  // Real scannable QR Image URL
-  const qrDataToEncode = qr.scanText || qr.payload;
-  const realQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrDataToEncode)}&color=12-12-14&bgcolor=FFFFFF&margin=1`;
+  // Real scannable QR Data URI rendered locally via ISO/IEC 18004 QR generator
+  const realQrImageUrl = localQrDataUrl;
 
   // Real 1D Barcode SVG Data
   const barcodeValue = card.barcodeValue || `BPJSTK-${card.uniqueId}`;
@@ -304,13 +312,19 @@ export default function DigitalIdCard() {
           {codeType === 'qr' && (
             <div className="flex flex-col items-center w-full animate-in fade-in duration-200">
               <div className="p-3 bg-white rounded-xl border-2 border-[#121214] shadow-sm flex flex-col items-center">
-                <img 
-                  src={realQrImageUrl}
-                  alt={`QR Code ID Card ${card.uniqueId}`}
-                  className="w-44 h-44 object-contain"
-                  loading="eager"
-                  decoding="async"
-                />
+                {realQrImageUrl ? (
+                  <img 
+                    src={realQrImageUrl}
+                    alt={`QR Code ID Card ${card.uniqueId}`}
+                    className="w-44 h-44 object-contain"
+                    loading="eager"
+                    decoding="async"
+                  />
+                ) : (
+                  <div className="w-44 h-44 flex items-center justify-center bg-slate-50 rounded-lg">
+                    <RefreshCw className="w-6 h-6 text-[#121214] animate-spin" />
+                  </div>
+                )}
               </div>
 
               <div className="mt-2 text-center">
@@ -327,7 +341,7 @@ export default function DigitalIdCard() {
           {/* VIEW B: REAL SCANNABLE 1D BARCODE */}
           {codeType === 'barcode' && (
             <div className="flex flex-col items-center w-full py-2 animate-in fade-in duration-200">
-              <div className="w-full bg-white p-3 rounded-xl border-2 border-[#121214] flex flex-col items-center overflow-x-auto">
+              <div className="w-full bg-white p-3 rounded-xl border-2 border-[#121214] flex flex-col items-center overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Barcode 1D Kartu Digital">
                 <svg 
                   viewBox={`0 0 ${barcodeBars.totalWidth} 75`} 
                   className="w-full max-w-[280px] h-16"

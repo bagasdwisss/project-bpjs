@@ -41,7 +41,7 @@ export const TableSkeleton = ({ rows = 5, cols = 5, title = "Memuat Data..." }) 
       <Skeleton className="w-36 h-6 rounded-md" />
       <Skeleton className="w-48 h-8 rounded-full" />
     </div>
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto focus:outline-none" tabIndex={0} role="region" aria-label={title}>
       <table className="min-w-full divide-y divide-[#EAE9E4]">
         <thead className="bg-[#FAF9F6]">
           <tr>

@@ -89,6 +89,18 @@ const Certificates = () => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowGenerateModal(false);
+        setShowBulkModal(false);
+        setShowReissueModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Set of participant user_ids who ALREADY have a certificate issued
   const issuedUserIds = new Set(
     certificates
@@ -236,7 +248,12 @@ const Certificates = () => {
     const pName = cert?.participant_name || cert?.participant || cert?.report_name || '';
     const certNum = cert?.certificate_number || '';
     const matchesSearch = pName.toLowerCase().includes(searchQuery.toLowerCase()) || certNum.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || cert?.status === filterStatus;
+    const statusNorm = (cert?.status || 'Terbit').toLowerCase();
+    const matchesStatus =
+      filterStatus === 'all' ||
+      (filterStatus === 'issued' && !cert?.reissue_requested && (statusNorm.includes('terbit') || statusNorm.includes('issued'))) ||
+      (filterStatus === 'pending' && !!cert?.reissue_requested) ||
+      statusNorm === filterStatus.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
@@ -407,7 +424,7 @@ const Certificates = () => {
               <p className="text-xs text-[#121214]/50 mt-1">Gunakan tombol "Terbitkan Sertifikat" atau "Terbitkan Massal" di atas.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar E-Sertifikat Terdaftar">
               <table className="w-full text-left text-xs sm:text-sm min-w-[760px]">
                 <thead>
                   <tr className="border-b border-[#EAE9E4] bg-[#FAF9F6] text-[#121214]/60 font-bold uppercase text-[11px] tracking-wider">
@@ -548,8 +565,14 @@ const Certificates = () => {
             MODAL 1: SINGLE GENERATE CERTIFICATE (With Password & Dedicated Type Design)
         ========================================================================== */}
         {showGenerateModal && (
-          <div className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white rounded-[26px] max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-8">
+          <div
+            className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Terbitkan Sertifikat Resmi"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowGenerateModal(false); }}
+          >
+            <div className="bg-white rounded-[26px] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-2xl bg-[#FCE373]/40 border border-[#FCE373] flex items-center justify-center text-[#856B12]">
@@ -695,8 +718,14 @@ const Certificates = () => {
             MODAL 2: BULK ISSUE CERTIFICATES (Batch Penerbitan Massal)
         ========================================================================== */}
         {showBulkModal && (
-          <div className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white rounded-[26px] max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-8">
+          <div
+            className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Penerbitan Sertifikat Massal"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowBulkModal(false); }}
+          >
+            <div className="bg-white rounded-[26px] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800">
@@ -844,8 +873,14 @@ const Certificates = () => {
             MODAL 3: REQUEST RE-ISSUE / CORRECTION TO ADMIN (HAPUS BERSIH PROTOCOL)
         ========================================================================== */}
         {showReissueModal && reissueTargetCert && (
-          <div className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white rounded-[26px] max-w-md w-full p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-8">
+          <div
+            className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ajukan Koreksi Sertifikat"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowReissueModal(false); }}
+          >
+            <div className="bg-white rounded-[26px] max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800">

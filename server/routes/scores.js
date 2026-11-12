@@ -72,7 +72,21 @@ router.get('/statistics', authenticateToken, async (req, res) => {
  */
 router.get('/participant/:id', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const targetUserId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID peserta tidak valid.' });
+    }
+
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && req.user.user_id !== targetUserId) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat melihat nilai Anda sendiri.' });
+    }
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     const result = await query(
       `SELECT s.*, m.module_name, m.max_score, u.full_name as coordinator_name
        FROM scores s
@@ -80,7 +94,7 @@ router.get('/participant/:id', authenticateToken, async (req, res) => {
        LEFT JOIN users u ON s.coordinator_id = u.user_id
        WHERE s.user_id = $1
        ORDER BY s.graded_at DESC`,
-      [id]
+      [targetUserId]
     );
 
     return res.json({ success: true, data: result.rows });
@@ -95,12 +109,25 @@ router.get('/participant/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { user_id, module_id, score_value, comments, graded_at } = req.body;
+    const targetUserId = parseInt(user_id, 10);
+    const numScore = parseFloat(score_value);
+
+    if (!Number.isInteger(targetUserId) || isNaN(numScore) || numScore < 0 || numScore > 100) {
+      return res.status(400).json({ success: false, message: 'user_id wajib valid dan score_value harus bernilai 0-100.' });
+    }
+
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menilai anak didik Anda sendiri.' });
+      }
+    }
 
     const result = await query(
       `INSERT INTO scores (user_id, module_id, coordinator_id, score_value, comments, graded_at, created_at)
        VALUES ($1, $2, $3, $4, $5, COALESCE($6, CURRENT_DATE), CURRENT_TIMESTAMP)
        RETURNING *`,
-      [user_id, module_id, req.user.user_id, score_value, comments || null, graded_at || null]
+      [targetUserId, module_id, req.user.user_id, numScore, comments || null, graded_at || null]
     );
 
     return res.status(201).json({
@@ -118,12 +145,31 @@ router.post('/', authenticateToken, requireRole('Koordinator', 'Administrator'),
  */
 router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const { id } = req.params;
+    const scoreId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(scoreId) || scoreId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID nilai tidak valid.' });
+    }
     const { score_value, comments } = req.body;
+    const numScore = score_value !== undefined && score_value !== null ? parseFloat(score_value) : null;
+    if (numScore !== null && (isNaN(numScore) || numScore < 0 || numScore > 100)) {
+      return res.status(400).json({ success: false, message: 'Nilai harus berada pada rentang 0-100.' });
+    }
 
-    // Fetch previous score for CDC delta computation
-    const prevRes = await query(`SELECT * FROM scores WHERE score_id = $1`, [id]);
+    // Fetch previous score & check coordinator ownership
+    const prevRes = await query(
+      `SELECT s.*, u.coordinator_id as student_coordinator_id
+       FROM scores s
+       JOIN users u ON s.user_id = u.user_id
+       WHERE s.score_id = $1`,
+      [scoreId]
+    );
+    if (prevRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data nilai tidak ditemukan.' });
+    }
     const oldScore = prevRes.rows[0];
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && oldScore.student_coordinator_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Catatan nilai ini bukan milik anak didik Anda.' });
+    }
 
     const result = await query(
       `UPDATE scores 
@@ -131,17 +177,17 @@ router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'
            comments = COALESCE($2, comments)
        WHERE score_id = $3
        RETURNING *`,
-      [score_value, comments, id]
+      [numScore, comments ?? null, scoreId]
     );
 
     if (result.rows.length > 0 && oldScore) {
       await recordScoreCdcDiff({
-        scoreId: id,
+        scoreId,
         userId: result.rows[0].user_id,
         moduleId: result.rows[0].module_id,
         coordinatorId: req.user.user_id,
         oldScore,
-        newScore: score_value !== undefined ? score_value : oldScore.score_value,
+        newScore: numScore !== null ? numScore : oldScore.score_value,
         comments: comments !== undefined ? comments : oldScore.comments
       });
     }
@@ -161,14 +207,35 @@ router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'
  */
 router.get('/:id/cdc-history', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const scoreId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(scoreId) || scoreId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID nilai tidak valid.' });
+    }
+
+    const ownerRes = await query(
+      `SELECT s.user_id, u.coordinator_id
+       FROM scores s JOIN users u ON s.user_id = u.user_id
+       WHERE s.score_id = $1`,
+      [scoreId]
+    );
+    if (ownerRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Catatan nilai tidak ditemukan.' });
+    }
+    const owner = ownerRes.rows[0];
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && owner.user_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang.' });
+    }
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && owner.coordinator_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Catatan nilai bukan milik anak didik Anda.' });
+    }
+
     const result = await query(
       `SELECT d.*, u.full_name as coordinator_name
        FROM cdc_score_diffs d
        LEFT JOIN users u ON d.coordinator_id = u.user_id
        WHERE d.score_id = $1
        ORDER BY d.created_at DESC`,
-      [id]
+      [scoreId]
     );
 
     return res.json({ success: true, data: result.rows });
@@ -182,8 +249,25 @@ router.get('/:id/cdc-history', authenticateToken, async (req, res) => {
  */
 router.delete('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const { id } = req.params;
-    await query(`DELETE FROM scores WHERE score_id = $1`, [id]);
+    const scoreId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(scoreId) || scoreId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID nilai tidak valid.' });
+    }
+
+    const ownerRes = await query(
+      `SELECT s.score_id, u.coordinator_id
+       FROM scores s JOIN users u ON s.user_id = u.user_id
+       WHERE s.score_id = $1`,
+      [scoreId]
+    );
+    if (ownerRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Nilai tidak ditemukan.' });
+    }
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && ownerRes.rows[0].coordinator_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Catatan nilai bukan milik anak didik Anda.' });
+    }
+
+    await query(`DELETE FROM scores WHERE score_id = $1`, [scoreId]);
     return res.json({ success: true, message: 'Nilai berhasil dihapus.' });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -193,8 +277,11 @@ router.delete('/:id', authenticateToken, requireRole('Koordinator', 'Administrat
 /**
  * GET /api/coordinator/analysis/performance or /api/coordinator/scores/performance
  */
-router.get(['/analysis/performance', '/performance'], authenticateToken, async (req, res) => {
+router.get(['/analysis/performance', '/performance'], authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
+    const isCoordinator = req.user.role === 'Koordinator' || req.user.role_id === 2;
+    const coordParams = isCoordinator ? [req.user.user_id] : [];
+
     const statsResult = await query(`
       SELECT 
         m.module_name,
@@ -202,17 +289,19 @@ router.get(['/analysis/performance', '/performance'], authenticateToken, async (
         COUNT(s.score_id) as total_submissions
       FROM modules m
       LEFT JOIN scores s ON m.module_id = s.module_id
+      ${isCoordinator ? 'LEFT JOIN users u ON s.user_id = u.user_id AND u.coordinator_id = $1' : ''}
       GROUP BY m.module_id, m.module_name
       ORDER BY m.module_id ASC
-    `);
+    `, coordParams);
 
     const summaryResult = await query(`
       SELECT
-        COALESCE(AVG(score_value), 0) as overall_average,
-        COUNT(DISTINCT user_id) as total_graded_participants,
-        COUNT(score_id) as total_scores_recorded
-      FROM scores
-    `);
+        COALESCE(AVG(s.score_value), 0) as overall_average,
+        COUNT(DISTINCT s.user_id) as total_graded_participants,
+        COUNT(s.score_id) as total_scores_recorded
+      FROM scores s
+      ${isCoordinator ? 'JOIN users u ON s.user_id = u.user_id WHERE u.coordinator_id = $1' : ''}
+    `, coordParams);
 
     return res.json({
       success: true,

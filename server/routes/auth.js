@@ -216,7 +216,12 @@ router.post('/logout', authenticateToken, async (req, res) => {
 
     if (req.user?.user_id) {
       await query(`UPDATE users SET current_session_token = NULL WHERE user_id = $1`, [req.user.user_id]);
-      await logActivity(req.user.user_id, 'LOGOUT', detail, req.ip);
+      await logActivity({
+        req,
+        userId: req.user.user_id,
+        action: 'LOGOUT',
+        description: detail
+      });
     }
     return res.json({
       success: true,
@@ -232,7 +237,15 @@ router.post('/logout', authenticateToken, async (req, res) => {
  */
 router.post('/change-password', authenticateToken, async (req, res) => {
   try {
-    const { current_password, new_password, new_password_confirmation } = req.body;
+    const { current_password, old_password, new_password, new_password_confirmation } = req.body;
+    const effectiveCurrentPassword = current_password ?? old_password;
+
+    if (!effectiveCurrentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Kata sandi lama wajib diisi.'
+      });
+    }
 
     if (!new_password || new_password.length < 6) {
       return res.status(400).json({
@@ -253,11 +266,9 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 
     let isMatch = false;
     if (user.password_hash) {
-      isMatch = await bcrypt.compare(current_password, user.password_hash);
+      isMatch = await bcrypt.compare(String(effectiveCurrentPassword), user.password_hash);
     }
-    if (!isMatch && (current_password === 'password123' || current_password === 'admin123')) {
-      isMatch = true;
-    }
+    // Password verification strictly via bcrypt hash (no hardcoded fallback)
 
     if (!isMatch) {
       return res.status(400).json({
@@ -274,7 +285,12 @@ router.post('/change-password', authenticateToken, async (req, res) => {
       [newHash, req.user.user_id]
     );
 
-    await logActivity(req.user.user_id, 'Password Change', 'User changed their password', req.ip);
+    await logActivity({
+      req,
+      userId: req.user.user_id,
+      action: 'PASSWORD_CHANGE',
+      description: 'User changed their password'
+    });
 
     return res.json({
       success: true,
@@ -321,6 +337,11 @@ router.get('/profile', authenticateToken, async (req, res) => {
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
     const { full_name, penempatan } = req.body;
+    const normalizedPenempatan = penempatan
+      ? (String(penempatan).trim().toLowerCase() === 'lapangan' ? 'Lapangan'
+        : String(penempatan).trim().toLowerCase() === 'kantor' ? 'Kantor'
+        : String(penempatan).trim())
+      : null;
 
     const result = await query(
       `UPDATE users 
@@ -329,7 +350,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
            updated_at = CURRENT_TIMESTAMP
        WHERE user_id = $3
        RETURNING user_id, unique_id, full_name, role_id, status, penempatan, updated_at`,
-      [full_name, penempatan, req.user.user_id]
+      [full_name, normalizedPenempatan, req.user.user_id]
     );
 
     return res.json({
@@ -490,7 +511,7 @@ router.get('/session-check', authenticateToken, async (req, res) => {
       session_token: req.user.current_session_token
     });
   } catch (error) {
-    return res.status(500).json({ success: false, valid: true });
+    return res.status(500).json({ success: false, valid: false, message: error.message });
   }
 });
 
@@ -503,7 +524,7 @@ router.post('/geo-heartbeat', authenticateToken, async (req, res) => {
     const { latitude, longitude } = req.body;
     const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
     const result = await checkImpossibleTravel(req.user.user_id, latitude, longitude, clientIp);
-    return res.json({ success: true, data: result });
+    return res.json({ success: true, ...result, data: result });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

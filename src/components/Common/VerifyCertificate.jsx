@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ShieldCheck, AlertCircle, Award, CheckCircle2, Lock, ArrowLeft, Building2, Calendar, FileText } from 'lucide-react';
-import axios from 'axios';
+import api from '../../services/api';
 
 const VerifyCertificate = () => {
   const { certNumber } = useParams();
@@ -14,8 +14,13 @@ const VerifyCertificate = () => {
       setLoading(true);
       setError(null);
       try {
-        const queryId = certNumber || new URLSearchParams(window.location.search).get('id') || `BPJSTK/MAGANG/${new Date().getFullYear()}/001`;
-        const res = await axios.get(`/api/certificates/verify/${encodeURIComponent(queryId)}`);
+        const queryId = certNumber || new URLSearchParams(window.location.search).get('id');
+        if (!queryId) {
+          setError('Nomor seri sertifikat tidak disertakan.');
+          setLoading(false);
+          return;
+        }
+        const res = await api.get(`/certificates/verify/${encodeURIComponent(queryId)}`);
         if (res.data?.success && res.data?.valid) {
           setCertData(res.data.data);
         } else {
@@ -119,7 +124,7 @@ const VerifyCertificate = () => {
                 </div>
                 <div className="p-3 bg-[#F5F4F0] rounded-xl border border-[#121214]/20">
                   <span className="text-[10px] uppercase font-bold text-gray-500">Tanggal Terbit</span>
-                  <p className="font-bold text-[#121214] mt-0.5">{new Date(certData.issue_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  <p className="font-bold text-[#121214] mt-0.5">{certData.issue_date ? new Date(certData.issue_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }) : '-'}</p>
                 </div>
               </div>
 

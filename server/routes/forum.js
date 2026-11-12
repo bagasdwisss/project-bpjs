@@ -74,7 +74,15 @@ router.post('/topics', authenticateToken, async (req, res) => {
  */
 router.get('/topics/:id/messages', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const topicId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(topicId) || topicId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID topik tidak valid.' });
+    }
+
+    const topicCheck = await query(`SELECT topic_id FROM forum_topics WHERE topic_id = $1`, [topicId]);
+    if (topicCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Topik forum tidak ditemukan.' });
+    }
 
     const messages = await query(
       `SELECT m.message_id, m.topic_id, m.user_id, m.message_content, m.created_at,
@@ -84,7 +92,7 @@ router.get('/topics/:id/messages', authenticateToken, async (req, res) => {
        JOIN roles r ON u.role_id = r.role_id
        WHERE m.topic_id = $1
        ORDER BY m.created_at ASC`,
-      [id]
+      [topicId]
     );
 
     return res.json({
@@ -101,7 +109,16 @@ router.get('/topics/:id/messages', authenticateToken, async (req, res) => {
  */
 router.post('/topics/:id/messages', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const topicId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(topicId) || topicId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID topik tidak valid.' });
+    }
+
+    const topicCheck = await query(`SELECT topic_id FROM forum_topics WHERE topic_id = $1`, [topicId]);
+    if (topicCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Topik forum tidak ditemukan.' });
+    }
+
     const { message_content, content, message } = req.body;
     const bodyText = message_content || content || message;
 
@@ -113,7 +130,7 @@ router.post('/topics/:id/messages', authenticateToken, async (req, res) => {
       `INSERT INTO forum_messages (topic_id, user_id, message_content, created_at)
        VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
        RETURNING *`,
-      [id, req.user.user_id, bodyText.trim()]
+      [topicId, req.user.user_id, bodyText.trim()]
     );
 
     const messageWithUser = await query(

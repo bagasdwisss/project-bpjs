@@ -77,19 +77,18 @@ const Backup = () => {
   // Zero-Knowledge Encrypted Backup Export
   const handleExportZeroKnowledge = async () => {
     if (!zkPassphrase || zkPassphrase.length < 6) {
-      toast('Kata sandi enkripsi client minimal harus 6 karakter.', 'warning');
+      toast.warning('Kata sandi enkripsi client minimal harus 6 karakter.');
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Fetch raw backup payload from server
-      const res = await reportService.listBackups();
-      const backupPayload = {
+      // 1. Fetch real live database tables payload from server
+      const res = await reportService.exportBackupData();
+      const backupPayload = res.data?.data || {
         app: 'BPJSTK Absensi & Nilai',
         exportedAt: new Date().toISOString(),
-        tables: ['users', 'peserta', 'attendance_records', 'scores', 'progress'],
-        snapshots: res.data.data || []
+        tables: {}
       };
 
       // 2. Encrypt in browser with client passphrase (server never sees passphrase)
@@ -106,11 +105,11 @@ const Backup = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast('Ekspor Zero-Knowledge (AES-256-GCM) berhasil diunduh secara aman!', 'success');
+      toast.success('Ekspor Zero-Knowledge (AES-256-GCM) berhasil diunduh secara aman!');
       setShowZkModal(false);
       setZkPassphrase('');
     } catch (err) {
-      toast('Gagal ekspor terenkripsi: ' + err.message, 'error');
+      toast.error('Gagal ekspor terenkripsi: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -122,7 +121,7 @@ const Backup = () => {
     if (!file) return;
 
     if (!zkPassphrase) {
-      toast('Masukkan kata sandi terlebih dahulu untuk mendekripsi berkas.', 'warning');
+      toast.warning('Masukkan kata sandi terlebih dahulu untuk mendekripsi berkas.');
       return;
     }
 
@@ -132,9 +131,9 @@ const Backup = () => {
       const zkContainer = JSON.parse(text);
       const decrypted = await decryptZeroKnowledgeBackup(zkContainer, zkPassphrase);
       setZkVerifiedData(decrypted);
-      toast('Berkas Zero-Knowledge berhasil didekripsi & lolos verifikasi integritas SHA-256!', 'success');
+      toast.success('Berkas Zero-Knowledge berhasil didekripsi & lolos verifikasi integritas SHA-256!');
     } catch (err) {
-      toast('Gagal verifikasi berkas: ' + err.message, 'error');
+      toast.error('Gagal verifikasi berkas: ' + err.message);
       setZkVerifiedData(null);
     } finally {
       setZkDecrypting(false);

@@ -16,12 +16,12 @@ const Monitoring = () => {
   const [anomalyOnly, setAnomalyOnly] = useState(false);
 
   const [systemStatus, setSystemStatus] = useState({
-    cpu: 32,
-    memory: 54,
-    storage: 28,
-    uptime: '99.98%',
-    activeUsers: 11,
-    errorRate: 0.01,
+    cpu: 0,
+    memory: 0,
+    storage: 0,
+    uptime: '-',
+    activeUsers: 0,
+    errorRate: 0,
   });
 
   const [logs, setLogs] = useState([]);
@@ -159,6 +159,18 @@ const Monitoring = () => {
   useEffect(() => {
     fetchMonitoringData();
   }, [anomalyOnly]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setWhistleResponseModal(null);
+        setShowPurgeConfirmModal(null);
+        setRejectModalTarget(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <Layout>
@@ -337,7 +349,7 @@ const Monitoring = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto max-h-[480px]">
+            <div className="overflow-x-auto max-h-[480px] focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Log Audit Forensik">
               <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
                 <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider sticky top-0">
                   <tr>
@@ -396,7 +408,7 @@ const Monitoring = () => {
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-[11px] text-gray-600 font-mono">
-                            {new Date(log.created_at).toLocaleString('id-ID')}
+                            {new Date(log.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB
                           </td>
                         </tr>
                       );
@@ -479,11 +491,11 @@ const Monitoring = () => {
                   </p>
                 </div>
                 <span className="px-3 py-1 rounded-full text-xs font-black bg-[#B8C96E] text-[#121214] border border-[#121214] self-start sm:self-auto">
-                  Penghematan ~{brinStatus?.compressionEstimatedSavings || '88.4%'}
+                  {brinStatus?.compressionEstimatedSavings ? `Penghematan ~${brinStatus.compressionEstimatedSavings}` : 'Menghitung...'}
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Status Indeks BRIN PostgreSQL">
                 <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
@@ -494,10 +506,13 @@ const Monitoring = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EFEA] bg-white">
-                    {(brinStatus?.activeIndexes || [
-                      { index_name: 'idx_attendance_brin_date', table_name: 'attendance', index_type: 'brin', index_size: '48 kB (vs 1.2 MB B-Tree)' },
-                      { index_name: 'idx_activity_logs_brin_time', table_name: 'activity_logs', index_type: 'brin', index_size: '32 kB (vs 860 kB B-Tree)' }
-                    ]).map((idxItem, i) => (
+                    {(!brinStatus?.activeIndexes || brinStatus.activeIndexes.length === 0) ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-6 text-center text-xs text-gray-500 font-bold">
+                          Belum ada indeks BRIN aktif atau sedang memuat metrik database.
+                        </td>
+                      </tr>
+                    ) : brinStatus.activeIndexes.map((idxItem, i) => (
                       <tr key={i} className="hover:bg-[#FAF9F6]">
                         <td className="px-4 py-3 font-mono font-bold text-[#121214]">{idxItem.index_name}</td>
                         <td className="px-4 py-3 font-bold text-gray-700">{idxItem.table_name}</td>
@@ -539,7 +554,7 @@ const Monitoring = () => {
                 </h3>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Alamat IP yang Dibekukan">
                 <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
@@ -563,7 +578,7 @@ const Monitoring = () => {
                           <td className="px-4 py-3 font-mono font-bold text-rose-800">{j.ip}</td>
                           <td className="px-4 py-3 font-medium text-gray-800">{j.reason}</td>
                           <td className="px-4 py-3 text-[11px] font-mono text-gray-600">
-                            {new Date(j.jailed_at).toLocaleString('id-ID')}
+                            {new Date(j.jailed_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB
                           </td>
                           <td className="px-4 py-3">
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#F5C6EC] text-[#121214] border border-[#121214]">
@@ -607,7 +622,7 @@ const Monitoring = () => {
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Laporan Whistleblowing">
                 <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
@@ -674,8 +689,14 @@ const Monitoring = () => {
 
             {/* Modal Tanggapan Whistleblowing */}
             {whistleResponseModal && (
-              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] max-w-lg w-full p-6 space-y-4">
+              <div
+                className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overscroll-contain"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Tanggapan Whistleblowing"
+                onClick={(e) => { if (e.target === e.currentTarget) setWhistleResponseModal(null); }}
+              >
+                <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 space-y-4">
                   <div className="flex items-center justify-between border-b border-[#EAE9E4] pb-2">
                     <h4 className="font-black text-sm text-[#121214]">Tindak Lanjut: {whistleResponseModal.ticket_code}</h4>
                     <button onClick={() => setWhistleResponseModal(null)} className="text-gray-500 hover:text-black">✕</button>
@@ -798,7 +819,7 @@ const Monitoring = () => {
                 <p className="text-xs text-gray-500">Peringkat produktivitas akuisisi pekerja rentan BPU di masing-masing kantor cabang</p>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Komparasi Efektivitas Wilayah Binaan">
                 <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
@@ -1037,7 +1058,7 @@ const Monitoring = () => {
               </div>
 
               {/* Table */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Log Penerbitan Sertifikat">
                 <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-black tracking-wider">
                     <tr>
@@ -1070,10 +1091,10 @@ const Monitoring = () => {
                             {/* Waktu & Jam Kerja */}
                             <td className="px-4 py-3">
                               <p className="font-mono text-[11px] font-bold text-[#121214]">
-                                {new Date(cert.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                {new Date(cert.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' })}
                               </p>
                               <p className="text-[10px] font-mono text-gray-500">
-                                {new Date(cert.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                {new Date(cert.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
                               </p>
                               {isOffHours ? (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-800 border border-rose-300 mt-1">
@@ -1165,8 +1186,14 @@ const Monitoring = () => {
             MODAL KONFIRMASI HAPUS BERSIH DATABASE (ADMIN APPROVE REISSUE)
         ========================================================================== */}
         {showPurgeConfirmModal && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white border-2 border-rose-600 rounded-3xl shadow-[8px_8px_0px_#E11D48] max-w-lg w-full p-6 sm:p-7 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          <div
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Konfirmasi Hapus Bersih Sertifikat"
+            onClick={(e) => { if (e.target === e.currentTarget && !approvingId) setShowPurgeConfirmModal(null); }}
+          >
+            <div className="bg-white border-2 border-rose-600 rounded-3xl shadow-[8px_8px_0px_#E11D48] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 space-y-4 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center gap-3 pb-3 border-b-2 border-rose-200">
                 <div className="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700">
                   <AlertOctagon className="w-6 h-6" />
@@ -1222,8 +1249,14 @@ const Monitoring = () => {
             MODAL TOLAK PERMOHONAN KOREKSI (ADMIN REJECT REISSUE)
         ========================================================================== */}
         {rejectModalTarget && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] max-w-md w-full p-6 space-y-4">
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tolak Permohonan Koreksi Sertifikat"
+            onClick={(e) => { if (e.target === e.currentTarget && !rejectingId) setRejectModalTarget(null); }}
+          >
+            <div className="bg-white border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-[#EAE9E4]">
                 <h4 className="font-black text-sm text-[#121214]">Tolak Permohonan Koreksi Sertifikat</h4>
                 <button onClick={() => setRejectModalTarget(null)} className="text-gray-500 hover:text-black">✕</button>

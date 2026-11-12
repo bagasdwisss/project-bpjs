@@ -146,28 +146,22 @@ const GradingSettings = () => {
     try {
       setSaving(true);
       const payload = {
-        targets: {
-          max_kunjungan_bpu: Number(gradingConfig.target_kunjungan_bpu),
-          max_akuisisi_bpu: Number(gradingConfig.target_akuisisi_bpu),
-          max_kunjungan_pu: Number(gradingConfig.target_kunjungan_pu),
-          target_video: Number(gradingConfig.target_video),
-          target_seminar: Number(gradingConfig.target_seminar),
-          target_sosialisasi: Number(gradingConfig.target_sosialisasi)
-        },
-        weights: {
-          akuisisi_bpu: Number(gradingConfig.weight_akuisisi_bpu) / 100,
-          kunjungan_bpu: Number(gradingConfig.weight_kunjungan_bpu) / 100,
-          kunjungan_pu: Number(gradingConfig.weight_kunjungan_pu) / 100,
-          video: Number(gradingConfig.weight_video) / 100,
-          seminar: Number(gradingConfig.weight_seminar) / 100,
-          sosialisasi: Number(gradingConfig.weight_sosialisasi) / 100
-        },
-        cutoffs: {
-          grade_a: Number(gradingConfig.grade_a_cutoff),
-          grade_b: Number(gradingConfig.grade_b_cutoff),
-          grade_c: Number(gradingConfig.grade_c_cutoff),
-          grade_d: Number(gradingConfig.grade_d_cutoff)
-        }
+        target_kunjungan_bpu: Number(gradingConfig.target_kunjungan_bpu),
+        target_akuisisi_bpu: Number(gradingConfig.target_akuisisi_bpu),
+        target_kunjungan_pu: Number(gradingConfig.target_kunjungan_pu),
+        target_video: Number(gradingConfig.target_video),
+        target_seminar: Number(gradingConfig.target_seminar),
+        target_sosialisasi: Number(gradingConfig.target_sosialisasi),
+        weight_akuisisi_bpu: Number(gradingConfig.weight_akuisisi_bpu),
+        weight_kunjungan_bpu: Number(gradingConfig.weight_kunjungan_bpu),
+        weight_kunjungan_pu: Number(gradingConfig.weight_kunjungan_pu),
+        weight_video: Number(gradingConfig.weight_video),
+        weight_seminar: Number(gradingConfig.weight_seminar),
+        weight_sosialisasi: Number(gradingConfig.weight_sosialisasi),
+        grade_a_cutoff: Number(gradingConfig.grade_a_cutoff),
+        grade_b_cutoff: Number(gradingConfig.grade_b_cutoff),
+        grade_c_cutoff: Number(gradingConfig.grade_c_cutoff),
+        grade_d_cutoff: Number(gradingConfig.grade_d_cutoff)
       };
 
       const res = await api.put('/grading/configuration', payload);

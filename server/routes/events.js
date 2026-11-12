@@ -119,8 +119,19 @@ router.post('/', authenticateToken, requireRole('Koordinator', 'Administrator'),
  */
 router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const { id } = req.params;
+    const eventId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID event tidak valid.' });
+    }
     const { batch_id, event_title, event_description, start_datetime, end_datetime } = req.body;
+
+    const existing = await query(`SELECT event_id, created_by FROM events WHERE event_id = $1`, [eventId]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Event tidak ditemukan.' });
+    }
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && existing.rows[0].created_by !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat mengubah event buatan Anda sendiri.' });
+    }
 
     const result = await query(
       `UPDATE events
@@ -131,13 +142,13 @@ router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'
            end_datetime = COALESCE($5, end_datetime)
        WHERE event_id = $6
        RETURNING *`,
-      [batch_id, event_title, event_description, start_datetime, end_datetime, id]
+      [batch_id, event_title, event_description, start_datetime, end_datetime, eventId]
     );
 
     await logActivity({
       req,
       action: 'EVENT_UPDATED',
-      description: `Memperbarui agenda: ${event_title || id}`
+      description: `Memperbarui agenda: ${event_title || eventId}`
     });
 
     return res.json({
@@ -155,12 +166,22 @@ router.put('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'
  */
 router.delete('/:id', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const { id } = req.params;
-    await query(`DELETE FROM events WHERE event_id = $1`, [id]);
+    const eventId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID event tidak valid.' });
+    }
+    const existing = await query(`SELECT event_id, created_by FROM events WHERE event_id = $1`, [eventId]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Event tidak ditemukan.' });
+    }
+    if ((req.user.role === 'Koordinator' || req.user.role_id === 2) && existing.rows[0].created_by !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat menghapus event buatan Anda sendiri.' });
+    }
+    await query(`DELETE FROM events WHERE event_id = $1`, [eventId]);
     await logActivity({
       req,
       action: 'EVENT_DELETED',
-      description: `Menghapus agenda ID ${id}`
+      description: `Menghapus agenda ID ${eventId}`
     });
     return res.json({ success: true, message: 'Event berhasil dihapus.' });
   } catch (error) {

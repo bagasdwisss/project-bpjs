@@ -33,14 +33,11 @@ export default defineConfig({
             if (id.includes('lucide-react')) {
               return 'vendor-icons';
             }
-            if (id.includes('leaflet') || id.includes('react-leaflet')) {
-              return 'vendor-maps';
-            }
-            if (id.includes('recharts') || id.includes('chart.js') || id.includes('react-chartjs-2')) {
-              return 'vendor-charts';
-            }
             if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('xlsx')) {
               return 'vendor-docs';
+            }
+            if (id.includes('qrcode')) {
+              return 'vendor-qr';
             }
             return 'vendor-utils';
           }

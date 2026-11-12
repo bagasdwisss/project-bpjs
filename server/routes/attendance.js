@@ -1,17 +1,32 @@
 // api/routes/attendance.js
 import { Router } from 'express';
 import { query } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 import { validateNetworkProximity } from '../utils/networkProximityValidator.js';
 import { runAutoAbsenceCheck } from '../utils/autoAbsenceManager.js';
+import { getJakartaNow } from '../utils/jakartaTime.js';
+import { broadcastPresenceEvent } from './features.js';
+
+const parseWorkDaysSet = (workDaysStr) => {
+  const arr = String(workDaysStr || '1,2,3,4,5')
+    .split(',')
+    .map(v => parseInt(v.trim(), 10))
+    .filter(n => !isNaN(n));
+  const set = new Set(arr);
+  if (set.has(7)) set.add(0);
+  return set;
+};
 
 const router = Router();
 
 // Automatic background interval: evaluate absence cutoff every 2 minutes
-setInterval(() => {
-  runAutoAbsenceCheck().catch(err => console.error('Interval auto-absence check failed:', err.message));
-}, 2 * 60 * 1000);
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+  const autoAbsenceTimer = setInterval(() => {
+    runAutoAbsenceCheck().catch(err => console.error('Interval auto-absence check failed:', err.message));
+  }, 2 * 60 * 1000);
+  if (typeof autoAbsenceTimer.unref === 'function') autoAbsenceTimer.unref();
+}
 
 /**
  * GET /api/participant/attendance
@@ -104,16 +119,11 @@ router.get('/office', authenticateToken, async (req, res) => {
  */
 router.get('/settings', authenticateToken, async (req, res) => {
   try {
-    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-    const nowTime = new Intl.DateTimeFormat('en-GB', { 
-      timeZone: 'Asia/Jakarta', 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    }).format(new Date());
-
-    const jakartaDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-    const dayOfWeek = jakartaDate.getDay(); // 0 = Minggu, 6 = Sabtu
+    await runAutoAbsenceCheck().catch(() => {});
+    const jkt = getJakartaNow();
+    const today = jkt.dateStr;
+    const nowTime = jkt.timeStr;
+    const dayOfWeek = jkt.dayOfWeek; // 0 = Minggu, 6 = Sabtu
 
     const settingsRes = await query(`SELECT * FROM attendance_settings WHERE id = 1 LIMIT 1`);
     const settings = settingsRes.rows[0] || {
@@ -136,10 +146,17 @@ router.get('/settings', authenticateToken, async (req, res) => {
     let blockMessage = null;
 
     const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    const workDaysSet = parseWorkDaysSet(settings.work_days);
+    const isScheduledWorkDay = isWeekend ? Boolean(settings.allow_weekend) : workDaysSet.has(dayOfWeek);
+
     if (isWeekend && !settings.allow_weekend) {
       isAllowedToday = false;
       blockReason = 'weekend';
       blockMessage = settings.weekend_message || 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.';
+    } else if (!isScheduledWorkDay) {
+      isAllowedToday = false;
+      blockReason = 'non_work_day';
+      blockMessage = 'Hari ini tidak termasuk dalam jadwal hari kerja aktif yang ditetapkan Administrator.';
     } else if (todayHoliday) {
       isAllowedToday = false;
       blockReason = 'holiday';
@@ -336,13 +353,24 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       after_end_message: 'Presensi hari ini telah ditutup pada pukul {end_time}.'
     };
 
-    // 2. Check Weekend Rule (Senin - Jumat kerja, Sabtu & Minggu libur)
-    const jakartaDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-    const dayOfWeek = jakartaDate.getDay(); // 0 = Minggu, 6 = Sabtu
-    if ((dayOfWeek === 0 || dayOfWeek === 6) && !settings.allow_weekend) {
+    // 2. Check Weekend & Work Days Rule consistently in Asia/Jakarta
+    const jktNow = getJakartaNow();
+    const dayOfWeek = jktNow.dayOfWeek;
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    const workDaysSet = parseWorkDaysSet(settings.work_days);
+    const isScheduledWorkDay = isWeekend ? Boolean(settings.allow_weekend) : workDaysSet.has(dayOfWeek);
+
+    if (isWeekend && !settings.allow_weekend) {
       return res.status(400).json({
         success: false,
         message: settings.weekend_message || 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.'
+      });
+    }
+
+    if (!isScheduledWorkDay) {
+      return res.status(400).json({
+        success: false,
+        message: 'Hari ini bukan hari kerja aktif sesuai konfigurasi jadwal kantor.'
       });
     }
 
@@ -379,20 +407,31 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       });
     }
 
-    // 5. Check if already checked in today
+    // 5. Check if already checked in today (allow replacing prior auto-Alfa on legitimate offline sync or extended hours)
     const existing = await query(
-      `SELECT * FROM attendance_records WHERE user_id = $1 AND attendance_date = $2`,
+      `SELECT attendance_id, status FROM attendance_records WHERE user_id = $1 AND attendance_date = $2 LIMIT 1`,
       [userId, today]
     );
 
-    if (existing.rows.length > 0) {
+    if (existing.rows.length > 0 && !['Alfa', 'Alpa'].includes(existing.rows[0].status)) {
       return res.status(400).json({
         success: false,
         message: 'Anda sudah melakukan absensi untuk hari ini.'
       });
     }
 
-    // 6. Dynamic Lateness Calculation based on Database Configuration
+    // 6. Dynamic Lateness Calculation (honor client_timestamp for offline queue sync if valid same day)
+    let evalTime = nowTime;
+    if (is_offline_sync && client_timestamp) {
+      const cDate = new Date(client_timestamp);
+      if (!isNaN(cDate.getTime())) {
+        const cJkt = getJakartaNow(cDate);
+        if (cJkt.dateStr === today) {
+          evalTime = cJkt.timeStr;
+        }
+      }
+    }
+
     let normalizedStatus = 'Hadir';
     const s = String(status || '').trim().toLowerCase();
     if (s === 'izin') {
@@ -403,7 +442,7 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       const [oH, oM] = ontimeLimitStr.split(':').map(Number);
       const limitMinutes = oH * 60 + oM + (parseInt(settings.late_tolerance_minutes, 10) || 0);
 
-      const [nH, nM] = nowTime.split(':').map(Number);
+      const [nH, nM] = evalTime.split(':').map(Number);
       const nowMinutes = nH * 60 + nM;
 
       if (nowMinutes > limitMinutes) {
@@ -413,22 +452,36 @@ router.post('/check-in', authenticateToken, async (req, res) => {
       }
     }
 
-    // Dynamically retrieve active office geofence from database
-    const officeRes = await query(
-      `SELECT id, name, address, latitude, longitude, radius_meters 
-       FROM geofence_locations 
-       WHERE category = 'kantor' AND is_active = TRUE 
-       ORDER BY id ASC 
-       LIMIT 1`
-    );
-    const activeOffice = officeRes.rows[0];
+    // Dynamically retrieve selected active geofence (supports multi-point field geofences) or fallback to active office
+    let activeGeofence = null;
+    if (geofence_id) {
+      const selRes = await query(
+        `SELECT id, name, address, latitude, longitude, radius_meters, category
+         FROM geofence_locations
+         WHERE id = $1 AND is_active = TRUE
+         LIMIT 1`,
+        [geofence_id]
+      );
+      activeGeofence = selRes.rows[0] || null;
+    }
 
-    const validGeofenceId = activeOffice ? activeOffice.id : (geofence_id || null);
-    const officeAddress = address || (activeOffice ? activeOffice.address : 'BPJSTK, Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153');
+    if (!activeGeofence) {
+      const officeRes = await query(
+        `SELECT id, name, address, latitude, longitude, radius_meters, category
+         FROM geofence_locations
+         WHERE category = 'kantor' AND is_active = TRUE
+         ORDER BY id ASC
+         LIMIT 1`
+      );
+      activeGeofence = officeRes.rows[0] || null;
+    }
 
-    // Dynamic distance calculation on server side if coordinates provided
+    const validGeofenceId = activeGeofence ? activeGeofence.id : (geofence_id || null);
+    const officeAddress = address || (activeGeofence ? activeGeofence.address : 'Kantor Cabang BPJS Ketenagakerjaan');
+
+    // Dynamic distance calculation on server side against resolved geofence
     let calculatedDistance = null;
-    if (coordinates && activeOffice) {
+    if (coordinates && activeGeofence) {
       const parts = coordinates.split(',');
       if (parts.length === 2) {
         const cLat = parseFloat(parts[0]);
@@ -436,9 +489,9 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         if (!isNaN(cLat) && !isNaN(cLon)) {
           const R = 6371e3;
           const rLat1 = (cLat * Math.PI) / 180;
-          const rLat2 = (parseFloat(activeOffice.latitude) * Math.PI) / 180;
-          const dLat = ((parseFloat(activeOffice.latitude) - cLat) * Math.PI) / 180;
-          const dLon = ((parseFloat(activeOffice.longitude) - cLon) * Math.PI) / 180;
+          const rLat2 = (parseFloat(activeGeofence.latitude) * Math.PI) / 180;
+          const dLat = ((parseFloat(activeGeofence.latitude) - cLat) * Math.PI) / 180;
+          const dLon = ((parseFloat(activeGeofence.longitude) - cLon) * Math.PI) / 180;
           const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
           calculatedDistance = Math.round(R * c);
@@ -461,11 +514,26 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         created_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, attendance_date) DO UPDATE SET
+        check_in_time = EXCLUDED.check_in_time,
+        status = EXCLUDED.status,
+        notes = EXCLUDED.notes,
+        location_coordinates = EXCLUDED.location_coordinates,
+        location_address = EXCLUDED.location_address,
+        ip_address = EXCLUDED.ip_address,
+        device_info = EXCLUDED.device_info,
+        selfie_image_url = EXCLUDED.selfie_image_url,
+        geofence_id = EXCLUDED.geofence_id,
+        distance_meters = EXCLUDED.distance_meters,
+        is_mock_location = EXCLUDED.is_mock_location,
+        watermark_signature = EXCLUDED.watermark_signature,
+        sensor_telemetry = EXCLUDED.sensor_telemetry,
+        is_offline_sync = EXCLUDED.is_offline_sync
       RETURNING *`,
       [
         userId,
         today,
-        nowTime,
+        evalTime || nowTime,
         normalizedStatus,
         notes || null,
         coordinates || null,
@@ -481,6 +549,21 @@ router.post('/check-in', authenticateToken, async (req, res) => {
         Boolean(is_offline_sync)
       ]
     );
+
+    // Broadcast real-time presence update via SSE
+    broadcastPresenceEvent({
+      userId,
+      fullName: req.user.full_name,
+      uniqueId: req.user.unique_id,
+      coordinatorId: req.user.coordinator_id,
+      status: normalizedStatus,
+      geofenceId: validGeofenceId,
+      distanceMeters: finalDistance,
+      isMockLocation: mockDetected,
+      attendanceDate: today,
+      checkInTime: evalTime || nowTime,
+      timestamp: new Date().toISOString()
+    });
 
     // Audit Trail: Log attendance activity for admin monitoring
     await logActivity({
@@ -508,6 +591,7 @@ router.post('/check-in', authenticateToken, async (req, res) => {
  */
 router.get('/statistics', authenticateToken, async (req, res) => {
   try {
+    await runAutoAbsenceCheck().catch(() => {});
     const userId = req.user.user_id;
 
     const result = await query(
@@ -591,6 +675,7 @@ router.get('/participant/:id', authenticateToken, async (req, res) => {
  */
 router.get(['/coordinator/mentees', '/mentees'], authenticateToken, async (req, res) => {
   try {
+    await runAutoAbsenceCheck().catch(() => {});
     const isCoordinator = req.user.role === 'Koordinator' || req.user.role_id === 2;
     const isAdmin = req.user.role === 'Administrator' || req.user.role_id === 3;
 
@@ -714,10 +799,10 @@ router.put(['/coordinator/verify/:id', '/verify/:id'], authenticateToken, async 
  * POST /api/attendance/trigger-auto-absence
  * Admin / Coordinator manual trigger for auto-absence cutoff evaluation
  */
-router.post('/trigger-auto-absence', authenticateToken, async (req, res) => {
+router.post('/trigger-auto-absence', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const result = await runAutoAbsenceCheck();
-    return res.json(result);
+    const result = await runAutoAbsenceCheck({ force: true });
+    return res.json({ success: true, ...result });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

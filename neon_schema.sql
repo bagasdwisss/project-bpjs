@@ -16,11 +16,18 @@ CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
     unique_id VARCHAR(20) NOT NULL UNIQUE,
     full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(150),
     password_hash VARCHAR(255) NOT NULL,
     role_id INT NOT NULL REFERENCES roles(role_id) ON DELETE RESTRICT,
     coordinator_id INT REFERENCES users(user_id) ON DELETE SET NULL,
     status VARCHAR(20) DEFAULT 'Aktif' CHECK (status IN ('Aktif', 'Nonaktif')),
     penempatan VARCHAR(20) CHECK (penempatan IN ('Kantor', 'Lapangan', NULL)),
+    current_session_token VARCHAR(128),
+    last_login_at TIMESTAMP,
+    last_login_ip VARCHAR(45),
+    nik_blind_index VARCHAR(64),
+    last_login_latitude NUMERIC(10, 7),
+    last_login_longitude NUMERIC(10, 7),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -903,3 +910,176 @@ CREATE TABLE IF NOT EXISTS staging_sandbox_snapshots (
 INSERT INTO staging_sandbox_snapshots (snapshot_name, source_database, status, metadata) VALUES
 ('sandbox_staging_q2_simulation', 'db_absen_nilai', 'READY', '{"simulation": "Uji coba bobot 60% praktik 40% teori", "isolation_mode": "copy_on_write"}')
 ON CONFLICT (snapshot_name) DO NOTHING;
+
+-- 54. CONSOLIDATED CORE EXTENSION TABLES, CONSTRAINTS & DEFAULT SEEDS
+CREATE TABLE IF NOT EXISTS geofence_locations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    category VARCHAR(50) DEFAULT 'kantor',
+    address TEXT,
+    latitude NUMERIC(10, 7) NOT NULL,
+    longitude NUMERIC(10, 7) NOT NULL,
+    radius_meters INT DEFAULT 150,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE geofence_locations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+INSERT INTO geofence_locations (id, name, category, address, latitude, longitude, radius_meters, is_active) VALUES
+(1, 'Kantor Cabang BPJSTK Medan Kota', 'kantor', 'Jl. Kapten Patimura No.334 Lantai 1, Darat, Kec. Medan Baru, Kota Medan, Sumatera Utara 20153', 3.5755560, 98.6652780, 150, TRUE),
+(2, 'Sentra Pasar Tradisional Beringharjo', 'lapangan_pasar', 'Kawasan Binaan BPU Pasar Tradisional', -6.2315000, 106.8240000, 200, TRUE),
+(3, 'Sentra UMKM Binaan Pekerja Rentan', 'lapangan_umkm', 'Pusat Usaha Mikro Mandiri BPU', -6.2285000, 106.8210000, 150, TRUE),
+(4, 'Kawasan Sentra Industri & Bengkel Mandiri', 'lapangan_industri', 'Area Mitra Usaha BPU Lapangan', -6.2330000, 106.8260000, 250, TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('geofence_locations_id_seq', (SELECT COALESCE(MAX(id), 1) FROM geofence_locations));
+
+CREATE TABLE IF NOT EXISTS leave_requests (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    leave_type VARCHAR(30) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    reason TEXT NOT NULL,
+    proof_file_url TEXT,
+    status VARCHAR(20) DEFAULT 'Pending',
+    reviewed_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMP,
+    coordinator_notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS direct_messages (
+    id BIGSERIAL PRIMARY KEY,
+    sender_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    receiver_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    message_text TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS certificates (
+    certificate_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    certificate_number VARCHAR(100) NOT NULL UNIQUE,
+    issue_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    predicate VARCHAR(100) DEFAULT 'Sangat Memuaskan (Grade A)',
+    score_average NUMERIC(5, 2) DEFAULT 90.00,
+    digital_signature_hash VARCHAR(255) NOT NULL,
+    digital_signature VARCHAR(255),
+    signature_algorithm VARCHAR(32) DEFAULT 'HMAC-SHA256',
+    verified_at TIMESTAMP,
+    batch_name VARCHAR(100) DEFAULT 'Batch 1 - Gelombang Berjalan',
+    status VARCHAR(50) DEFAULT 'Terbit',
+    certificate_type VARCHAR(50) DEFAULT 'Kelulusan',
+    design_theme VARCHAR(50) DEFAULT 'emerald',
+    issued_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    reissue_requested BOOLEAN DEFAULT FALSE,
+    reissue_reason TEXT,
+    reissue_requested_at TIMESTAMP,
+    reissue_requested_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS broadcast_dismissals (
+    id SERIAL PRIMARY KEY,
+    broadcast_id INT NOT NULL REFERENCES broadcast_messages(broadcast_id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    dismissed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(broadcast_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_anti_phishing_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
+    security_phrase VARCHAR(120) NOT NULL,
+    icon_symbol VARCHAR(50) DEFAULT 'shield',
+    border_color_hex VARCHAR(20) DEFAULT '#008F4C',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Serverless persistent tracking tables (replaces volatile in-memory Maps)
+CREATE TABLE IF NOT EXISTS upload_tickets (
+    ticket_id VARCHAR(64) PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    file_type VARCHAR(100) NOT NULL,
+    signature VARCHAR(128) NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS pow_challenges (
+    challenge_id VARCHAR(64) PRIMARY KEY,
+    prefix VARCHAR(64) NOT NULL,
+    difficulty INT NOT NULL DEFAULT 4,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Additive columns on existing tables
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(150);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS current_session_token VARCHAR(128);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_ip VARCHAR(45);
+
+ALTER TABLE attendance_settings ADD COLUMN IF NOT EXISTS inactivity_timeout_minutes INT DEFAULT 15;
+
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS selfie_image_url TEXT;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS geofence_id INT REFERENCES geofence_locations(id) ON DELETE SET NULL;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS distance_meters NUMERIC(8, 2);
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS is_mock_location BOOLEAN DEFAULT FALSE;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS watermark_signature VARCHAR(128);
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS sensor_telemetry JSONB;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS is_offline_sync BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS is_anomaly BOOLEAN DEFAULT FALSE;
+ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS anomaly_reason VARCHAR(255);
+ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS user_agent TEXT;
+ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS device_fingerprint VARCHAR(128);
+ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS prev_hash VARCHAR(64);
+ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS current_hash VARCHAR(64);
+
+ALTER TABLE broadcast_messages ADD COLUMN IF NOT EXISTS start_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE broadcast_messages ADD COLUMN IF NOT EXISTS end_at TIMESTAMP;
+ALTER TABLE broadcast_messages ADD COLUMN IF NOT EXISTS show_on_login BOOLEAN DEFAULT TRUE;
+ALTER TABLE broadcast_messages ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE peserta ADD COLUMN IF NOT EXISTS fraud_flag VARCHAR(50) DEFAULT 'NORMAL';
+ALTER TABLE peserta ADD COLUMN IF NOT EXISTS submission_velocity_ip VARCHAR(45);
+
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'Terverifikasi';
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS download_count INT DEFAULT 0;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_data TEXT;
+
+-- Deduplicate any legacy rows before enforcing unique indexes
+DELETE FROM tiered_storage_registry a USING tiered_storage_registry b
+WHERE a.file_id < b.file_id AND a.entity_type = b.entity_type AND a.entity_id = b.entity_id;
+
+DELETE FROM broadcast_dismissals a USING broadcast_dismissals b
+WHERE a.id < b.id AND a.broadcast_id = b.broadcast_id AND a.user_id = b.user_id;
+
+-- Integrity unique indexes
+CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_user_date_uniq ON attendance_records(user_id, attendance_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_progress_user_id_uniq ON progress(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_batches_user_batch_uniq ON user_batches(user_id, batch_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tiered_storage_entity_uniq ON tiered_storage_registry(entity_type, entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_broadcast_dismissal_uniq ON broadcast_dismissals(broadcast_id, user_id);
+
+-- Default config table seeds
+INSERT INTO attendance_settings (id, work_start_time, work_ontime_limit, work_end_time, work_days, allow_weekend, late_tolerance_minutes, inactivity_timeout_minutes)
+VALUES (1, '07:00:00', '08:00:00', '17:00:00', '1,2,3,4,5', FALSE, 0, 15)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO grading_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+INSERT INTO bpu_rates (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+INSERT INTO leave_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO placement_options (name, code, description, is_active) VALUES
+('Kantor', 'kantor', 'Penugasan di Kantor Cabang BPJSTK', TRUE),
+('Lapangan', 'lapangan', 'Penugasan Edukasi & Akuisisi Lapangan', TRUE)
+ON CONFLICT (code) DO NOTHING;

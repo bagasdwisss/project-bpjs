@@ -55,6 +55,23 @@ const Calendar = () => {
     user?.role === 'Admin'
   );
 
+  const toWibDateStr = (d) => {
+    const dt = d instanceof Date ? d : new Date(d);
+    if (isNaN(dt.getTime())) return '';
+    return dt.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+  };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedEvent(null);
+        setShowCreateModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Fetch events
   const fetchEvents = async () => {
     try {
@@ -269,15 +286,13 @@ const Calendar = () => {
       const eventDate = new Date(event.start_datetime);
       const targetDate = new Date(date);
       
-      // Bandingkan tanggal saja (abaikan waktu)
-      const eventDateStr = eventDate.toISOString().split('T')[0];
-      const targetDateStr = targetDate.toISOString().split('T')[0];
+      // Bandingkan tanggal saja (WIB Asia/Jakarta, abaikan waktu)
+      const eventDateStr = toWibDateStr(eventDate);
+      const targetDateStr = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : toWibDateStr(targetDate);
       
-      console.log('Event date comparison:', eventDateStr, targetDateStr, eventDateStr === targetDateStr);
       return eventDateStr === targetDateStr;
     });
     
-    console.log('Found events for date', date, ':', dayEvents);
     return dayEvents;
   };
 
@@ -329,7 +344,7 @@ const Calendar = () => {
   };
 
   const MonthView = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toWibDateStr(new Date());
     const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     const startDate = new Date(firstDay);
@@ -342,7 +357,8 @@ const Calendar = () => {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
 
-      const dateString = date.toISOString().split('T')[0];
+      const pad = (n) => String(n).padStart(2, '0');
+      const dateString = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
       const dayEvents = getEventsForDate(dateString);
 
       currentWeek.push({
@@ -362,7 +378,7 @@ const Calendar = () => {
     return (
       <div className="bg-white rounded-[22px] border border-[#EAE9E4] overflow-hidden shadow-sm">
         {/* Responsive Table Wrapper */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Kalender Kegiatan Bulanan">
           <div className="min-w-[640px]">
             {/* Calendar Header */}
             <div className="grid grid-cols-7 bg-[#FAF9F6] border-b border-[#EAE9E4]">
@@ -641,8 +657,14 @@ const Calendar = () => {
 
         {/* Event Detail Modal (Intelly Design) */}
         {selectedEvent && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-[26px] border border-[#EAE9E4] p-6 sm:p-7 w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Detail Agenda Kegiatan"
+            onClick={(e) => { if (e.target === e.currentTarget) setSelectedEvent(null); }}
+          >
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] p-6 sm:p-7 w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className={`px-3 py-1 text-xs font-bold rounded-full ${getEventTypeColor(selectedEvent)}`}>
@@ -740,8 +762,14 @@ const Calendar = () => {
 
         {/* Create Event Modal (Intelly Soft Neo-Brutalist) */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-[26px] border-2 border-[#121214] p-6 sm:p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-[6px_6px_0px_#121214]">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tambah Agenda Kegiatan"
+            onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) setShowCreateModal(false); }}
+          >
+            <div className="bg-white rounded-[26px] border-2 border-[#121214] p-6 sm:p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-[6px_6px_0px_#121214]">
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h3 className="text-lg font-black text-[#121214] tracking-tight">

@@ -1,8 +1,9 @@
 // src/utils/deadLetterQueue.js - Dead Letter Queue (DLQ) & Exponential Backoff for Failed Transactions
-import axios from 'axios';
+import api from '../services/api';
 
 const DLQ_STORAGE_KEY = 'bpjstk_dead_letter_queue';
 const MAX_RETRIES = 5;
+let dlqIntervalStarted = false;
 
 const getQueue = () => {
   try {
@@ -60,6 +61,10 @@ export const processDeadLetterQueue = async () => {
   const remainingQueue = [];
 
   for (const item of queue) {
+    if (item.isDead) {
+      remainingQueue.push(item);
+      continue;
+    }
     if (now < item.nextRetryAt) {
       remainingQueue.push(item);
       continue;
@@ -67,10 +72,11 @@ export const processDeadLetterQueue = async () => {
 
     try {
       console.log(`🔄 [DLQ] Mengirim ulang ${item.type} (Coba ${item.retryCount + 1}/${MAX_RETRIES})...`);
-      
-      const res = await axios({
+      const normalizedUrl = String(item.endpoint || '').replace(/^\/api(?=\/)/, '');
+
+      const res = await api({
         method: item.method,
-        url: item.endpoint,
+        url: normalizedUrl,
         data: item.payload,
         timeout: 10000,
         headers: {
@@ -113,8 +119,9 @@ export const clearDlq = () => {
   saveQueue([]);
 };
 
-// Periodically process queue every 15 seconds
-if (typeof window !== 'undefined') {
+// Periodically process queue every 15 seconds (singleton guard)
+if (typeof window !== 'undefined' && !dlqIntervalStarted) {
+  dlqIntervalStarted = true;
   setInterval(processDeadLetterQueue, 15000);
   window.addEventListener('online', processDeadLetterQueue);
 }

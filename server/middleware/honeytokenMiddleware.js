@@ -2,7 +2,6 @@
 import { query } from '../db.js';
 import { dispatchIncidentAlert } from '../utils/incidentNotifier.js';
 
-// Pre-defined honeytoken trap endpoints targeted by automated bot scanners
 const HONEYTOKEN_PATHS = new Set([
   '/wp-admin',
   '/wp-login.php',
@@ -23,25 +22,41 @@ const HONEYTOKEN_PATHS = new Set([
   '/api/v1/pg_shadow_tokens'
 ]);
 
-// In-memory set for zero-overhead fast-rejection of jailed IPs
-const inMemoryJail = new Map(); // ip -> unjailTimestamp
+// Short-lived local jail cache (synchronized against jailed_ips PostgreSQL table)
+const inMemoryJail = new Map(); // ip -> { jailedUntil, checkedAt }
+const JAIL_CACHE_TTL_MS = 15000;
 
-/**
- * Check if IP is currently jailed
- */
-export const isIpJailed = (ip) => {
-  const jailedUntil = inMemoryJail.get(ip);
-  if (!jailedUntil) return false;
-  if (Date.now() > jailedUntil) {
-    inMemoryJail.delete(ip);
-    return false;
+export const isIpJailed = async (ip) => {
+  const cached = inMemoryJail.get(ip);
+  const now = Date.now();
+  if (cached && now - cached.checkedAt < JAIL_CACHE_TTL_MS) {
+    if (!cached.jailedUntil) return false;
+    if (now > cached.jailedUntil) {
+      inMemoryJail.delete(ip);
+      return false;
+    }
+    return true;
   }
-  return true;
+
+  try {
+    const dbRes = await query(
+      `SELECT jailed_until FROM jailed_ips
+       WHERE ip = $1 AND is_active = TRUE AND jailed_until > CURRENT_TIMESTAMP
+       LIMIT 1`,
+      [ip]
+    );
+    if (dbRes.rows.length > 0) {
+      const until = new Date(dbRes.rows[0].jailed_until).getTime();
+      inMemoryJail.set(ip, { jailedUntil: until, checkedAt: now });
+      return true;
+    }
+    inMemoryJail.set(ip, { jailedUntil: null, checkedAt: now });
+    return false;
+  } catch {
+    return Boolean(cached?.jailedUntil && now <= cached.jailedUntil);
+  }
 };
 
-/**
- * Unban an IP address
- */
 export const unbanIp = async (ip) => {
   inMemoryJail.delete(ip);
   try {
@@ -51,15 +66,12 @@ export const unbanIp = async (ip) => {
   }
 };
 
-/**
- * Honeytoken & Jailed IP Interceptor Middleware
- */
 export const honeytokenMiddleware = async (req, res, next) => {
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
+  const clientIp = (req.headers['x-forwarded-for']?.split(',')[0] || req.ip || '127.0.0.1').trim();
   const reqPath = req.path.toLowerCase();
 
-  // 1. Fast-fail if IP is already in jail
-  if (isIpJailed(clientIp)) {
+  // 1. Check PostgreSQL-backed + cached jail list
+  if (await isIpJailed(clientIp)) {
     return res.status(403).json({
       success: false,
       code: 'IP_JAILED_THREAT_DETECTED',
@@ -67,21 +79,20 @@ export const honeytokenMiddleware = async (req, res, next) => {
     });
   }
 
-  // 2. Check if request matches any honeytoken trap path or SQL injection probing shadow tokens
+  // 2. Match explicit honeytoken trap paths or explicit SQLi probing of pg_shadow_tokens
   const rawUrl = (req.originalUrl || req.url || '').toLowerCase();
-  const hasShadowTokenInQuery = rawUrl.includes('pg_shadow_tokens') || rawUrl.includes('shadow_token');
-  const isTrap = HONEYTOKEN_PATHS.has(reqPath) || 
-                 Array.from(HONEYTOKEN_PATHS).some(p => reqPath.startsWith(p)) ||
+  const hasShadowTokenInQuery = rawUrl.includes('pg_shadow_tokens') || reqPath.includes('shadow-tokens');
+  const isTrap = HONEYTOKEN_PATHS.has(reqPath) ||
+                 Array.from(HONEYTOKEN_PATHS).some(p => reqPath === p || reqPath.startsWith(p + '/')) ||
                  hasShadowTokenInQuery;
 
   if (isTrap) {
-    const jailDurationMs = 24 * 60 * 60 * 1000; // 24 hours
+    const jailDurationMs = 24 * 60 * 60 * 1000;
     const unjailTime = new Date(Date.now() + jailDurationMs);
-    inMemoryJail.set(clientIp, unjailTime.getTime());
+    inMemoryJail.set(clientIp, { jailedUntil: unjailTime.getTime(), checkedAt: Date.now() });
 
     console.warn(`🚨 [HONEYTOKEN TRIGGERED] IP ${clientIp} stepped into trap: ${req.path}`);
 
-    // Persist intrusion record asynchronously
     try {
       await query(
         `INSERT INTO honeytoken_traps (trap_path, ip_address, user_agent, http_method, request_headers, severity, jailed_until)
@@ -96,8 +107,7 @@ export const honeytokenMiddleware = async (req, res, next) => {
         [clientIp, `Menyentuh honeytoken trap path: ${reqPath}`, unjailTime]
       );
 
-      // Trigger high-priority incident webhook alert
-      dispatchIncidentAlert({
+      await dispatchIncidentAlert({
         alertType: hasShadowTokenInQuery ? 'AUTONOMOUS_SQLI_SHADOW_TOKENS_PROBE' : 'HONEYTOKEN_INTRUSION_TRAP',
         severity: 'CRITICAL',
         sourceIp: clientIp,
@@ -109,12 +119,11 @@ export const honeytokenMiddleware = async (req, res, next) => {
           userAgent: req.headers['user-agent'],
           jailedUntil: unjailTime.toISOString()
         }
-      }).catch(() => {});
+      });
     } catch (dbErr) {
       console.error('Honeytoken trap persistence warning:', dbErr.message);
     }
 
-    // Return generic forbidden deception
     return res.status(403).json({
       success: false,
       code: 'ACCESS_PROHIBITED_HONEYTOKEN',
@@ -126,4 +135,3 @@ export const honeytokenMiddleware = async (req, res, next) => {
 };
 
 export default honeytokenMiddleware;
-

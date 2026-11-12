@@ -21,20 +21,20 @@ export async function downloadCertificateDirectly(certificate, options = {}) {
       canvas.height = 1540;
       const ctx = canvas.getContext('2d');
 
-      const certNumber = certificate.certificate_number || 'BPJSTK/MAGANG/2026/001';
+      const certNumber = certificate.certificate_number || `BPJSTK/MAGANG/${new Date().getFullYear()}/001`;
       const recipientName = certificate.participant_name || options.recipientName || 'Peserta Magang';
-      const recipientNim = certificate.participant_nim || options.recipientNim || '12345678';
+      const recipientNim = certificate.participant_nim || options.recipientNim || '-';
       const penempatan = certificate.penempatan || options.penempatan || 'Bidang Kepesertaan & Pelayanan';
-      const batchName = certificate.batch_name || 'Batch 1 - Gelombang Berjalan';
-      const score = certificate.score_average ? Number(certificate.score_average).toFixed(1) : '92.5';
+      const batchName = certificate.batch_name || 'Program Magang Industri';
+      const score = certificate.score_average !== undefined && certificate.score_average !== null ? Number(certificate.score_average).toFixed(1) : '-';
 
-      const branchHeadName = certificate.branch_head_name || options.branchHeadName || 'Dr. Hendra Wijaya, S.E., M.M.';
-      const branchHeadNpp = certificate.branch_head_npp || options.branchHeadNpp || '9876543210';
-      const branchName = certificate.branch_name || options.branchName || 'BPJS Ketenagakerjaan Kantor Cabang Jakarta Gambir';
-      const branchAddress = certificate.branch_address || options.branchAddress || 'Jl. Kebon Sirih No. 40, Jakarta Pusat 10110';
+      const branchHeadName = certificate.branch_head_name || options.branchHeadName || 'Kepala Kantor Cabang';
+      const branchHeadNpp = certificate.branch_head_npp || options.branchHeadNpp || '-';
+      const branchName = certificate.branch_name || options.branchName || 'BPJS Ketenagakerjaan Kantor Cabang';
+      const branchAddress = certificate.branch_address || options.branchAddress || '';
       
-      const mentorName = certificate.mentor_name || certificate.coordinator_name || options.mentorName || 'Budi Santoso, S.Kom., M.T.';
-      const mentorNpp = certificate.mentor_npp || certificate.coordinator_npp || options.mentorNpp || '8765432109';
+      const mentorName = certificate.mentor_name || certificate.coordinator_name || options.mentorName || 'Mentor Pembimbing';
+      const mentorNpp = certificate.mentor_npp || certificate.coordinator_npp || options.mentorNpp || '-';
       
       const branchHeadSig = certificate.branch_head_signature || options.branchHeadSignature || null;
       const mentorSig = certificate.mentor_signature || options.mentorSignature || null;

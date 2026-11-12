@@ -87,7 +87,7 @@ const Templates = () => {
       id: Date.now(),
       name: newTemplate.name.trim(),
       category: newTemplate.category,
-      lastModified: new Date().toISOString().split('T')[0],
+      lastModified: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }),
       status: newTemplate.status,
       usageCount: 0
     };
@@ -280,8 +280,15 @@ const Templates = () => {
 
         {/* Create Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-[26px] max-w-md w-full p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tambah Template Dokumen"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}
+            onKeyDown={(e) => { if (e.key === 'Escape') setShowCreateModal(false); }}
+          >
+            <div className="bg-white rounded-[26px] max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-2xl bg-[#B8C96E]/40 border border-[#B8C96E] flex items-center justify-center text-[#3C4A11]">

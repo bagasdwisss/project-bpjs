@@ -29,6 +29,15 @@ const BpuAcquisitions = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [verifyingId, setVerifyingId] = useState(null);
 
+  useEffect(() => {
+    if (!selectedItem) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setSelectedItem(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedItem]);
+
   const fetchAcquisitions = async () => {
     try {
       setLoading(true);
@@ -130,7 +139,15 @@ const BpuAcquisitions = () => {
         return (
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#FCE373] text-[#121214] border-2 border-[#121214] rounded-full text-[10px] font-black shadow-[2px_2px_0px_#121214]">
             <Clock className="w-3 h-3" />
-            MENUNGGU
+            MENUNGGU BAYAR
+          </span>
+        );
+      case 'MENUNGGU VERIFIKASI':
+      case 'MENUNGGU_VERIFIKASI_KOORDINATOR':
+        return (
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#BDD4F2] text-[#121214] border-2 border-[#121214] rounded-full text-[10px] font-black shadow-[2px_2px_0px_#121214]">
+            <Clock className="w-3 h-3" />
+            MENUNGGU VERIFIKASI
           </span>
         );
       default:
@@ -235,6 +252,7 @@ const BpuAcquisitions = () => {
                 options={[
                   { value: 'all', label: 'Semua Status' },
                   { value: 'PEMBAYARAN BERHASIL', label: 'Lunas (Berhasil)' },
+                  { value: 'MENUNGGU VERIFIKASI', label: 'Menunggu Verifikasi' },
                   { value: 'MENUNGGU PEMBAYARAN', label: 'Menunggu Pembayaran' },
                   { value: 'BARU DAFTAR', label: 'Baru Daftar' }
                 ]}
@@ -260,7 +278,7 @@ const BpuAcquisitions = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Akuisisi BPU">
               <table className="min-w-full divide-y-2 divide-[#121214] text-xs">
                 <thead className="bg-[#FAF9F6]">
                   <tr>
@@ -348,8 +366,14 @@ const BpuAcquisitions = () => {
 
         {/* Detail Modal */}
         {selectedItem && (
-          <div className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-[28px] border-2 border-[#121214] p-6 sm:p-7 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-[6px_6px_0px_#121214]">
+          <div
+            className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Detail Akuisisi ${selectedItem.nama_peserta}`}
+            onClick={(e) => { if (e.target === e.currentTarget) setSelectedItem(null); }}
+          >
+            <div className="bg-white rounded-[28px] border-2 border-[#121214] p-6 sm:p-7 w-full max-w-2xl max-h-[90vh] overflow-y-auto overscroll-contain shadow-[6px_6px_0px_#121214]">
               <div className="flex items-start justify-between mb-5">
                 <div>
                   <div className="flex items-center gap-2 mb-1">

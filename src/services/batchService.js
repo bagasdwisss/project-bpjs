@@ -7,7 +7,8 @@ export const batchService = {
   create: (data) => api.post('/admin/batches', data),
   update: (id, data) => api.put(`/admin/batches/${id}`, data),
   delete: (id) => api.delete(`/admin/batches/${id}`),
-  assignUsers: (id, userIds) => api.post(`/admin/batches/${id}/assign-users`, { user_ids: userIds }),
+  assignUsers: (id, userIds, mode = 'sync') => api.post(`/admin/batches/${id}/assign-users`, { user_ids: userIds, mode }),
+  assignParticipants: (id, userIds, mode = 'sync') => api.post(`/admin/batches/${id}/assign-users`, { user_ids: userIds, mode }),
   startFresh: (id, options = {}) => api.post(`/admin/batches/${id}/start-fresh`, options),
   getParticipants: (id) => api.get(`/admin/batches/${id}`)
 };

@@ -155,3 +155,15 @@ body {
     transform: none !important;
   }
 }
+
+/* Prevent scroll chaining behind dialogs and horizontal overflow on narrow viewports */
+dialog:modal,
+[role="dialog"],
+[role="alertdialog"] {
+  overscroll-behavior: contain;
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: clip;
+}

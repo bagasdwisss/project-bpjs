@@ -38,11 +38,13 @@ export const saveOfflineAttendance = async (payload) => {
 
   const recordId = await savePromise;
 
-  // Feature 17: Smart PWA Background Sync API Registration
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'SyncManager' in window) {
+  // Non-blocking Service Worker Background Sync registration when a SW actually controls the page
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
     try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.sync.register('sync-attendance-queue');
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && 'sync' in reg) {
+        await reg.sync.register('sync-attendance-queue');
+      }
     } catch (_) {}
   }
 

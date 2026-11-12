@@ -3,9 +3,13 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { query } from '../db.js';
 
-// In-memory fallback secret for local development if JWT_SECRET is not set in environment
-const devFallbackSecret = crypto.randomBytes(32).toString('hex');
-const JWT_SECRET = process.env.JWT_SECRET || devFallbackSecret;
+// In-memory/deterministic fallback secret only for local development if JWT_SECRET is not set
+const fallbackInput = process.env.DATABASE_URL || process.env.VERCEL_PROJECT_ID || 'bpjstk-local-dev-secret-fallback-key';
+const derivedFallbackSecret = crypto.createHmac('sha256', 'bpjstk-jwt-fallback-2026').update(fallbackInput).digest('hex');
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️ [Auth] JWT_SECRET is not set in environment; using derived deterministic secret. Set JWT_SECRET in production!');
+}
+const JWT_SECRET = process.env.JWT_SECRET || derivedFallbackSecret;
 
 /**
  * Middleware to verify JWT token
@@ -28,7 +32,7 @@ export const authenticateToken = async (req, res, next) => {
 
     // Fetch user from database to ensure user is active and exists
     const userRes = await query(
-      `SELECT u.user_id, u.unique_id, u.full_name, u.role_id, u.coordinator_id, u.status, u.penempatan, u.current_session_token, r.role_name
+      `SELECT u.user_id, u.unique_id, u.full_name, u.email, u.role_id, u.coordinator_id, u.status, u.penempatan, u.current_session_token, r.role_name
        FROM users u
        JOIN roles r ON u.role_id = r.role_id
        WHERE u.user_id = $1`,
@@ -44,12 +48,14 @@ export const authenticateToken = async (req, res, next) => {
 
     const user = userRes.rows[0];
 
-    // Single Session Protection: detect if user logged in on another device
-    if (decoded.session_token && user.current_session_token && decoded.session_token !== user.current_session_token) {
+    // Single Session Protection: invalidate logged-out tokens or concurrent logins
+    if (decoded.session_token && (!user.current_session_token || decoded.session_token !== user.current_session_token)) {
       return res.status(401).json({
         success: false,
-        code: 'CONCURRENT_LOGIN_DETECTED',
-        message: 'Akun Anda terdeteksi baru saja login di perangkat atau browser lain. Sesi ini telah ditutup secara otomatis.'
+        code: user.current_session_token ? 'CONCURRENT_LOGIN_DETECTED' : 'SESSION_REVOKED',
+        message: user.current_session_token
+          ? 'Akun Anda terdeteksi baru saja login di perangkat atau browser lain. Sesi ini telah ditutup secara otomatis.'
+          : 'Sesi Anda telah berakhir atau Anda telah logout. Silakan login kembali.'
       });
     }
 

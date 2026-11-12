@@ -181,6 +181,17 @@ const AcquisitionResult = () => {
     setUploadFile(e.target.files[0]);
   };
 
+  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    if (file.size > 4 * 1024 * 1024) {
+      reject(new Error('Ukuran file maksimal 4 MB.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Gagal membaca berkas.'));
+    reader.readAsDataURL(file);
+  });
+
   const handleUploadProof = async () => {
     if (!uploadFile || !selectedItem) {
       showToast('Pilih file terlebih dahulu', 'warning');
@@ -188,31 +199,25 @@ const AcquisitionResult = () => {
     }
 
     setUploading(true);
-    const formData = new FormData();
-    
-    if (uploadType === 'payment') {
-      formData.append('bukti_pembayaran', uploadFile);
-    } else if (uploadType === 'socialization') {
-      formData.append('bukti_sosialisasi', uploadFile);
-    }
-
     try {
+      const dataUrl = await readFileAsDataUrl(uploadFile);
       const endpoint = uploadType === 'payment' 
         ? `/participant/acquisition-result/${selectedItem.peserta_id}/upload-payment-proof`
         : `/participant/acquisition-result/${selectedItem.peserta_id}/upload-socialization-proof`;
 
-      const response = await api.post(endpoint, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const payload = uploadType === 'payment'
+        ? { file_data: dataUrl, file_name: uploadFile.name, bukti_pembayaran_link: dataUrl }
+        : { file_data: dataUrl, file_name: uploadFile.name, bukti_sosialisasi_link: dataUrl };
+
+      const response = await api.post(endpoint, payload);
 
       if (response.data?.success) {
-        // Update data lokal
         setAcquisitionData(prev => prev.map(item => 
           item.peserta_id === selectedItem.peserta_id 
             ? { 
                 ...item, 
                 [uploadType === 'payment' ? 'bukti_pembayaran_link' : 'bukti_sosialisasi_link']: 
-                response.data.data[uploadType === 'payment' ? 'bukti_pembayaran_link' : 'bukti_sosialisasi_link'] 
+                  response.data.data?.[uploadType === 'payment' ? 'bukti_pembayaran_link' : 'bukti_sosialisasi_link'] || dataUrl
               }
             : item
         ));
@@ -225,7 +230,7 @@ const AcquisitionResult = () => {
       }
     } catch (error) {
       console.error('Error uploading proof:', error);
-      showToast('Terjadi kesalahan saat mengunggah bukti', 'error');
+      showToast(error.response?.data?.message || error.message || 'Terjadi kesalahan saat mengunggah bukti', 'error');
     } finally {
       setUploading(false);
     }
@@ -233,9 +238,9 @@ const AcquisitionResult = () => {
 
   const handleConfirmPayment = async (pesertaId) => {
     const ok = await confirm({
-      title: 'Konfirmasi Pembayaran',
-      message: 'Apakah Anda yakin pembayaran iuran BPJSTK peserta ini sudah selesai dan terverifikasi?',
-      confirmText: 'Ya, Konfirmasi',
+      title: 'Ajukan Verifikasi Pembayaran',
+      message: 'Kirim bukti pembayaran peserta ini ke Koordinator untuk diverifikasi sebagai lunas?',
+      confirmText: 'Ya, Ajukan Verifikasi',
       cancelText: 'Batal',
       type: 'info'
     });
@@ -245,20 +250,20 @@ const AcquisitionResult = () => {
         const response = await api.put(`/participant/acquisition-result/${pesertaId}/confirm-payment`);
 
         if (response.data?.success) {
-          // Update data lokal
+          const nextStatus = response.data.data?.status_pendaftaran || 'MENUNGGU VERIFIKASI';
           setAcquisitionData(prev => prev.map(item =>
             item.peserta_id === pesertaId
-              ? { ...item, status_pendaftaran: 'PEMBAYARAN BERHASIL' }
+              ? { ...item, status_pendaftaran: nextStatus }
               : item
           ));
 
-          showToast('Pembayaran berhasil dikonfirmasi!', 'success');
+          showToast(response.data.message || 'Permintaan verifikasi pembayaran dikirim ke Koordinator!', 'success');
         } else {
-          showToast(`Gagal mengkonfirmasi pembayaran: ${response.data?.message}`, 'error');
+          showToast(`Gagal mengajukan verifikasi: ${response.data?.message}`, 'error');
         }
       } catch (error) {
         console.error('Error confirming payment:', error);
-        showToast('Terjadi kesalahan saat mengkonfirmasi pembayaran', 'error');
+        showToast(error.response?.data?.message || 'Terjadi kesalahan saat mengajukan verifikasi pembayaran', 'error');
       }
   };
 
@@ -425,49 +430,24 @@ const AcquisitionResult = () => {
         ? `/participant/peserta/${selectedItem.peserta_id}`
         : '/participant/peserta';
 
-      // Check if there are files to upload
-      const hasFiles = paymentProofFile || socializationProofFile;
+      const requestData = {
+        ...formData,
+        biaya: parseFloat(formData.biaya) || 0,
+        user_id: user.user_id
+      };
 
-      let response;
-      if (hasFiles) {
-        // Use FormData for file uploads
-        const formDataToSend = new FormData();
-
-        // Add regular form data
-        Object.keys(formData).forEach(key => {
-          if (formData[key] !== undefined && formData[key] !== null) {
-            if (key === 'biaya') {
-              formDataToSend.append(key, parseFloat(formData[key]) || 0);
-            } else {
-              formDataToSend.append(key, formData[key]);
-            }
-          }
-        });
-        
-        // Add user_id
-        formDataToSend.append('user_id', user.user_id);
-
-        // Add file data if present
-        if (paymentProofFile) {
-          formDataToSend.append('bukti_pembayaran', paymentProofFile);
-        }
-        if (socializationProofFile) {
-          formDataToSend.append('bukti_sosialisasi', socializationProofFile);
-        }
-
-        response = await (isEditMode 
-          ? api.put(url, formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } })
-          : api.post(url, formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } }));
-      } else {
-        // Use regular JSON for non-file data
-        const requestData = {
-          ...formData,
-          biaya: parseFloat(formData.biaya) || 0,
-          user_id: user.user_id
-        };
-
-        response = await (isEditMode ? api.put(url, requestData) : api.post(url, requestData));
+      if (paymentProofFile) {
+        const payData = await readFileAsDataUrl(paymentProofFile);
+        requestData.bukti_pembayaran_link = payData;
+        requestData.bukti_pembayaran_data = payData;
       }
+      if (socializationProofFile) {
+        const socData = await readFileAsDataUrl(socializationProofFile);
+        requestData.bukti_sosialisasi_link = socData;
+        requestData.bukti_sosialisasi_data = socData;
+      }
+
+      const response = await (isEditMode ? api.put(url, requestData) : api.post(url, requestData));
 
       if (response.data?.success) {
         if (isEditMode) {
@@ -618,9 +598,13 @@ const AcquisitionResult = () => {
 
           <div className="p-5 rounded-[22px] bg-[#BDD4F2] text-[#121214] shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Menunggu Bayar</p>
+              <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Menunggu / Verifikasi</p>
               <h3 className="text-3xl font-black mt-1 text-[#121214]">
-                {safeData.filter(p => p.status_pendaftaran === 'MENUNGGU PEMBAYARAN').length}
+                {safeData.filter(p =>
+                  p.status_pendaftaran === 'MENUNGGU PEMBAYARAN' ||
+                  p.status_pendaftaran === 'MENUNGGU VERIFIKASI' ||
+                  p.status_pendaftaran === 'MENUNGGU_VERIFIKASI_KOORDINATOR'
+                ).length}
               </h3>
               <p className="text-[10px] text-[#121214]/60 font-medium">Dalam proses</p>
             </div>
@@ -658,7 +642,37 @@ const AcquisitionResult = () => {
 
           <div className="flex items-center gap-2">
             <button 
-              className="flex items-center px-4 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] transition-colors"
+              type="button"
+              onClick={async () => {
+                try {
+                  const XLSX = await import('xlsx');
+                  const rows = filteredData.map(item => ({
+                    'Nama Peserta': item.nama_peserta || '-',
+                    'NIK': item.nik || '-',
+                    'Tanggal Daftar': item.tgl_daftar || '-',
+                    'Pekerjaan': item.pekerjaan || '-',
+                    'No. Telepon': item.no_telepon || '-',
+                    'Email': item.email || '-',
+                    'Program': item.program_bpjs || '-',
+                    'Status': item.status_pendaftaran || '-',
+                    'Periode': item.periode_bulan || '-',
+                    'Iuran (Rp)': Number(item.biaya || 0)
+                  }));
+                  if (rows.length === 0) {
+                    showToast('Tidak ada data untuk diekspor.', 'warning');
+                    return;
+                  }
+                  const ws = XLSX.utils.json_to_sheet(rows);
+                  const wb = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(wb, ws, 'Akuisisi BPU');
+                  const wibToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+                  XLSX.writeFile(wb, `Akuisisi_BPU_${wibToday}.xlsx`);
+                  showToast('Data akuisisi BPU berhasil diekspor ke Excel!', 'success');
+                } catch (err) {
+                  showToast('Gagal mengekspor Excel: ' + err.message, 'error');
+                }
+              }}
+              className="flex items-center px-4 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 mr-1.5" />
               Export Data
@@ -671,7 +685,7 @@ const AcquisitionResult = () => {
         {loading ? (
           <TableSkeleton rows={5} cols={7} />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Tabel Hasil Akuisisi BPU">
             <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
               <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
                 <tr>
@@ -705,11 +719,13 @@ const AcquisitionResult = () => {
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          item.status_pendaftaran === 'BARU DAFTAR'
-                            ? 'bg-[#F5C6EC] text-[#121214]'
+                          item.status_pendaftaran === 'PEMBAYARAN BERHASIL'
+                            ? 'bg-[#B8C96E] text-[#121214]'
                             : item.status_pendaftaran === 'MENUNGGU PEMBAYARAN'
                               ? 'bg-[#FCE373] text-[#121214]'
-                              : 'bg-[#B8C96E] text-[#121214]'
+                              : (item.status_pendaftaran === 'MENUNGGU VERIFIKASI' || item.status_pendaftaran === 'MENUNGGU_VERIFIKASI_KOORDINATOR')
+                                ? 'bg-[#BDD4F2] text-[#121214]'
+                                : 'bg-[#F5C6EC] text-[#121214]'
                         }`}>
                           {item.status_pendaftaran}
                         </span>
@@ -748,7 +764,7 @@ const AcquisitionResult = () => {
                             <button
                               className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#B8C96E]/30 border border-[#B8C96E] text-[#3C4A11] hover:bg-[#121214] hover:text-white transition"
                               onClick={() => handleConfirmPayment(item.peserta_id)}
-                              title="Konfirmasi Pembayaran"
+                              title="Ajukan Verifikasi Pembayaran ke Koordinator"
                             >
                               <CheckCircle className="w-3.5 h-3.5" />
                             </button>
@@ -782,8 +798,15 @@ const AcquisitionResult = () => {
 
       {/* Upload Modal */}
       {showUploadModal && selectedItem && (
-        <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl max-w-md w-full p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overscroll-contain"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Unggah Bukti"
+          onClick={(e) => { if (e.target === e.currentTarget && !uploading) { setShowUploadModal(false); setUploadFile(null); } }}
+          onKeyDown={(e) => { if (e.key === 'Escape' && !uploading) { setShowUploadModal(false); setUploadFile(null); } }}
+        >
+          <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="text-base sm:text-lg font-bold text-[#121214] mb-2">
               Unggah {uploadType === 'payment' ? 'Bukti Pembayaran' : 'Bukti Sosialisasi'}
             </h3>
@@ -842,8 +865,15 @@ const AcquisitionResult = () => {
 
       {/* Form Modal */}
       {showFormModal && (
-        <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[26px] border-2 border-[#121214] shadow-[6px_6px_0px_#121214] max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overscroll-contain"
+          role="dialog"
+          aria-modal="true"
+          aria-label={isEditMode ? 'Edit Data Peserta BPJSTK BPU' : 'Tambah Data Akuisisi BPJSTK BPU'}
+          onClick={(e) => { if (e.target === e.currentTarget && !submitting) { setShowFormModal(false); resetForm(); } }}
+          onKeyDown={(e) => { if (e.key === 'Escape' && !submitting) { setShowFormModal(false); resetForm(); } }}
+        >
+          <div className="bg-white rounded-[26px] border-2 border-[#121214] shadow-[6px_6px_0px_#121214] max-w-2xl w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="text-base sm:text-lg font-black text-[#121214] mb-3">
               {isEditMode ? 'Edit Data Peserta BPJSTK BPU' : 'Tambah Data Akuisisi BPJSTK BPU'}
             </h3>
@@ -1005,7 +1035,10 @@ const AcquisitionResult = () => {
                     options={[
                       { value: 'BARU DAFTAR', label: 'BARU DAFTAR' },
                       { value: 'MENUNGGU PEMBAYARAN', label: 'MENUNGGU PEMBAYARAN' },
-                      { value: 'PEMBAYARAN BERHASIL', label: 'PEMBAYARAN BERHASIL' }
+                      { value: 'MENUNGGU VERIFIKASI', label: 'MENUNGGU VERIFIKASI' },
+                      ...(formData.status_pendaftaran === 'PEMBAYARAN BERHASIL'
+                        ? [{ value: 'PEMBAYARAN BERHASIL', label: 'PEMBAYARAN BERHASIL (Terverifikasi)' }]
+                        : [])
                     ]}
                   />
                 </div>

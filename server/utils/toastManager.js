@@ -39,26 +39,7 @@ export async function getToastDiagnostics() {
       success: true,
       toastEnabled: true,
       compressionAlgorithm: 'LZ4 / PGLZ (Automated Native)',
-      columns: res.rows.length > 0 ? res.rows : [
-        {
-          table_name: 'activity_logs',
-          column_name: 'details',
-          storage_policy: 'EXTENDED (Compressed + TOAST Out-of-line)',
-          data_type: 'text',
-          toast_table_name: 'pg_toast_activity_logs',
-          total_table_size: '1.4 MB',
-          toast_size: '840 kB'
-        },
-        {
-          table_name: 'whistleblowing_reports',
-          column_name: 'description',
-          storage_policy: 'EXTENDED (Compressed + TOAST Out-of-line)',
-          data_type: 'text',
-          toast_table_name: 'pg_toast_whistleblowing_reports',
-          total_table_size: '256 kB',
-          toast_size: '128 kB'
-        }
-      ],
+      columns: res.rows,
       description: 'Strategi penyimpanan TOAST EXTENDED memadatkan payload JSONB & teks panjang secara otomatis sehingga tabel utama tetap ramping (lean footprint).'
     };
   } catch (err) {

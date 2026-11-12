@@ -90,14 +90,14 @@ export async function withRlsContext(userId, isAdmin = false, callback) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query(`SET LOCAL app.current_user_id = $1`, [String(userId)]);
-    await client.query(`SET LOCAL app.is_admin = $1`, [isAdmin ? 'true' : 'false']);
-    
+    await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [String(userId)]);
+    await client.query(`SELECT set_config('app.is_admin', $1, true)`, [isAdmin ? 'true' : 'false']);
+
     const result = await callback(client);
     await client.query('COMMIT');
     return result;
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     throw err;
   } finally {
     client.release();

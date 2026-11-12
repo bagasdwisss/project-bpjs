@@ -15,6 +15,14 @@ export function getCurrentTimeStep() {
   return { step, secondsRemaining, nowSec };
 }
 
+export function createRollingBadgeSignature(userId, uniqueId, step) {
+  const canonicalData = `${userId}:${uniqueId}:${step}`;
+  return crypto.createHmac('sha256', ID_CARD_SECRET)
+    .update(canonicalData)
+    .digest('hex')
+    .substring(0, 24);
+}
+
 /**
  * Generates dynamic rotating QR payload and HMAC signature for an intern
  */
@@ -27,8 +35,16 @@ export async function generateDynamicIdCardPayload(userId) {
            c.unique_id as coordinator_id_code
     FROM users u
     LEFT JOIN users c ON u.coordinator_id = c.user_id
-    LEFT JOIN peserta p ON u.user_id = p.user_id
-    LEFT JOIN user_batches ub ON u.user_id = ub.user_id
+    LEFT JOIN LATERAL (
+      SELECT program_terdaftar, status_pendaftaran
+      FROM peserta WHERE user_id = u.user_id
+      ORDER BY peserta_id DESC LIMIT 1
+    ) p ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT batch_id FROM user_batches
+      WHERE user_id = u.user_id
+      ORDER BY assigned_at DESC LIMIT 1
+    ) ub ON TRUE
     LEFT JOIN batches b ON ub.batch_id = b.batch_id
     WHERE u.user_id = $1
   `, [userId]);
@@ -126,7 +142,9 @@ export function verifyDynamicIdQr(rawPayload) {
       .digest('hex')
       .substring(0, 24);
 
-    const isMatch = crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig));
+    const sigBuf = Buffer.from(String(sig), 'utf8');
+    const expBuf = Buffer.from(expectedSig, 'utf8');
+    const isMatch = sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf);
     if (!isMatch) {
       return { valid: false, message: 'Tanda tangan kriptografis QR Code palsu atau telah dimodifikasi!' };
     }

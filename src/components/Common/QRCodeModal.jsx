@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { X, QrCode, Download, Copy, Check, Share2, Sparkles } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, QrCode, Download, Copy, Check, Sparkles } from 'lucide-react';
+import { drawQrToCanvas, generateQrDataUrl } from '../../utils/qrMatrix';
 
 const QRCodeModal = ({ isOpen, onClose, user }) => {
-  if (!isOpen) return null;
-
   const [copied, setCopied] = useState(false);
   const qrCanvasRef = useRef(null);
 
@@ -12,8 +11,23 @@ const QRCodeModal = ({ isOpen, onClose, user }) => {
   const referralCode = `BPJSTK-BPU-${participantNim}`;
   const referralUrl = `https://bpjsketenagakerjaan.go.id/bpu/daftar?ref=${referralCode}`;
 
-  // Basic QR Code generator using standard QR SVG matrix or public QR generator API for high-resolution PNG download
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(referralUrl)}&color=12-12-14&bgcolor=F5-F4-F0`;
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', handleEsc);
+
+    if (qrCanvasRef.current) {
+      const ctx = qrCanvasRef.current.getContext('2d');
+      if (ctx) {
+        drawQrToCanvas(ctx, referralUrl, 0, 0, 220, { fgColor: '#121214', bgColor: '#F5F4F0' });
+      }
+    }
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, referralUrl, onClose]);
+
+  if (!isOpen) return null;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(referralUrl);
@@ -23,25 +37,26 @@ const QRCodeModal = ({ isOpen, onClose, user }) => {
 
   const handleDownloadQR = async () => {
     try {
-      const response = await fetch(qrImageUrl);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+      const dataUrl = qrCanvasRef.current
+        ? qrCanvasRef.current.toDataURL('image/png')
+        : await generateQrDataUrl(referralUrl, { width: 320 });
       const link = document.createElement('a');
-      link.href = blobUrl;
+      link.href = dataUrl;
       link.download = `QR_Referral_${referralCode}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      // Fallback
-      window.open(qrImageUrl, '_blank');
+      console.error('QR download failed:', err);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] w-full max-w-md overflow-hidden flex flex-col">
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-150"
+    >
+      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[6px_6px_0px_#121214] w-full max-w-md max-h-[92vh] overflow-y-auto overscroll-contain flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b-2 border-[#121214] bg-[#BDD4F2]">
@@ -73,12 +88,12 @@ const QRCodeModal = ({ isOpen, onClose, user }) => {
 
           {/* QR Card Container */}
           <div className="p-5 bg-white border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] flex flex-col items-center">
-            <img 
-              src={qrImageUrl} 
-              alt={`QR Code ${referralCode}`} 
-              loading="lazy"
-              decoding="async"
-              className="w-48 h-48 rounded-lg border-2 border-[#121214] object-contain p-2 bg-[#F5F4F0]"
+            <canvas
+              ref={qrCanvasRef}
+              width={220}
+              height={220}
+              aria-label={`QR Code ${referralCode}`}
+              className="w-48 h-48 rounded-lg border-2 border-[#121214] p-2 bg-[#F5F4F0]"
             />
             <div className="mt-3">
               <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Kode Unik Anda</span>

@@ -4,14 +4,12 @@ import { X, Calculator, ShieldCheck, Copy, Check } from 'lucide-react';
 import api from '../../services/api';
 
 const CalculatorModal = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-
   const [wageTier, setWageTier] = useState(1500000); // Base wage for calculation
   const [wageInput, setWageInput] = useState('1500000');
   const [includeJHT, setIncludeJHT] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Dynamic BPU Rates loaded from Database
+  // Dynamic BPU Rates loaded from Database (normalized decimal fractions: 0.01 = 1%)
   const [bpuRates, setBpuRates] = useState({
     jkk_percentage: 0.01,
     jkk_min_amount: 10000,
@@ -24,6 +22,11 @@ const CalculatorModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (!isOpen) return;
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', handleEsc);
+
     const fetchRates = async () => {
       try {
         const res = await api.get('/bpu/rates');
@@ -35,12 +38,21 @@ const CalculatorModal = ({ isOpen, onClose }) => {
       }
     };
     fetchRates();
-  }, [isOpen]);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  // Normalize percentage stored either as fraction (0.01) or percent (1)
+  const rawJkkPct = Number(bpuRates.jkk_percentage) || 0.01;
+  const normalizedJkkFraction = rawJkkPct > 0.25 ? rawJkkPct / 100 : rawJkkPct;
+  const rawJhtPct = Number(bpuRates.jht_percentage) || 0.02;
+  const normalizedJhtFraction = rawJhtPct > 0.25 ? rawJhtPct / 100 : rawJhtPct;
 
   // Dynamic calculations based on wage tier for BPJSTK BPU from Database
-  const jkkRate = Math.max(Number(bpuRates.jkk_min_amount) || 10000, Math.round(wageTier * (Number(bpuRates.jkk_percentage) || 0.01)));
+  const jkkRate = Math.max(Number(bpuRates.jkk_min_amount) || 10000, Math.round(wageTier * normalizedJkkFraction));
   const jkmRate = Number(bpuRates.jkm_flat_amount) || 6800;
-  const jhtRate = Math.max(Number(bpuRates.jht_min_amount) || 20000, Math.round(wageTier * (Number(bpuRates.jht_percentage) || 0.02)));
+  const jhtRate = Math.max(Number(bpuRates.jht_min_amount) || 20000, Math.round(wageTier * normalizedJhtFraction));
 
   const totalMonthlyFee = jkkRate + jkmRate + (includeJHT ? jhtRate : 0);
 
@@ -88,8 +100,11 @@ Daftar mudah sekarang melalui petugas binaan BPJSTK!`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#121214]/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-3xl shadow-[6px_6px_0px_#121214] w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#121214]/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-150"
+    >
+      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-3xl shadow-[6px_6px_0px_#121214] w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden overscroll-contain">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b-2 border-[#121214] bg-[#FCE373]">

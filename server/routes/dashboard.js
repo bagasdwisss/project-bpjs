@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { runAutoAbsenceCheck } from '../utils/autoAbsenceManager.js';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
  */
 router.get('/participant', authenticateToken, requireRole('Peserta'), async (req, res) => {
   try {
+    await runAutoAbsenceCheck().catch(() => {});
     const userId = req.user.user_id;
 
     // 1. Attendance statistics
@@ -29,7 +31,7 @@ router.get('/participant', authenticateToken, requireRole('Peserta'), async (req
     const attRow = attendanceRes.rows[0];
     const totalAtt = parseInt(attRow.total, 10) || 0;
     const hadir = parseInt(attRow.hadir, 10) || 0;
-    const rate = totalAtt > 0 ? Math.round((hadir / totalAtt) * 100) : 100;
+    const rate = totalAtt > 0 ? Math.round((hadir / totalAtt) * 100) : 0;
 
     const attendanceStats = {
       total: totalAtt,
@@ -203,31 +205,65 @@ router.get('/participant', authenticateToken, requireRole('Peserta'), async (req
  */
 router.get('/coordinator', authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
-    const coordinatorId = req.user.user_id;
+    await runAutoAbsenceCheck().catch(() => {});
+    const isAdmin = req.user.role === 'Administrator' || req.user.role_id === 3;
+    const requestedCoordId = req.query.coordinator_id ? parseInt(req.query.coordinator_id, 10) : null;
+    const coordinatorId = isAdmin && requestedCoordId ? requestedCoordId : req.user.user_id;
 
-    // Get assigned participants
+    // Fetch dynamic grading settings for target_akuisisi_bpu
+    const gSetRes = await query(`SELECT target_akuisisi_bpu FROM grading_settings ORDER BY id ASC LIMIT 1`);
+    const targetBpu = Math.max(1, parseInt(gSetRes.rows[0]?.target_akuisisi_bpu, 10) || 20);
+
+    // Get assigned participants (Admin sees all or filtered by query param)
+    const scopeFilter = isAdmin && !requestedCoordId ? `u.role_id = 1` : `u.coordinator_id = $1 AND u.role_id = 1`;
+    const scopeParams = isAdmin && !requestedCoordId ? [] : [coordinatorId];
+
     const participantsRes = await query(
       `SELECT u.user_id, u.unique_id, u.full_name, u.status, u.penempatan,
               p.hasil_akuisisi_bpu, p.kunjungan_bpu, p.kunjungan_pu, p.total_poin, p.nilai, p.grade
        FROM users u
        LEFT JOIN progress p ON u.user_id = p.user_id
-       WHERE u.coordinator_id = $1 AND u.role_id = 1
+       WHERE ${scopeFilter}
        ORDER BY u.full_name ASC`,
-      [coordinatorId]
+      scopeParams
     );
 
     const participants = participantsRes.rows;
     const totalParticipants = participants.length;
     const activeParticipants = participants.filter(p => p.status === 'Aktif').length;
 
-    // Calculate averages
-    const avgScore = totalParticipants > 0 
-      ? Math.round(participants.reduce((acc, p) => acc + (p.nilai || 0), 0) / totalParticipants) 
+    const avgScore = totalParticipants > 0
+      ? Math.round(participants.reduce((acc, p) => acc + (parseFloat(p.nilai) || 0), 0) / totalParticipants)
       : 0;
 
     const avgProgress = totalParticipants > 0
-      ? Math.round(participants.reduce((acc, p) => acc + Math.min(100, Math.round(((p.hasil_akuisisi_bpu || 0) / 20) * 100)), 0) / totalParticipants)
+      ? Math.round(participants.reduce((acc, p) => acc + Math.min(100, Math.round(((p.hasil_akuisisi_bpu || 0) / targetBpu) * 100)), 0) / totalParticipants)
       : 0;
+
+    const [attRes, pendingLeaveRes] = await Promise.all([
+      query(
+        `SELECT
+           COUNT(*)::int as total,
+           COUNT(CASE WHEN a.status = 'Hadir' THEN 1 END)::int as hadir,
+           COUNT(CASE WHEN a.status IN ('Alfa', 'Alpa') THEN 1 END)::int as alfa
+         FROM attendance_records a
+         JOIN users u ON a.user_id = u.user_id
+         WHERE ${scopeFilter}`,
+        scopeParams
+      ),
+      query(
+        `SELECT COUNT(*)::int as pending_leaves
+         FROM leave_requests l
+         JOIN users u ON l.user_id = u.user_id
+         WHERE l.status = 'Pending' AND ${scopeFilter}`,
+        scopeParams
+      )
+    ]);
+
+    const totAtt = attRes.rows[0]?.total || 0;
+    const hadAtt = attRes.rows[0]?.hadir || 0;
+    const attendanceRate = totAtt > 0 ? Math.round((hadAtt / totAtt) * 100) : 0;
+    const pendingLeaves = pendingLeaveRes.rows[0]?.pending_leaves || 0;
 
     // Recent activities related to this coordinator or participants
     const activitiesRes = await query(
@@ -262,7 +298,11 @@ router.get('/coordinator', authenticateToken, requireRole('Koordinator', 'Admini
           totalParticipants,
           activeParticipants,
           averageScore: avgScore,
-          averageProgress: avgProgress
+          averageProgress: avgProgress,
+          attendanceRate,
+          pendingLeaves,
+          alfaCount: attRes.rows[0]?.alfa || 0,
+          targetBpu
         },
         participants,
         recentActivities: activitiesRes.rows,
@@ -284,6 +324,7 @@ router.get('/coordinator', authenticateToken, requireRole('Koordinator', 'Admini
  */
 router.get('/admin', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
+    await runAutoAbsenceCheck().catch(() => {});
     const countsRes = await query(`
       SELECT
         (SELECT COUNT(*) FROM users) as total_users,
@@ -297,7 +338,7 @@ router.get('/admin', authenticateToken, requireRole('Administrator'), async (req
     const counts = countsRes.rows[0];
 
     // Real attendance metrics from database
-    let attStats = { rate: 96, hadir: 0, terlambat: 0, izin: 0 };
+    let attStats = { rate: 0, hadir: 0, terlambat: 0, izin: 0 };
     try {
       const attRes = await query(`
         SELECT 
@@ -311,7 +352,7 @@ router.get('/admin', authenticateToken, requireRole('Administrator'), async (req
         const tot = parseInt(attRes.rows[0].total, 10) || 0;
         const had = parseInt(attRes.rows[0].hadir, 10) || 0;
         attStats = {
-          rate: tot > 0 ? Math.round((had / tot) * 100) : 96,
+          rate: tot > 0 ? Math.round((had / tot) * 100) : 0,
           hadir: had,
           terlambat: parseInt(attRes.rows[0].terlambat, 10) || 0,
           izin: parseInt(attRes.rows[0].izin, 10) || 0
@@ -321,17 +362,20 @@ router.get('/admin', authenticateToken, requireRole('Administrator'), async (req
       console.warn('Dashboard attendance aggregation fallback:', e.message);
     }
 
-    // Real grade distribution from progress database
-    let gradeDist = { gradeA: 0, gradeB: 0, gradeC: 0, passRate: 90 };
+    // Real grade distribution from progress database using dynamic grading_settings cutoffs
+    let gradeDist = { gradeA: 0, gradeB: 0, gradeC: 0, passRate: 0 };
     try {
+      const gSetRes = await query(`SELECT grade_a_cutoff, grade_b_cutoff FROM grading_settings ORDER BY id ASC LIMIT 1`);
+      const minA = parseFloat(gSetRes.rows[0]?.grade_a_cutoff ?? 85);
+      const minB = parseFloat(gSetRes.rows[0]?.grade_b_cutoff ?? 75);
       const progRes = await query(`
         SELECT 
-          COUNT(*) FILTER (WHERE grade = 'A' OR nilai >= 85) as a_count,
-          COUNT(*) FILTER (WHERE grade = 'B' OR (nilai >= 75 AND nilai < 85)) as b_count,
-          COUNT(*) FILTER (WHERE grade IN ('C', 'D', 'E') OR (nilai < 75 AND nilai IS NOT NULL)) as c_count,
+          COUNT(*) FILTER (WHERE grade = 'A' OR nilai >= $1) as a_count,
+          COUNT(*) FILTER (WHERE grade = 'B' OR (nilai >= $2 AND nilai < $1)) as b_count,
+          COUNT(*) FILTER (WHERE grade IN ('C', 'D', 'E') OR (nilai < $2 AND nilai IS NOT NULL)) as c_count,
           COUNT(*) as total_graded
         FROM progress
-      `);
+      `, [minA, minB]);
       if (progRes.rows.length > 0) {
         const aCount = parseInt(progRes.rows[0].a_count, 10) || 0;
         const bCount = parseInt(progRes.rows[0].b_count, 10) || 0;
@@ -341,20 +385,20 @@ router.get('/admin', authenticateToken, requireRole('Administrator'), async (req
           gradeA: aCount,
           gradeB: bCount,
           gradeC: cCount,
-          passRate: totGraded > 0 ? Math.round(((aCount + bCount) / totGraded) * 100) : 90
+          passRate: totGraded > 0 ? Math.round(((aCount + bCount) / totGraded) * 100) : 0
         };
       }
     } catch (e) {
       console.warn('Dashboard grade distribution fallback:', e.message);
     }
 
-    // Real placement distribution
+    // Real placement distribution (case-insensitive)
     let placementStats = { kantor: 0, lapangan: 0 };
     try {
       const placeRes = await query(`
         SELECT 
-          COUNT(*) FILTER (WHERE penempatan = 'kantor') as kantor_count,
-          COUNT(*) FILTER (WHERE penempatan = 'lapangan') as lapangan_count
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(penempatan, '')) = 'kantor') as kantor_count,
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(penempatan, '')) = 'lapangan') as lapangan_count
         FROM users WHERE role_id = 1
       `);
       if (placeRes.rows.length > 0) {

@@ -157,7 +157,7 @@ const Analysis = () => {
     };
 
     const participantScoresData = {
-      labels: participants.map(p => p.participant_name || 'Peserta'),
+      labels: participants.map(p => p.full_name || p.participant_name || 'Peserta'),
       datasets: [{
         label: 'Nilai Akhir',
         data: participants.map(p => p.nilai || 0),
@@ -169,7 +169,7 @@ const Analysis = () => {
     const highestPerformerRadarData = highestPerformer ? {
       labels: ['Kunj. BPU', 'Akuisisi BPU', 'Kunj. PU', 'Video', 'Seminar', 'Sosialisasi'],
       datasets: [{
-        label: highestPerformer.participant_name,
+        label: highestPerformer.full_name || highestPerformer.participant_name || 'Terbaik',
         data: [
           highestPerformer.kunjungan_bpu || 0,
           highestPerformer.hasil_akuisisi_bpu || 0,
@@ -488,7 +488,7 @@ const Analysis = () => {
                   <h3 className="text-sm sm:text-base font-bold text-[#121214]">Perbandingan Nilai Seluruh Peserta</h3>
                 </div>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Perbandingan Nilai Seluruh Peserta">
                 <table className="w-full text-left text-xs sm:text-sm min-w-[760px]">
                   <thead>
                     <tr className="border-b border-[#EAE9E4] bg-[#FAF9F6] text-[#121214]/60 font-bold uppercase text-[11px] tracking-wider">
@@ -505,9 +505,9 @@ const Analysis = () => {
                   </thead>
                   <tbody className="divide-y divide-[#EAE9E4]">
                     {participants.map((p) => (
-                      <tr key={p.id} className="hover:bg-[#FAF9F6]/60 transition-colors">
+                      <tr key={p.user_id || p.progress_id || p.id} className="hover:bg-[#FAF9F6]/60 transition-colors">
                         <td className="px-5 py-4 font-bold text-[#121214]">
-                          {p.participant_name}
+                          {p.full_name || p.participant_name}
                         </td>
                         <td className="px-4 py-4 font-medium text-[#121214]/80">{p.kunjungan_bpu || 0}</td>
                         <td className="px-4 py-4 font-medium text-[#121214]/80">{p.hasil_akuisisi_bpu || 0}</td>

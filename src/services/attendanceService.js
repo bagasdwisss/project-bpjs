@@ -133,11 +133,11 @@ const attendanceService = {
   },
 
   // Coordinator / Admin: Review leave request (Approve / Reject)
-  reviewLeaveRequest: async (leaveId, status, rejectionReason = '') => {
+  reviewLeaveRequest: async (leaveId, status, coordinatorNotes = '') => {
     try {
       const response = await api.put(`/leaves/${leaveId}/status`, {
         status,
-        rejection_reason: rejectionReason
+        coordinator_notes: coordinatorNotes
       });
       return {
         success: true,

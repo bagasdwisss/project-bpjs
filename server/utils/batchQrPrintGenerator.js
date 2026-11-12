@@ -1,45 +1,99 @@
 // server/utils/batchQrPrintGenerator.js - Print-Ready Batch QR Generator (A4/A3 with Crop Marks)
+import QRCode from 'qrcode';
 import { query } from '../db.js';
+import { createRollingBadgeSignature, getCurrentTimeStep } from './dynamicIdQr.js';
+
+const escapeHtml = (val) => String(val ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
 
 /**
  * Generates commercial print-ready high-DPI HTML/CSS layout with crop marks and bleed margins
  */
 export async function generatePrintReadySheet({ batchId, paperSize = 'A4' }) {
-  let userSql = `
-    SELECT u.user_id, u.unique_id, u.full_name, u.role_id,
-           p.program_terdaftar, b.batch_name
+  const params = [];
+  let batchFilter = '';
+  if (batchId) {
+    params.push(batchId);
+    batchFilter = ' AND ub.batch_id = $1';
+  }
+
+  const userSql = `
+    SELECT DISTINCT ON (u.user_id)
+           u.user_id, u.unique_id, u.full_name, u.role_id,
+           p.program_terdaftar, b.batch_name, b.end_date as batch_end
     FROM users u
     LEFT JOIN peserta p ON u.user_id = p.user_id
     LEFT JOIN user_batches ub ON u.user_id = ub.user_id
     LEFT JOIN batches b ON ub.batch_id = b.batch_id
-    WHERE u.role_id = 1
+    WHERE u.role_id = 1${batchFilter}
+    ORDER BY u.user_id, b.end_date DESC NULLS LAST, u.unique_id ASC
+    LIMIT 24
   `;
-  const params = [];
-
-  if (batchId) {
-    params.push(batchId);
-    userSql += ` AND ub.batch_id = $1`;
-  }
-
-  userSql += ` ORDER BY u.unique_id ASC LIMIT 16`;
 
   const res = await query(userSql, params);
   const participants = res.rows;
 
   const isA3 = String(paperSize).toUpperCase() === 'A3';
+  const safePaperSize = isA3 ? 'A3' : 'A4';
   const sheetWidthMm = isA3 ? 297 : 210;
   const sheetHeightMm = isA3 ? 420 : 297;
   const cardsPerPage = isA3 ? 12 : 8;
+
+  const { step } = getCurrentTimeStep();
+  const cardBlocks = await Promise.all(
+    participants.map(async (p) => {
+      const expiry = p.batch_end
+        ? `s/d ${new Date(p.batch_end).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}`
+        : 'Sesuai Periode Aktif';
+      const sig = createRollingBadgeSignature(p.user_id, p.unique_id, step);
+      const verifyPayload = JSON.stringify({ uid: p.user_id, nim: p.unique_id, step, sig });
+      const qrSvg = await QRCode.toString(verifyPayload, {
+        type: 'svg',
+        width: 72,
+        margin: 1,
+        color: { dark: '#065f46', light: '#ffffff' }
+      });
+      return `
+      <div class="card-outer">
+        <div class="crop-mark-tl"></div>
+        <div class="crop-mark-tr"></div>
+        <div class="card-header">
+          <span class="inst-title">BPJS KETENAGAKERJAAN</span>
+          <span class="badge-tag">PESERTA MAGANG</span>
+        </div>
+        <div class="card-body">
+          <div style="width:72px;height:72px;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;background:#fff;flex-shrink:0;">
+            ${qrSvg}
+          </div>
+          <div class="info-block">
+            <div class="intern-name">${escapeHtml(p.full_name)}</div>
+            <div class="intern-nim">NIM: ${escapeHtml(p.unique_id)}</div>
+            <div style="color: #64748b; margin-top: 2px;">Prog: ${escapeHtml(p.program_terdaftar || 'Operasional BPU')}</div>
+            <div style="color: #64748b;">Batch: ${escapeHtml(p.batch_name || 'Belum Terdaftar')}</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>HMAC-SHA256 Verified</span>
+          <span>Berlaku ${escapeHtml(expiry)}</span>
+        </div>
+      </div>
+    `;
+    })
+  );
 
   const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>LEMBAR CETAK MASSAL ID BADGE BPJS KETENAGAKERJAAN (${paperSize})</title>
+  <title>LEMBAR CETAK MASSAL ID BADGE BPJS KETENAGAKERJAAN (${safePaperSize})</title>
   <style>
     @page {
-      size: ${paperSize};
+      size: ${safePaperSize};
       margin: 10mm;
     }
     body {
@@ -69,7 +123,6 @@ export async function generatePrintReadySheet({ batchId, paperSize = 'A4' }) {
       border-radius: 8px;
       padding: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      /* Commercial Print Crop Marks */
       outline: 1px dashed #94a3b8;
       outline-offset: 2mm;
     }
@@ -101,21 +154,6 @@ export async function generatePrintReadySheet({ batchId, paperSize = 'A4' }) {
       gap: 12px;
       align-items: center;
     }
-    .qr-placeholder {
-      width: 70px;
-      height: 70px;
-      background: #0f172a;
-      border-radius: 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #34d399;
-      font-size: 7px;
-      font-family: monospace;
-      text-align: center;
-      padding: 2px;
-    }
     .info-block {
       flex: 1;
       font-size: 10px;
@@ -140,45 +178,18 @@ export async function generatePrintReadySheet({ batchId, paperSize = 'A4' }) {
       display: flex;
       justify-content: space-between;
     }
-    /* Crop Mark Corner Guidelines */
     .crop-mark-tl { position: absolute; top: -4mm; left: -4mm; width: 3mm; height: 3mm; border-right: 0.5pt solid #000; border-bottom: 0.5pt solid #000; }
     .crop-mark-tr { position: absolute; top: -4mm; right: -4mm; width: 3mm; height: 3mm; border-left: 0.5pt solid #000; border-bottom: 0.5pt solid #000; }
   </style>
 </head>
 <body>
   <div class="sheet-info">
-    <strong>BPJS KETENAGAKERJAAN • LEMBAR MASTER CETAK ID BADGE PESERTA</strong><br>
-    Format Kertas: ${paperSize} (${sheetWidthMm}x${sheetHeightMm} mm) • DPI: 300 High-Resolution • Dilengkapi Crop Marks & Bleed Margins
+    <strong>BPJS KETENAGAKERJAAN &bull; LEMBAR MASTER CETAK ID BADGE PESERTA</strong><br>
+    Format Kertas: ${safePaperSize} (${sheetWidthMm}x${sheetHeightMm} mm) &bull; DPI: 300 High-Resolution &bull; Dilengkapi Crop Marks &amp; Bleed Margins
   </div>
 
   <div class="grid-container">
-    ${participants.map(p => `
-      <div class="card-outer">
-        <div class="crop-mark-tl"></div>
-        <div class="crop-mark-tr"></div>
-        <div class="card-header">
-          <span class="inst-title">BPJS KETENAGAKERJAAN</span>
-          <span class="badge-tag">PESERTA MAGANG</span>
-        </div>
-        <div class="card-body">
-          <div class="qr-placeholder">
-            <div style="font-size: 18px; margin-bottom: 2px;">■</div>
-            <span>QR VERIFIED</span>
-            <span style="color: #94a3b8; font-size: 6px;">${p.unique_id}</span>
-          </div>
-          <div class="info-block">
-            <div class="intern-name">${p.full_name}</div>
-            <div class="intern-nim">NIM: ${p.unique_id}</div>
-            <div style="color: #64748b; margin-top: 2px;">Prog: ${p.program_terdaftar || 'Operasional BPU'}</div>
-            <div style="color: #64748b;">Batch: ${p.batch_name || 'Gelombang 1'}</div>
-          </div>
-        </div>
-        <div class="card-footer">
-          <span>Otentikasi Kriptografis HMAC-SHA256</span>
-          <span>Berlaku s/d Akhir Batch</span>
-        </div>
-      </div>
-    `).join('')}
+    ${cardBlocks.join('')}
   </div>
 </body>
 </html>
@@ -186,7 +197,7 @@ export async function generatePrintReadySheet({ batchId, paperSize = 'A4' }) {
 
   return {
     success: true,
-    paperSize,
+    paperSize: safePaperSize,
     cardsCount: participants.length,
     cardsPerPage,
     html

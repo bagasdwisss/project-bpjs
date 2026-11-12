@@ -91,15 +91,15 @@ export function verifyPqcHybridSignature(certData, hybridSignature) {
     .update(`ML-DSA-65:::${canonical}:::${latticeData.polynomialCoefficients}`)
     .digest('hex').substring(0, 128);
 
-  const classicalValid = crypto.timingSafeEqual(
-    Buffer.from(expectedClassical),
-    Buffer.from(hybridSignature.classical.signature || '')
-  );
+  const safeTimingEqual = (a, b) => {
+    const bufA = Buffer.from(String(a || ''), 'utf8');
+    const bufB = Buffer.from(String(b || ''), 'utf8');
+    if (bufA.length === 0 || bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  };
 
-  const pqcValid = crypto.timingSafeEqual(
-    Buffer.from(expectedPqc),
-    Buffer.from(hybridSignature.pqc.signature || '')
-  );
+  const classicalValid = safeTimingEqual(expectedClassical, hybridSignature.classical.signature);
+  const pqcValid = safeTimingEqual(expectedPqc, hybridSignature.pqc.signature);
 
   const valid = classicalValid && pqcValid;
 

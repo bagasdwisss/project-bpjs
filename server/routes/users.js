@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
+import { globalBloomFilter } from '../utils/bloomFilter.js';
 
 const router = Router();
 
@@ -59,6 +60,23 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+/** Normalize user penempatan/status values to match Neon PostgreSQL CHECK constraints. */
+function normalizePenempatan(raw) {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  const lower = String(raw).trim().toLowerCase();
+  if (lower === 'kantor') return 'Kantor';
+  if (lower === 'lapangan') return 'Lapangan';
+  return String(raw).trim();
+}
+
+function normalizeUserStatus(raw, fallback = 'Aktif') {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return fallback;
+  const lower = String(raw).trim().toLowerCase();
+  if (lower === 'aktif' || lower === 'active') return 'Aktif';
+  if (lower === 'nonaktif' || lower === 'inactive') return 'Nonaktif';
+  return String(raw).trim();
+}
+
 /**
  * POST /api/users
  */
@@ -75,21 +93,25 @@ router.post('/', authenticateToken, requireRole('Administrator'), async (req, re
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password || 'password123', salt);
+    const normalizedPenempatan = normalizePenempatan(penempatan);
+    const normalizedStatus = normalizeUserStatus(status, 'Aktif');
 
     const result = await query(
       `INSERT INTO users (unique_id, full_name, password_hash, role_id, coordinator_id, status, penempatan, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'Aktif'), $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING user_id, unique_id, full_name, role_id, coordinator_id, status, penempatan, created_at`,
-      [unique_id.trim(), full_name.trim(), passwordHash, role_id, coordinator_id || null, status, penempatan || null]
+      [unique_id.trim(), full_name.trim(), passwordHash, role_id, coordinator_id || null, normalizedStatus, normalizedPenempatan]
     );
 
     // If role is Peserta, initialize empty progress entry
     if (parseInt(role_id, 10) === 1) {
       await query(
-        `INSERT INTO progress (user_id, created_at, updated_at) VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING`,
+        `INSERT INTO progress (user_id, created_at, updated_at) VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (user_id) DO NOTHING`,
         [result.rows[0].user_id]
       );
     }
+
+    globalBloomFilter.add(unique_id.trim());
 
     await logActivity({
       userId: req.user.user_id,
@@ -127,26 +149,42 @@ router.post('/import', authenticateToken, requireRole('Administrator'), async (r
 
     let insertedCount = 0;
     for (const u of users) {
-      const uId = u.unique_id || u.UniqueID || u.NIK;
-      const fName = u.full_name || u.FullName || u.Nama;
-      const roleId = u.role_id || (u.Role === 'Koordinator' ? 2 : u.Role === 'Administrator' ? 3 : 1);
-      const coordId = u.coordinator_id || null;
-      const status = u.status || 'Aktif';
-      const penempatan = u.penempatan || null;
+      const uId = u.unique_id || u.UniqueID || u.NIK || u.nim;
+      const fName = u.full_name || u.FullName || u.Nama || u.nama;
+      const roleId = parseInt(
+        u.role_id || (u.Role === 'Koordinator' ? 2 : u.Role === 'Administrator' ? 3 : 1),
+        10
+      ) || 1;
+      const coordId = u.coordinator_id ? parseInt(u.coordinator_id, 10) : null;
+      const status = normalizeUserStatus(u.status, 'Aktif');
+      const penempatan = normalizePenempatan(u.penempatan);
+      const rowHash = u.password && String(u.password).trim()
+        ? await bcrypt.hash(String(u.password), salt)
+        : defaultHash;
 
       if (uId && fName) {
-        await query(
+        const upRes = await query(
           `INSERT INTO users (unique_id, full_name, password_hash, role_id, coordinator_id, status, penempatan, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
            ON CONFLICT (unique_id) DO UPDATE SET 
              full_name = EXCLUDED.full_name,
              role_id = EXCLUDED.role_id,
-             coordinator_id = EXCLUDED.coordinator_id,
+             coordinator_id = COALESCE(EXCLUDED.coordinator_id, users.coordinator_id),
              status = EXCLUDED.status,
-             penempatan = EXCLUDED.penempatan,
-             updated_at = CURRENT_TIMESTAMP`,
-          [uId.trim(), fName.trim(), defaultHash, roleId, coordId, status, penempatan]
+             penempatan = COALESCE(EXCLUDED.penempatan, users.penempatan),
+             updated_at = CURRENT_TIMESTAMP
+           RETURNING user_id, role_id`,
+          [String(uId).trim(), String(fName).trim(), rowHash, roleId, Number.isInteger(coordId) ? coordId : null, status, penempatan]
         );
+        if (upRes.rows[0]?.role_id === 1) {
+          await query(
+            `INSERT INTO progress (user_id, created_at, updated_at)
+             VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             ON CONFLICT (user_id) DO NOTHING`,
+            [upRes.rows[0].user_id]
+          );
+        }
+        globalBloomFilter.add(String(uId).trim());
         insertedCount++;
       }
     }
@@ -170,12 +208,36 @@ router.post('/import', authenticateToken, requireRole('Administrator'), async (r
 });
 
 /**
+ * GET /api/users/coordinators or /api/coordinators
+ * List coordinators for assignment dropdowns (Admin/Coordinator only)
+ */
+router.get('/coordinators', authenticateToken, requireRole('Administrator', 'Koordinator'), async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT u.user_id, u.unique_id, u.full_name, u.status, u.penempatan,
+              COUNT(m.user_id)::int AS mentee_count
+       FROM users u
+       LEFT JOIN users m ON m.coordinator_id = u.user_id AND m.role_id = 1
+       WHERE u.role_id = 2
+       GROUP BY u.user_id
+       ORDER BY u.full_name ASC`
+    );
+    return res.json({ success: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * GET /api/users/by-coordinator/:coordinatorId
  */
 router.get('/by-coordinator/:coordinatorId', authenticateToken, async (req, res) => {
   try {
     const { coordinatorId } = req.params;
     const targetCoordinatorId = parseInt(coordinatorId, 10);
+    if (!Number.isInteger(targetCoordinatorId) || targetCoordinatorId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID Koordinator tidak valid.' });
+    }
 
     // Peserta cannot browse coordinator rosters
     if (req.user.role === 'Peserta' || req.user.role_id === 1) {
@@ -209,13 +271,35 @@ router.get('/by-coordinator/:coordinatorId', authenticateToken, async (req, res)
  */
 router.get('/progress/summary', authenticateToken, async (req, res) => {
   try {
-    const result = await query(`
-      SELECT user_id, hasil_akuisisi_bpu, kunjungan_bpu, kunjungan_pu, 
-             video_viralisasi, kehadiran_seminar, kehadiran_sosialisasi, 
-             total_poin, nilai, grade, updated_at
-      FROM progress
-    `);
-    
+    let result;
+    if (req.user.role === 'Peserta' || req.user.role_id === 1) {
+      result = await query(
+        `SELECT user_id, hasil_akuisisi_bpu, kunjungan_bpu, kunjungan_pu,
+                video_viralisasi, kehadiran_seminar, kehadiran_sosialisasi,
+                total_poin, nilai, grade, updated_at
+         FROM progress
+         WHERE user_id = $1`,
+        [req.user.user_id]
+      );
+    } else if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      result = await query(
+        `SELECT p.user_id, p.hasil_akuisisi_bpu, p.kunjungan_bpu, p.kunjungan_pu,
+                p.video_viralisasi, p.kehadiran_seminar, p.kehadiran_sosialisasi,
+                p.total_poin, p.nilai, p.grade, p.updated_at
+         FROM progress p
+         JOIN users u ON p.user_id = u.user_id
+         WHERE u.coordinator_id = $1`,
+        [req.user.user_id]
+      );
+    } else {
+      result = await query(`
+        SELECT user_id, hasil_akuisisi_bpu, kunjungan_bpu, kunjungan_pu,
+               video_viralisasi, kehadiran_seminar, kehadiran_sosialisasi,
+               total_poin, nilai, grade, updated_at
+        FROM progress
+      `);
+    }
+
     const summaryMap = {};
     for (const row of result.rows) {
       summaryMap[row.user_id] = row;
@@ -235,8 +319,23 @@ router.get('/progress/summary', authenticateToken, async (req, res) => {
  */
 router.get('/progress', authenticateToken, async (req, res) => {
   try {
+    const isPeserta = req.user.role === 'Peserta' || req.user.role_id === 1;
+    if (isPeserta && req.baseUrl.includes('/coordinator')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses dilarang. Endpoint ini hanya untuk Koordinator atau Administrator.'
+      });
+    }
+
     let result;
-    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+    if (isPeserta) {
+      result = await query(`
+        SELECT p.*, u.full_name, u.unique_id, u.penempatan
+        FROM progress p
+        JOIN users u ON p.user_id = u.user_id
+        WHERE p.user_id = $1
+      `, [req.user.user_id]);
+    } else if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
       result = await query(`
         SELECT p.*, u.full_name, u.unique_id, u.penempatan
         FROM progress p
@@ -295,17 +394,46 @@ router.get(['/visits', '/user-visits'], authenticateToken, async (req, res) => {
  */
 router.put(['/visits/:id', '/user-visits/:id'], authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const rawId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(rawId) || rawId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID kunjungan tidak valid.' });
+    }
     const { kunjungan_bpu, kunjungan_pu } = req.body;
 
+    // Resolve unambiguous target user_id (prefer explicit user_id if Peserta calls with own ID or progress.id lookup)
+    let targetUserId = null;
+    const byProgressId = await query(`SELECT user_id FROM progress WHERE id = $1 LIMIT 1`, [rawId]);
+    if (byProgressId.rows.length > 0 && !(req.user.role_id === 1 && byProgressId.rows[0].user_id !== req.user.user_id)) {
+      targetUserId = byProgressId.rows[0].user_id;
+    } else {
+      const byUser = await query(`SELECT user_id FROM users WHERE user_id = $1 LIMIT 1`, [rawId]);
+      if (byUser.rows.length > 0) targetUserId = byUser.rows[0].user_id;
+    }
+
+    if (!targetUserId) {
+      return res.status(404).json({ success: false, message: 'Data peserta atau kunjungan tidak ditemukan.' });
+    }
+
+    // RBAC & IDOR check
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && targetUserId !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat memperbarui kunjungan Anda sendiri.' });
+    }
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     const result = await query(
-      `UPDATE progress
-       SET kunjungan_bpu = COALESCE($1, kunjungan_bpu),
-           kunjungan_pu = COALESCE($2, kunjungan_pu),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 OR user_id = $3
+      `INSERT INTO progress (user_id, kunjungan_bpu, kunjungan_pu, created_at, updated_at)
+       VALUES ($1, COALESCE($2, 0), COALESCE($3, 0), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id) DO UPDATE SET
+         kunjungan_bpu = COALESCE($2, progress.kunjungan_bpu),
+         kunjungan_pu = COALESCE($3, progress.kunjungan_pu),
+         updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [kunjungan_bpu, kunjungan_pu, id]
+      [targetUserId, kunjungan_bpu ?? null, kunjungan_pu ?? null]
     );
 
     return res.json({
@@ -325,6 +453,9 @@ router.get('/:id/progress', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const targetUserId = parseInt(id, 10);
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID pengguna tidak valid.' });
+    }
 
     // IDOR Protection: Peserta can only view their own progress
     if ((req.user.role === 'Peserta' || req.user.role_id === 1) && req.user.user_id !== targetUserId) {
@@ -341,7 +472,7 @@ router.get('/:id/progress', authenticateToken, async (req, res) => {
       }
     }
 
-    const result = await query(`SELECT * FROM progress WHERE user_id = $1 OR id = $1 LIMIT 1`, [targetUserId]);
+    const result = await query(`SELECT * FROM progress WHERE user_id = $1 LIMIT 1`, [targetUserId]);
     return res.json({
       success: true,
       data: result.rows[0] || null
@@ -358,6 +489,9 @@ router.put('/:id/progress', authenticateToken, requireRole('Koordinator', 'Admin
   try {
     const { id } = req.params;
     const targetUserId = parseInt(id, 10);
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID pengguna tidak valid.' });
+    }
 
     // Coordinator isolation: Verify mentee belongs to this coordinator
     if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
@@ -382,7 +516,7 @@ router.put('/:id/progress', authenticateToken, requireRole('Koordinator', 'Admin
     const result = await query(
       `INSERT INTO progress (user_id, kunjungan_bpu, hasil_akuisisi_bpu, kunjungan_pu, video_viralisasi, kehadiran_seminar, kehadiran_sosialisasi, total_poin, nilai, grade, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       ON CONFLICT (id) DO UPDATE SET
+       ON CONFLICT (user_id) DO UPDATE SET
          kunjungan_bpu = EXCLUDED.kunjungan_bpu,
          hasil_akuisisi_bpu = EXCLUDED.hasil_akuisisi_bpu,
          kunjungan_pu = EXCLUDED.kunjungan_pu,
@@ -418,6 +552,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const targetId = parseInt(id, 10);
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID pengguna tidak valid.' });
+    }
 
     // IDOR Protection:
     // If Peserta, can ONLY view own user profile
@@ -471,7 +608,9 @@ router.put('/:id', authenticateToken, requireRole('Administrator'), async (req, 
       'coordinator_id = $5',
       'updated_at = CURRENT_TIMESTAMP'
     ];
-    let params = [full_name, status, penempatan, role_id, coordinator_id ? parseInt(coordinator_id, 10) : null];
+    const normalizedPenempatan = normalizePenempatan(penempatan);
+    const normalizedStatus = normalizeUserStatus(status, null);
+    let params = [full_name, normalizedStatus, normalizedPenempatan, role_id, coordinator_id ? parseInt(coordinator_id, 10) : null];
 
     if (unique_id) {
       params.push(unique_id);

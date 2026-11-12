@@ -44,20 +44,18 @@ export async function extractReceiptData(imageSource) {
           samplePoints++;
         }
 
-        const avgBrightness = totalBrightness / samplePoints;
-        const whiteRatio = whitePixels / samplePoints;
+        const avgBrightness = totalBrightness / Math.max(1, samplePoints);
+        const whiteRatio = whitePixels / Math.max(1, samplePoints);
 
-        // Heuristic fallback values for simulated/demonstration OCR extraction
-        // In real web environments, combines with regex filename / EXIF date if available
-        let extractedNominal = 16800;
-        let detectedBank = 'BCA';
-        let refNumber = `TRX-${Date.now().toString().slice(-8)}`;
-        let detectedDate = new Intl.DateTimeFormat('id-ID').format(new Date());
+        // Extract hints ONLY from real file metadata (no invented hardcoded bank/nominal)
+        const fileNameUpper = (typeof imageSource === 'object' && imageSource?.name) ? String(imageSource.name).toUpperCase() : '';
+        const detectedBank = KNOWN_BANKS.find(b => fileNameUpper.includes(b)) || null;
+        const matchedAmount = VALID_BPU_AMOUNTS.find(amt => fileNameUpper.includes(String(amt))) || null;
 
         const warnings = [];
         let isSuspectedFake = false;
 
-        // Check if image is unnaturally blank or inverted
+        // Check if image is unnaturally blank or dark
         if (avgBrightness < 30) {
           isSuspectedFake = true;
           warnings.push('Gambar terlalu gelap atau tidak terbaca.');
@@ -66,18 +64,21 @@ export async function extractReceiptData(imageSource) {
           warnings.push('Gambar terlalu polos atau kemungkinan tangkapan layar kosong.');
         }
 
-        // Validate nominal against BPJS BPU standard tiers
-        if (!VALID_BPU_AMOUNTS.includes(extractedNominal)) {
-          warnings.push(`Nominal transfer (Rp ${extractedNominal.toLocaleString('id-ID')}) tidak sesuai dengan paket resmi BPJSTK BPU (Rp 16.800, 36.800, 44.000).`);
+        if (width < 200 || height < 200) {
+          warnings.push('Resolusi bukti gambar rendah (< 200px); harap unggah gambar yang jelas untuk verifikasi Koordinator.');
         }
 
         resolve({
-          nominal: extractedNominal,
+          nominal: matchedAmount,
           bank: detectedBank,
-          refNumber,
-          date: detectedDate,
-          confidence: isSuspectedFake ? 0.35 : 0.92,
+          refNumber: null,
+          date: typeof imageSource === 'object' && imageSource?.lastModified
+            ? new Intl.DateTimeFormat('id-ID').format(new Date(imageSource.lastModified))
+            : null,
+          confidence: isSuspectedFake ? 0.25 : 0.75,
           isSuspectedFake,
+          requiresManualVerification: true,
+          ocrMode: 'CLIENT_IMAGE_QUALITY_PRECHECK',
           warnings,
           rawMetrics: {
             avgBrightness: Math.round(avgBrightness),
@@ -87,12 +88,14 @@ export async function extractReceiptData(imageSource) {
         });
       } catch (err) {
         resolve({
-          nominal: 16800,
-          bank: 'BCA',
-          refNumber: 'AUTO-GEN-REF',
-          date: new Date().toLocaleDateString('id-ID'),
-          confidence: 0.5,
+          nominal: null,
+          bank: null,
+          refNumber: null,
+          date: null,
+          confidence: 0.4,
           isSuspectedFake: false,
+          requiresManualVerification: true,
+          ocrMode: 'CLIENT_IMAGE_QUALITY_PRECHECK',
           warnings: ['Pemeriksaan piksel dilewati karena pembatasan origin gambar.']
         });
       }

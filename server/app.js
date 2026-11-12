@@ -5,8 +5,11 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
 
 import pool, { circuitBreaker } from './db.js';
+import { runAutoAbsenceCheck } from './utils/autoAbsenceManager.js';
+import { JWT_SECRET } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
 import gradingRoutes from './routes/grading.js';
@@ -127,7 +130,12 @@ app.use((req, res, next) => {
 // Dynamic Maintenance Mode Switch with Admin Bypass
 app.use(maintenanceMiddleware);
 
-app.use(express.json({ limit: '25mb' }));
+app.set('trust proxy', 1);
+
+app.use(express.json({
+  limit: '25mb',
+  type: ['application/json', 'application/csp-report', 'application/reports+json']
+}));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Polymorphic Request Deobfuscation
@@ -215,6 +223,49 @@ apiRouter.all('/init-db', async (req, res) => {
   }
 });
 
+// Automated Auto-Absence Cron Endpoint (Vercel Cron + Admin/CI sweep)
+apiRouter.all('/cron/auto-absence', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'] || '';
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const cronSecret = process.env.CRON_SECRET;
+
+    let authorizedForForce = false;
+    if (cronSecret) {
+      if (bearerToken === cronSecret || req.headers['x-cron-secret'] === cronSecret) {
+        authorizedForForce = true;
+      } else if (bearerToken) {
+        try {
+          const decoded = jwt.verify(bearerToken, JWT_SECRET);
+          if (decoded?.role === 'Administrator' || decoded?.role_id === 3) {
+            authorizedForForce = true;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (!authorizedForForce) {
+        return res.status(401).json({ success: false, message: 'Unauthorized cron trigger.' });
+      }
+    } else if (bearerToken) {
+      try {
+        const decoded = jwt.verify(bearerToken, JWT_SECRET);
+        if (decoded?.role === 'Administrator' || decoded?.role_id === 3 || decoded?.role === 'Koordinator' || decoded?.role_id === 2) {
+          authorizedForForce = true;
+        }
+      } catch {
+        // fallback to throttled check
+      }
+    }
+
+    const result = await runAutoAbsenceCheck({ force: authorizedForForce });
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('Cron Auto-Absence Error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Mount modular sub-routers
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/', authRoutes);
@@ -230,22 +281,20 @@ apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/forum', forumRoutes);
 apiRouter.use('/documents', documentRoutes);
 apiRouter.use('/participant/documents', documentRoutes);
-// Enterprise Features Routes
-apiRouter.use('/features', featuresRoutes);
-apiRouter.use('/admin', featuresRoutes);
-apiRouter.use('/', featuresRoutes);
 
+// Admin & Coordinator modular routers
 apiRouter.use('/admin/batches', batchRoutes);
 apiRouter.use('/admin/modules', moduleRoutes);
 apiRouter.use('/admin', adminRoutes);
-
-// Coordinator routes
-apiRouter.use('/coordinator/certificates', adminRoutes);
 apiRouter.use('/coordinator/analysis', scoreRoutes);
-apiRouter.use('/coordinator', adminRoutes);
 apiRouter.use('/coordinator/participants', userRoutes);
 apiRouter.use('/coordinator/scores', scoreRoutes);
+apiRouter.use('/coordinator', adminRoutes);
 apiRouter.use('/coordinator', pesertaRoutes);
+
+// Enterprise Features Routes (mounted cleanly after specific module routers)
+apiRouter.use('/features', featuresRoutes);
+apiRouter.use('/', featuresRoutes);
 
 // Direct shortcuts often called by frontend
 apiRouter.use('/progress', (req, res, next) => {

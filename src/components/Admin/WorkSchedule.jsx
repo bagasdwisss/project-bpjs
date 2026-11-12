@@ -141,8 +141,12 @@ const WorkSchedule = () => {
   const handleOpenModal = (holiday = null) => {
     if (holiday) {
       setEditingHoliday(holiday);
-      // Format date to YYYY-MM-DD
-      const dateStr = holiday.holiday_date ? new Date(holiday.holiday_date).toISOString().split('T')[0] : '';
+      // Format date to YYYY-MM-DD in WIB
+      const dateStr = holiday.holiday_date
+        ? (typeof holiday.holiday_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(holiday.holiday_date)
+          ? holiday.holiday_date
+          : new Date(holiday.holiday_date).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }))
+        : '';
       setHolidayForm({
         holiday_date: dateStr,
         holiday_name: holiday.holiday_name || '',
@@ -654,7 +658,7 @@ const WorkSchedule = () => {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Hari Libur Nasional">
                   <table className="w-full text-left text-xs min-w-[650px]">
                     <thead className="bg-[#121214] text-white uppercase text-[10px] tracking-wider font-black">
                       <tr>
@@ -740,8 +744,15 @@ const WorkSchedule = () => {
 
         {/* Modal Tambah / Edit Hari Libur */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-            <div className="bg-white border-2 border-[#121214] rounded-2xl w-full max-w-lg shadow-[8px_8px_0px_#121214] overflow-hidden animate-in zoom-in-95 duration-150">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label={editingHoliday ? 'Edit Hari Libur Nasional' : 'Tambah Hari Libur Nasional Baru'}
+            onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
+            onKeyDown={(e) => { if (e.key === 'Escape') setIsModalOpen(false); }}
+          >
+            <div className="bg-white border-2 border-[#121214] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-[8px_8px_0px_#121214] animate-in zoom-in-95 duration-150">
               <div className="p-4 bg-[#FCE373] border-b-2 border-[#121214] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-[#121214]" />

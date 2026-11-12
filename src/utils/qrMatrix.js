@@ -1,138 +1,68 @@
 // src/utils/qrMatrix.js
 /**
- * Zero-Dependency Pure JavaScript QR Code Matrix Generator & Canvas Renderer
- * Compliant with ISO/IEC 18004 (QR Code 2005)
- * Eliminates any CORS/tainted-canvas vulnerabilities by generating all modules locally.
+ * Genuine ISO/IEC 18004 QR Code Matrix Generator & Canvas Renderer powered by `qrcode`.
+ * Generates 100% locally in browser with zero third-party image requests or canvas tainting.
  */
-
-// Minimal Reed-Solomon GF(256) and QR Version 3/4 encoder for alphanumeric URLs
-function createQrGrid(size) {
-  const grid = [];
-  for (let r = 0; r < size; r++) {
-    grid.push(new Array(size).fill(false));
-  }
-  return grid;
-}
-
-function addFinderPattern(grid, row, col) {
-  for (let r = -1; r <= 7; r++) {
-    for (let c = -1; c <= 7; c++) {
-      const nr = row + r;
-      const nc = col + c;
-      if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid.length) continue;
-      if (
-        (r >= 0 && r <= 6 && (c === 0 || c === 6)) ||
-        (c >= 0 && c <= 6 && (r === 0 || r === 6)) ||
-        (r >= 2 && r <= 4 && c >= 2 && c <= 4)
-      ) {
-        grid[nr][nc] = true;
-      } else {
-        grid[nr][nc] = false;
-      }
-    }
-  }
-}
-
-function addAlignmentPattern(grid, row, col) {
-  for (let r = -2; r <= 2; r++) {
-    for (let c = -2; c <= 2; c++) {
-      const nr = row + r;
-      const nc = col + c;
-      if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid.length) continue;
-      if (Math.abs(r) === 2 || Math.abs(c) === 2 || (r === 0 && c === 0)) {
-        grid[nr][nc] = true;
-      } else {
-        grid[nr][nc] = false;
-      }
-    }
-  }
-}
+import QRCode from 'qrcode';
 
 /**
- * Generates a standard 29x29 or 33x33 QR pattern for verification link
+ * Generates an ISO/IEC 18004 boolean matrix [row][col] for any text/URL
  */
 export function generateQrMatrix(text) {
-  const size = 33; // Version 4 QR Code (33x33 modules, fits ~114 chars)
-  const grid = createQrGrid(size);
-
-  // 1. Add 3 Position Finder Patterns
-  addFinderPattern(grid, 0, 0); // Top-left
-  addFinderPattern(grid, 0, size - 7); // Top-right
-  addFinderPattern(grid, size - 7, 0); // Bottom-left
-
-  // 2. Add Alignment Pattern
-  addAlignmentPattern(grid, size - 9, size - 9);
-
-  // 3. Add Timing Patterns
-  for (let i = 8; i < size - 8; i++) {
-    const val = i % 2 === 0;
-    grid[6][i] = val;
-    grid[i][6] = val;
-  }
-
-  // 4. Encode Payload Hash Deterministically
-  // Generate pseudo-random bitstream from text hash
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-
-  // Linear feedback shift register to populate non-reserved data cells
-  let lfsr = (hash >>> 0) || 0x12345678;
-  const nextBit = () => {
-    lfsr = ((lfsr >> 1) ^ (-(lfsr & 1) & 0xd0000001)) >>> 0;
-    return (lfsr & 1) === 1;
-  };
+  const payload = String(text || 'https://bpjsketenagakerjaan.go.id');
+  const qr = QRCode.create(payload, { errorCorrectionLevel: 'M' });
+  const size = qr.modules.size;
+  const grid = [];
 
   for (let r = 0; r < size; r++) {
+    const row = [];
     for (let c = 0; c < size; c++) {
-      // Skip finder pattern zones
-      if (
-        (r <= 8 && c <= 8) ||
-        (r <= 8 && c >= size - 8) ||
-        (r >= size - 8 && c <= 8)
-      ) {
-        continue;
-      }
-      // Skip timing patterns
-      if (r === 6 || c === 6) continue;
-      // Skip alignment pattern
-      if (Math.abs(r - (size - 9)) <= 2 && Math.abs(c - (size - 9)) <= 2) continue;
-
-      grid[r][c] = nextBit();
+      row.push(Boolean(qr.modules.get(r, c)));
     }
+    grid.push(row);
   }
-
   return grid;
 }
 
 /**
- * Draws QR code directly to HTML5 Canvas context without any network calls or tainting
+ * Renders scannable QR code directly onto HTML5 Canvas context
  */
 export function drawQrToCanvas(ctx, text, x, y, targetSize, options = {}) {
   const fgColor = options.fgColor || '#00552B';
   const bgColor = options.bgColor || '#FFFFFF';
+  const quietZone = options.quietZone ?? 2;
   const matrix = generateQrMatrix(text);
   const numModules = matrix.length;
-  const moduleSize = targetSize / numModules;
+  const totalModules = numModules + quietZone * 2;
+  const moduleSize = targetSize / totalModules;
 
-  // Background box
+  // White/bg quiet zone box
   ctx.fillStyle = bgColor;
   ctx.fillRect(x, y, targetSize, targetSize);
 
-  // Draw modules
+  // Draw black/fg modules cleanly aligned to pixel grid
   ctx.fillStyle = fgColor;
   for (let r = 0; r < numModules; r++) {
     for (let c = 0; c < numModules; c++) {
       if (matrix[r][c]) {
-        ctx.fillRect(
-          x + Math.round(c * moduleSize),
-          y + Math.round(r * moduleSize),
-          Math.ceil(moduleSize),
-          Math.ceil(moduleSize)
-        );
+        const rx = x + Math.floor((c + quietZone) * moduleSize);
+        const ry = y + Math.floor((r + quietZone) * moduleSize);
+        const rw = Math.ceil(((c + 1 + quietZone) * moduleSize)) - Math.floor((c + quietZone) * moduleSize);
+        const rh = Math.ceil(((r + 1 + quietZone) * moduleSize)) - Math.floor((r + quietZone) * moduleSize);
+        ctx.fillRect(rx, ry, Math.max(1, rw), Math.max(1, rh));
       }
     }
   }
+}
+
+export async function generateQrDataUrl(text, options = {}) {
+  return QRCode.toDataURL(String(text || ''), {
+    width: options.width || 300,
+    margin: options.margin ?? 2,
+    color: {
+      dark: options.fgColor || '#121214',
+      light: options.bgColor || '#F5F4F0'
+    },
+    errorCorrectionLevel: 'M'
+  });
 }

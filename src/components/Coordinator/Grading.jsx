@@ -88,7 +88,16 @@ const Grading = () => {
   
   // Cleanup function to cancel any pending requests when component unmounts
   useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowAddParticipantModal(false);
+        setShowGradeModal(false);
+        setShowDetailModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
     return () => {
+      window.removeEventListener('keydown', onKey);
       if (cancelTokenRef.current) {
         cancelTokenRef.current.cancel('Component unmounted');
       }
@@ -127,9 +136,9 @@ const Grading = () => {
     }
   };
 
-  // Check if participant belongs to current coordinator
+  // Check if participant belongs to current coordinator (or admin)
   const canEditParticipant = (participant) => {
-    return participant.coordinator_id === user?.user_id;
+    return user?.role_id === 3 || participant.coordinator_id === user?.user_id;
   };
 
   // Open add participant modal - hanya untuk coordinator
@@ -228,7 +237,8 @@ const Grading = () => {
 
     setSelectedAssignment(participant);
     setEditData({
-      // Progress components (scores will be calculated automatically)
+      nilai: participant.nilai ?? '',
+      grade: participant.grade || '',
       kunjungan_bpu: participant.kunjungan_bpu || 0,
       hasil_akuisisi_bpu: participant.hasil_akuisisi_bpu || 0,
       kunjungan_pu: participant.kunjungan_pu || 0,
@@ -239,13 +249,14 @@ const Grading = () => {
     setShowGradeModal(true);
   };
 
-  // Save all data (progress components - scores are calculated automatically)
+  // Save all data (progress components + optional manual score/grade override)
   const saveAllData = async () => {
     try {
       setError(null);
+      const targetId = selectedAssignment.progress_id || selectedAssignment.user_id || selectedAssignment.id;
 
-      // Update progress components only - scores will be calculated automatically
-      const response = await gradingService.updateProgress(selectedAssignment.id, {
+      // Update progress components - scores are calculated dynamically from settings
+      const response = await gradingService.updateProgress(targetId, {
         kunjungan_bpu: editData.kunjungan_bpu || 0,
         hasil_akuisisi_bpu: editData.hasil_akuisisi_bpu || 0,
         kunjungan_pu: editData.kunjungan_pu || 0,
@@ -254,20 +265,35 @@ const Grading = () => {
         kehadiran_sosialisasi: editData.kehadiran_sosialisasi || 0,
       });
 
-      // Update local state with the calculated values from the response
-      if (response.success) {
-        // Update the selected assignment with new calculated values
+      const manualScoreChanged =
+        editData.nilai !== '' &&
+        Number(editData.nilai) !== Number(selectedAssignment.nilai ?? '');
+      const manualGradeChanged =
+        editData.grade && editData.grade !== (selectedAssignment.grade || '');
+
+      let finalProg = response.data?.progress || response.data;
+      if (manualScoreChanged || manualGradeChanged) {
+        const scorePayload = {};
+        if (editData.nilai !== '') scorePayload.nilai = Number(editData.nilai);
+        if (editData.grade) scorePayload.grade = editData.grade;
+        const scoreRes = await gradingService.updateScores(targetId, scorePayload);
+        if (scoreRes.success && scoreRes.data) {
+          finalProg = scoreRes.data;
+        }
+      }
+
+      if (response.success && finalProg) {
         setSelectedAssignment(prev => ({
           ...prev,
-          total_poin: response.data.progress.total_poin,
-          nilai: response.data.progress.nilai,
-          grade: response.data.progress.grade,
-          kunjungan_bpu: response.data.progress.kunjungan_bpu,
-          hasil_akuisisi_bpu: response.data.progress.hasil_akuisisi_bpu,
-          kunjungan_pu: response.data.progress.kunjungan_pu,
-          video_viralisasi: response.data.progress.video_viralisasi,
-          kehadiran_seminar: response.data.progress.kehadiran_seminar,
-          kehadiran_sosialisasi: response.data.progress.kehadiran_sosialisasi,
+          total_poin: finalProg.total_poin ?? prev.total_poin,
+          nilai: finalProg.nilai ?? prev.nilai,
+          grade: finalProg.grade ?? prev.grade,
+          kunjungan_bpu: finalProg.kunjungan_bpu ?? prev.kunjungan_bpu,
+          hasil_akuisisi_bpu: finalProg.hasil_akuisisi_bpu ?? prev.hasil_akuisisi_bpu,
+          kunjungan_pu: finalProg.kunjungan_pu ?? prev.kunjungan_pu,
+          video_viralisasi: finalProg.video_viralisasi ?? prev.video_viralisasi,
+          kehadiran_seminar: finalProg.kehadiran_seminar ?? prev.kehadiran_seminar,
+          kehadiran_sosialisasi: finalProg.kehadiran_sosialisasi ?? prev.kehadiran_sosialisasi,
         }));
       }
 
@@ -277,7 +303,7 @@ const Grading = () => {
 
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setError(err.message || 'Gagal memperbarui data');
+      setError(err.response?.data?.message || err.message || 'Gagal memperbarui data');
     }
   };
 
@@ -285,12 +311,34 @@ const Grading = () => {
   const viewDetails = async (participantId) => {
     try {
       const response = await gradingService.getParticipantDetail(participantId);
-      if (response.success) {
-        setSelectedParticipant(response.data.participant);
+      if (response.success && response.data) {
+        const raw = response.data;
+        const normalized = raw.participant ? raw : {
+          participant: {
+            full_name: raw.full_name || raw.participant_name || '-',
+            unique_id: raw.unique_id || '-',
+            penempatan: raw.penempatan || 'Kantor Cabang',
+            status: raw.status || 'Aktif',
+          },
+          scores: {
+            total_poin: raw.total_poin ?? 0,
+            nilai: raw.nilai ?? 0,
+            grade: raw.grade || '-',
+          },
+          components: {
+            kunjungan_bpu: raw.kunjungan_bpu ?? 0,
+            hasil_akuisisi_bpu: raw.hasil_akuisisi_bpu ?? 0,
+            kunjungan_pu: raw.kunjungan_pu ?? 0,
+            video_viralisasi: raw.video_viralisasi ?? 0,
+            kehadiran_seminar: raw.kehadiran_seminar ?? 0,
+            kehadiran_sosialisasi: raw.kehadiran_sosialisasi ?? 0,
+          },
+        };
+        setSelectedParticipant(normalized);
         setShowDetailModal(true);
       }
     } catch (err) {
-      setError(err.message || 'Gagal memuat detail peserta');
+      setError(err.response?.data?.message || err.message || 'Gagal memuat detail peserta');
     }
   };
 
@@ -316,11 +364,10 @@ const Grading = () => {
     return colors[status] || 'bg-[#121214]/5 text-[#121214]/60 border border-[#EAE9E4]';
   };
 
-  // Format date to match the design
+  // Format date in WIB
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0].replace(/-/g, '-');
+    return new Date(dateString).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
   };
 
   if (loading) {
@@ -420,7 +467,7 @@ const Grading = () => {
                 <p className="mt-1 text-sm text-gray-500">{search || coordinatorFilter ? 'Tidak ada assignment yang sesuai dengan filter.' : 'Tidak ada assignment tersedia untuk grading.'}</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Penilaian Peserta">
                 <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
                   <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
                     <tr>
@@ -435,16 +482,17 @@ const Grading = () => {
                   <tbody className="divide-y divide-[#F0EFEA] bg-white">
                     {(participants || []).map((participant) => {
                       const canEdit = canEditParticipant(participant);
-                      const isMyParticipant = participant.coordinator_id === user?.user_id;
-                      const status = participant.nilai !== null && participant.nilai !== 0 ? 'graded' : 'pending';
-                      const assignmentName = `${participant.participant_name} - Penilaian Magang`;
+                      const targetRowId = participant.progress_id || participant.user_id || participant.id;
+                      const displayName = participant.full_name || participant.participant_name || 'Peserta';
+                      const status = participant.nilai !== null && participant.nilai !== undefined && Number(participant.nilai) > 0 ? 'graded' : 'pending';
+                      const assignmentName = `${displayName} - Penilaian Magang`;
 
                       return (
-                        <tr key={participant.id} className="hover:bg-[#FAF9F6] transition-colors">
+                        <tr key={participant.user_id || targetRowId} className="hover:bg-[#FAF9F6] transition-colors">
                           {/* PARTICIPANT */}
                           <td className="px-5 py-4 whitespace-nowrap">
-                            <div className="text-xs font-bold text-[#121214]">{participant.participant_name}</div>
-                            <div className="text-[11px] font-mono text-[#6E6D6A]">ID: {participant.unique_id || participant.nim || participant.participant_nim || `PES-00${participant.id}`}</div>
+                            <div className="text-xs font-bold text-[#121214]">{displayName}</div>
+                            <div className="text-[11px] font-mono text-[#6E6D6A]">ID: {participant.unique_id || participant.nim || participant.participant_nim || `PES-${participant.user_id || targetRowId}`}</div>
                           </td>
 
                           {/* ASSIGNMENT */}
@@ -454,7 +502,7 @@ const Grading = () => {
 
                           {/* SUBMITTED */}
                           <td className="px-5 py-4 whitespace-nowrap text-xs text-[#6E6D6A]">
-                            {formatDate(participant.last_updated)}
+                            {formatDate(participant.updated_at || participant.last_updated)}
                           </td>
 
                           {/* STATUS */}
@@ -492,7 +540,7 @@ const Grading = () => {
                                 </span>
                               )}
                               <button 
-                                onClick={() => viewDetails(participant.id)} 
+                                onClick={() => viewDetails(targetRowId)} 
                                 className="px-3 py-1 bg-white border border-[#EAE9E4] text-[#121214] font-bold rounded-full hover:bg-[#FAF9F6] transition-colors"
                               >
                                 Detail
@@ -510,8 +558,14 @@ const Grading = () => {
 
         {/* Add Participant Modal */}
         {showAddParticipantModal && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tambah Peserta ke Penilaian"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowAddParticipantModal(false); setError(null); } }}
+          >
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-200">
               <div className="p-6 sm:p-7">
                 <div className="flex items-center justify-between pb-4 border-b border-[#EAE9E4] mb-4">
                   <div>
@@ -644,13 +698,19 @@ const Grading = () => {
 
         {/* Grade Modal - Updated to include all fields */}
         {showGradeModal && selectedAssignment && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit Nilai dan Progress"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowGradeModal(false); }}
+          >
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-200">
               <div className="p-6 sm:p-7">
                 <div className="flex items-center justify-between pb-4 border-b border-[#EAE9E4] mb-5">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-[#121214]">
-                      Edit Nilai & Progress — {selectedAssignment.participant_name}
+                      Edit Nilai & Progress — {selectedAssignment.full_name || selectedAssignment.participant_name}
                     </h3>
                     <p className="text-xs text-[#121214]/50">Perbarui komponen evaluasi tugas dan penetapan nilai resmi</p>
                   </div>
@@ -838,8 +898,14 @@ const Grading = () => {
 
         {/* Detail Modal */}
         {showDetailModal && selectedParticipant && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Detail Evaluasi Peserta"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowDetailModal(false); }}
+          >
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-200">
               <div className="p-6 sm:p-7">
                 <div className="flex items-center justify-between pb-4 border-b border-[#EAE9E4] mb-5">
                   <div>

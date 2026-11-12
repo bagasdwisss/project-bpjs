@@ -1,5 +1,6 @@
 // server/utils/fuzzySearch.js - Intelligent Typo-Tolerant Search using Levenshtein Distance Algorithm
 import { query } from '../db.js';
+import { applyPdpMasking } from './pdpMasking.js';
 
 /**
  * Computes Damerau-Levenshtein distance between two strings
@@ -66,7 +67,9 @@ export async function searchEntitiesFuzzy({
   searchTerm,
   entityType = 'peserta', // 'peserta' | 'users'
   threshold = 0.50, // minimum similarity score
-  limit = 20
+  limit = 20,
+  userRole = null,
+  coordinatorId = null
 }) {
   if (!searchTerm || !searchTerm.trim()) {
     return [];
@@ -76,19 +79,32 @@ export async function searchEntitiesFuzzy({
 
   let rows = [];
   if (entityType === 'users') {
-    const res = await query(
-      `SELECT u.user_id, u.unique_id, u.full_name, r.role_name, u.status, u.penempatan 
-       FROM users u 
-       JOIN roles r ON u.role_id = r.role_id`
-    );
+    const params = [];
+    let sql = `
+      SELECT u.user_id, u.unique_id, u.full_name, r.role_name, u.status, u.penempatan, u.coordinator_id
+      FROM users u
+      JOIN roles r ON u.role_id = r.role_id
+    `;
+    if (coordinatorId) {
+      params.push(coordinatorId);
+      sql += ` WHERE (u.coordinator_id = $1 OR u.user_id = $1)`;
+    }
+    const res = await query(sql, params);
     rows = res.rows;
   } else {
     // Default peserta
-    const res = await query(
-      `SELECT p.peserta_id, p.nama_peserta, p.nik, p.pekerjaan, p.status_pendaftaran, p.biaya, u.full_name as intern_name
-       FROM peserta p
-       JOIN users u ON p.user_id = u.user_id`
-    );
+    const params = [];
+    let sql = `
+      SELECT p.peserta_id, p.nama_peserta, p.nik, p.pekerjaan, p.status_pendaftaran, p.biaya,
+             u.full_name as intern_name, u.coordinator_id
+      FROM peserta p
+      JOIN users u ON p.user_id = u.user_id
+    `;
+    if (coordinatorId) {
+      params.push(coordinatorId);
+      sql += ` WHERE u.coordinator_id = $1`;
+    }
+    const res = await query(sql, params);
     rows = res.rows;
   }
 
@@ -110,8 +126,10 @@ export async function searchEntitiesFuzzy({
     };
   });
 
-  return scored
+  const matched = scored
     .filter(item => item.fuzzyScore >= threshold)
     .sort((a, b) => b.fuzzyScore - a.fuzzyScore)
     .slice(0, limit);
+
+  return applyPdpMasking(matched, userRole);
 }

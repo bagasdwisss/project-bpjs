@@ -99,10 +99,7 @@ export async function getOverflowStats() {
 
     return {
       success: true,
-      data: res.rows.length > 0 ? res.rows : [
-        { entity_type: 'activity_logs', total_offloaded_attributes: 12, total_saved_bytes: '48 kB' },
-        { entity_type: 'pending_approvals', total_offloaded_attributes: 4, total_saved_bytes: '16 kB' }
-      ],
+      data: res.rows,
       strategy: 'ADAPTIVE_OVERFLOW_KEY_VALUE_INLINING'
     };
   } catch (err) {

@@ -8,6 +8,7 @@ import {
 import { AuthContext } from '../../context/AuthContext';
 import attendanceService from '../../services/attendanceService';
 import userService from '../../services/userService';
+import api from '../../services/api';
 import { TableSkeleton } from '../Common/Skeleton';
 
 const MONTH_NAMES = [
@@ -82,6 +83,34 @@ export default function MenteeAttendance() {
   useEffect(() => {
     loadMentees();
   }, []);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setDetailModalRecord(null);
+        setVerifyModalRecord(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const handleTriggerAutoAbsence = async () => {
+    try {
+      setProcessingAction(true);
+      const res = await api.post('/attendance/trigger-auto-absence');
+      if (res.data?.success) {
+        showToast(res.data.message || 'Evaluasi auto-absence selesai dijalankan.');
+        await loadAttendanceData();
+      } else {
+        showToast(res.data?.message || 'Gagal menjalankan evaluasi auto-absence.', 'error');
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Gagal menjalankan evaluasi auto-absence.', 'error');
+    } finally {
+      setProcessingAction(false);
+    }
+  };
 
   // Reload records whenever month/year change
   useEffect(() => {
@@ -183,12 +212,13 @@ export default function MenteeAttendance() {
       const res = await attendanceService.reviewLeaveRequest(leaveId, status);
       if (res.success) {
         showToast(`Permohonan izin berhasil di-${status.toLowerCase()}!`);
-        setLeaveRequests(prev => prev.map(item => item.leave_id === leaveId ? { ...item, status } : item));
+        setLeaveRequests(prev => prev.map(item => (item.id || item.leave_id) === leaveId ? { ...item, status } : item));
+        await loadAttendanceData();
       } else {
         showToast(res.message || 'Gagal memproses perizinan.', 'error');
       }
     } catch (err) {
-      showToast('Gagal memproses perizinan.', 'error');
+      showToast(err.response?.data?.message || 'Gagal memproses perizinan.', 'error');
     } finally {
       setProcessingAction(false);
     }
@@ -359,6 +389,15 @@ export default function MenteeAttendance() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleTriggerAutoAbsence}
+              disabled={processingAction}
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] text-xs font-black shadow-[2px_2px_0px_#121214] transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Clock className="w-3.5 h-3.5 text-[#121214]" />
+              <span>Evaluasi Auto-Alfa</span>
+            </button>
             <button
               onClick={() => { loadAttendanceData(); showToast('Data presensi berhasil diperbarui!'); }}
               className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold shadow-xs transition-all cursor-pointer"
@@ -605,7 +644,7 @@ export default function MenteeAttendance() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Riwayat Presensi Anak Didik">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-600 font-bold uppercase tracking-wider text-[10px]">
                     <tr>
@@ -716,8 +755,12 @@ export default function MenteeAttendance() {
             </div>
           ) : (
             <div className="divide-y divide-neutral-100">
-              {leaveRequests.map(leave => (
-                <div key={leave.leave_id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-neutral-50/80 transition-colors">
+              {leaveRequests.map(leave => {
+                const targetLeaveId = leave.id || leave.leave_id;
+                const attachmentHref = leave.proof_file_url || leave.attachment_url || leave.proof_url;
+                const isApproved = ['disetujui', 'approved'].includes((leave.status || '').toLowerCase());
+                return (
+                <div key={targetLeaveId} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-neutral-50/80 transition-colors">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
@@ -736,9 +779,9 @@ export default function MenteeAttendance() {
                       <strong>Alasan:</strong> {leave.reason || '-'}
                     </p>
 
-                    {leave.proof_url && (
+                    {attachmentHref && (
                       <a
-                        href={leave.proof_url}
+                        href={attachmentHref}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#008F4C] hover:underline pt-0.5"
@@ -754,7 +797,7 @@ export default function MenteeAttendance() {
                       <>
                         <button
                           disabled={processingAction}
-                          onClick={() => handleReviewLeave(leave.leave_id, 'Approved')}
+                          onClick={() => handleReviewLeave(targetLeaveId, 'Disetujui')}
                           className="px-3.5 py-2 rounded-xl bg-[#008F4C] hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -762,7 +805,7 @@ export default function MenteeAttendance() {
                         </button>
                         <button
                           disabled={processingAction}
-                          onClick={() => handleReviewLeave(leave.leave_id, 'Rejected')}
+                          onClick={() => handleReviewLeave(targetLeaveId, 'Ditolak')}
                           className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -771,14 +814,15 @@ export default function MenteeAttendance() {
                       </>
                     ) : (
                       <span className={`px-3 py-1 rounded-full text-xs font-black ${
-                        leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        isApproved ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                       }`}>
-                        {leave.status === 'Approved' ? 'Disetujui' : 'Ditolak'}
+                        {isApproved ? 'Disetujui' : 'Ditolak'}
                       </span>
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -804,7 +848,7 @@ export default function MenteeAttendance() {
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-neutral-200 inline-block" /> Libur / Belum ada data</span>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Matriks Presensi Bulanan">
             <table className="min-w-full text-left text-xs border border-neutral-200">
               <thead className="bg-neutral-50 text-[10px] text-neutral-600 uppercase font-bold border-b border-neutral-200">
                 <tr>
@@ -854,9 +898,9 @@ export default function MenteeAttendance() {
 
       {/* DETAIL MODAL RECORD */}
       {detailModalRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 overscroll-contain" role="dialog" aria-modal="true" aria-label="Detail Catatan Kehadiran">
           <div className="absolute inset-0" onClick={() => setDetailModalRecord(null)} />
-          <div className="relative bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl border border-neutral-100 z-10 text-left space-y-4">
+          <div className="relative bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl border border-neutral-100 z-10 text-left space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-[#008F4C]" />
@@ -895,7 +939,7 @@ export default function MenteeAttendance() {
               <div className="p-3 rounded-2xl bg-neutral-50 border border-neutral-100 space-y-1">
                 <span className="text-[10px] text-neutral-400 font-bold uppercase">Lokasi & Validasi GPS</span>
                 <p className="font-semibold text-neutral-800 leading-snug">{detailModalRecord.location_address || 'Kantor Cabang BPJSTK'}</p>
-                <p className="text-[10px] text-neutral-500 font-mono">Koordinat: {detailModalRecord.location_coordinates || '3.575556, 98.665278'}</p>
+                <p className="text-[10px] text-neutral-500 font-mono">Koordinat: {detailModalRecord.location_coordinates || '-'}</p>
                 {detailModalRecord.distance_meters !== null && (
                   <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                     Radius Kantor: ±{detailModalRecord.distance_meters}m
@@ -934,9 +978,9 @@ export default function MenteeAttendance() {
 
       {/* VERIFY / ADJUST ATTENDANCE MODAL */}
       {verifyModalRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 overscroll-contain" role="dialog" aria-modal="true" aria-label="Verifikasi Status Presensi">
           <div className="absolute inset-0" onClick={() => setVerifyModalRecord(null)} />
-          <div className="relative bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-neutral-100 z-10 text-left space-y-4">
+          <div className="relative bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl border border-neutral-100 z-10 text-left space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
               <h3 className="font-extrabold text-neutral-900 text-base font-heading">
                 Verifikasi Status Presensi

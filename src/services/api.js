@@ -84,7 +84,7 @@ api.interceptors.response.use(
       }
     }
 
-    if (error.response?.status === 503 || error.response?.data?.code === 'MAINTENANCE_MODE_ACTIVE') {
+    if (error.response?.data?.code === 'MAINTENANCE_MODE_ACTIVE') {
       window.dispatchEvent(new CustomEvent('maintenance-mode', { detail: error.response?.data }));
     }
     

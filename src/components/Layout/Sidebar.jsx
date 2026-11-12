@@ -5,7 +5,7 @@ import {
   FolderOpen, Bell, Users, Award, 
   BarChart3, Download, Clock,
   Database, Radio, LogOut, X, ChevronRight, Sparkles, MessageSquare,
-  MapPin, Target, Calculator, ShieldCheck, Compass
+  MapPin, Target, Calculator, ShieldCheck, Compass, Activity
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/27102023_091008_dorong_universal.png';
@@ -56,14 +56,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         ],
         tools: [
           { path: '/coordinator/mentee-attendance', icon: ClipboardList, label: 'Absensi Anak Didik' },
+          { path: '/coordinator/presence-radar', icon: Activity, label: 'Radar Presensi' },
           { path: '/coordinator/calendar', icon: Calendar, label: 'Agenda & Jadwal' },
           { path: '/coordinator/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
+          { path: '/coordinator/forum', icon: MessageSquare, label: 'Forum Diskusi' },
           { path: '/coordinator/reminders', icon: Bell, label: 'Pengingat' },
           { isChat: true, icon: MessageSquare, label: 'Chat Bimbingan' },
         ]
       };
     } else {
-      // Peserta
+      // Peserta (ALL placements Kantor & Lapangan attend daily)
       const generalItems = [
         { path: '/participant/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/participant/id-card', icon: ShieldCheck, label: 'ID Card Digital' },
@@ -74,16 +76,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         { path: '/participant/acquisition-result', icon: Database, label: 'Akuisisi BPU' },
       ];
 
-      // Hide attendance for "lapangan"
-      const filteredGeneral = user?.penempatan === 'lapangan'
-        ? generalItems.filter(item => item.path !== '/participant/attendance')
-        : generalItems;
-
       return {
-        general: filteredGeneral,
+        general: generalItems,
         tools: [
           { path: '/participant/brochures', icon: FileText, label: 'Katalog Brosur BPU' },
           { path: '/participant/documents', icon: FolderOpen, label: 'Basis Dokumen' },
+          { path: '/participant/forum', icon: MessageSquare, label: 'Forum Diskusi' },
           { path: '/participant/notifications', icon: Bell, label: 'Notifikasi' },
           { isChat: true, icon: MessageSquare, label: 'Chat Bimbingan' },
         ]

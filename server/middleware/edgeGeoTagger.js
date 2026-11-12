@@ -3,6 +3,20 @@
  * Ingests low-latency edge geolocation metadata from Vercel / Cloudflare edge proxies.
  * Completely eliminates slow and expensive third-party external geocoding API calls.
  */
+const safeDecode = (val, fallback) => {
+  if (!val) return fallback;
+  try {
+    return decodeURIComponent(val);
+  } catch {
+    return String(val);
+  }
+};
+
+const safeCoord = (val, fallback) => {
+  const num = parseFloat(val);
+  return Number.isFinite(num) ? num : fallback;
+};
+
 export function edgeGeoTaggerMiddleware(req, res, next) {
   const vercelCountry = req.headers['x-vercel-ip-country'];
   const vercelCity = req.headers['x-vercel-ip-city'];
@@ -19,11 +33,11 @@ export function edgeGeoTaggerMiddleware(req, res, next) {
   if (vercelCity || vercelCountry) {
     geo = {
       provider: 'Vercel Edge Network',
-      country: vercelCountry ? decodeURIComponent(vercelCountry) : 'ID',
-      city: vercelCity ? decodeURIComponent(vercelCity) : 'Jakarta',
+      country: safeDecode(vercelCountry, 'ID'),
+      city: safeDecode(vercelCity, 'Jakarta'),
       region: vercelRegion || 'DKI',
-      latitude: vercelLat ? parseFloat(vercelLat) : -6.2088,
-      longitude: vercelLon ? parseFloat(vercelLon) : 106.8456,
+      latitude: safeCoord(vercelLat, -6.2088),
+      longitude: safeCoord(vercelLon, 106.8456),
       isEdgeTagged: true
     };
   } else if (cfCountry || cfLat) {
@@ -32,8 +46,8 @@ export function edgeGeoTaggerMiddleware(req, res, next) {
       country: cfCountry || 'ID',
       city: 'Unknown (Edge)',
       region: '',
-      latitude: cfLat ? parseFloat(cfLat) : -6.2088,
-      longitude: cfLon ? parseFloat(cfLon) : 106.8456,
+      latitude: safeCoord(cfLat, -6.2088),
+      longitude: safeCoord(cfLon, 106.8456),
       isEdgeTagged: true
     };
   } else {

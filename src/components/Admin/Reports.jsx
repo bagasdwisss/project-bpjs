@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import reportService from '../../services/reportService';
+import dashboardService from '../../services/DashboardService';
 import { useToast } from '../../context/ToastContext';
 import { 
   FileText, 
@@ -24,19 +25,32 @@ const Reports = () => {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [history, setHistory] = useState([]);
   const [summaryStats, setSummaryStats] = useState({
-    totalParticipants: 11,
-    averageScore: 82,
-    completionRate: 90,
-    totalHours: 180
+    totalParticipants: 0,
+    averageScore: 0,
+    completionRate: 0,
+    totalHours: 0
   });
   const [generating, setGenerating] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
 
   const loadReportHistory = async () => {
     try {
-      const res = await reportService.history();
-      if (res.data.success) {
-        setHistory(res.data.data || []);
+      const [histRes, dashRes] = await Promise.all([
+        reportService.history(),
+        dashboardService.getAdminDashboard().catch(() => null)
+      ]);
+      if (histRes.data?.success) {
+        setHistory(histRes.data.data || []);
+      }
+      if (dashRes?.success && dashRes?.data?.stats) {
+        const s = dashRes.data.stats;
+        setSummaryStats(prev => ({
+          totalParticipants: Number(s.activeParticipants ?? s.totalUsers ?? prev.totalParticipants) || 0,
+          averageScore: Math.round(Number(s.averageScore ?? prev.averageScore) || 0),
+          completionRate: Math.round(Number(s.passRate ?? prev.completionRate) || 0),
+          totalHours: Math.round(Number(s.totalHours ?? prev.totalHours) || 0)
+        }));
       }
     } catch (err) {
       console.error('Error fetching report history:', err);
@@ -63,10 +77,10 @@ const Reports = () => {
         if (res.data.data?.summary) {
           const s = res.data.data.summary;
           setSummaryStats({
-            totalParticipants: parseInt(s.total_participants, 10) || 11,
-            averageScore: Math.round(parseFloat(s.avg_score) || 82),
-            completionRate: Math.round(parseFloat(s.completion_rate) || 90),
-            totalHours: parseInt(s.total_hours, 10) || 180
+            totalParticipants: Number.parseInt(s.total_participants, 10) || 0,
+            averageScore: Math.round(Number.parseFloat(s.avg_score) || 0),
+            completionRate: Math.round(Number.parseFloat(s.completion_rate) || 0),
+            totalHours: Number.parseInt(s.total_hours, 10) || 0
           });
         }
         loadReportHistory();
@@ -76,6 +90,28 @@ const Reports = () => {
       toast.error('Gagal menghasilkan laporan: ' + (err.response?.data?.message || err.message));
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleDownloadReport = async (rep) => {
+    try {
+      setDownloadingId(rep.log_id);
+      const res = await reportService.downloadCsv(rep.log_id);
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const safeName = (rep.report_name || `Laporan_${rep.log_id}`).replace(/[^\w\-.]+/g, '_');
+      link.href = url;
+      link.download = `${safeName}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Laporan ${safeName}.csv berhasil diunduh.`);
+    } catch (err) {
+      toast.error('Gagal mengunduh laporan: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -235,7 +271,7 @@ const Reports = () => {
               <p className="text-xs text-[#121214]/60 mt-1">Gunakan formulir parameter di atas untuk mencetak rekapitulasi baru.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Arsip Laporan yang Telah Dibuat">
               <table className="w-full text-left text-xs sm:text-sm min-w-[640px]">
                 <thead className="bg-[#121214] text-white uppercase text-[11px] font-black tracking-wider">
                   <tr>
@@ -274,10 +310,12 @@ const Reports = () => {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <button
-                          onClick={() => toast.info(`Mengunduh file: ${rep.report_name}`)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#121214] hover:bg-black text-white rounded-full text-xs font-bold transition shadow-sm"
+                          type="button"
+                          onClick={() => handleDownloadReport(rep)}
+                          disabled={downloadingId === rep.log_id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#121214] hover:bg-black disabled:opacity-50 text-white rounded-full text-xs font-bold transition shadow-sm"
                         >
-                          <Download className="w-3.5 h-3.5" /> Unduh
+                          <Download className="w-3.5 h-3.5" /> {downloadingId === rep.log_id ? 'Mengunduh...' : 'Unduh'}
                         </button>
                       </td>
                     </tr>

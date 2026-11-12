@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [coordinator, setCoordinator] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   // Load coordinator data untuk user yang sedang login
@@ -283,7 +284,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (uniqueId, password) => {
     try {
       setError(null);
-      setLoading(true);
+      setAuthSubmitting(true);
       console.log('Attempting login with:', { uniqueId });
       
       const result = await authService.login(uniqueId, password);
@@ -333,7 +334,7 @@ export const AuthProvider = ({ children }) => {
         message 
       };
     } finally {
-      setLoading(false);
+      setAuthSubmitting(false);
     }
   };
 
@@ -360,6 +361,7 @@ export const AuthProvider = ({ children }) => {
     coordinator,
     error,
     loading,
+    authSubmitting,
     login,
     logout,
     isAuthenticated: !!user,

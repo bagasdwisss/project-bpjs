@@ -203,7 +203,29 @@ const Attendance = () => {
       setCurrentTime(new Date());
     }, 1000);
     loadInitialData();
-    return () => clearInterval(timer);
+
+    getOfflineAttendances().then(items => setOfflineCount(items.length)).catch(() => {});
+    const handleOnline = async () => {
+      setIsOnline(true);
+      try {
+        const res = await syncOfflineAttendanceQueue(api);
+        const remaining = await getOfflineAttendances();
+        setOfflineCount(remaining.length);
+        if (res?.synced > 0) {
+          showToast(`${res.synced} presensi offline otomatis disinkronkan.`, 'success');
+          loadAttendanceData();
+        }
+      } catch (_) {}
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const showToast = (message, type = 'info') => setToast({ message, type });
@@ -275,9 +297,13 @@ const Attendance = () => {
         const records = res.data.data || [];
         setAttendanceHistory(records);
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
         const todayRec = records.find(r => {
-          const recDate = new Date(r.attendance_date).toISOString().split('T')[0];
+          const recDate = r.attendance_date
+            ? (typeof r.attendance_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.attendance_date)
+              ? r.attendance_date
+              : new Date(r.attendance_date).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }))
+            : '';
           return recDate === todayStr;
         });
 
@@ -385,8 +411,8 @@ const Attendance = () => {
 
   const capturePhoto = async () => {
     sensorCheckerRef.current.stop();
-    if (videoRef.current) {
-      const video = videoRef.current;
+    const video = videoRef.current;
+    if (video && video.videoWidth > 0 && video.readyState >= 2) {
       try {
         // Feature 2: Canvas Sanitization & WebP Re-encoding (Anti Polyglot File Attack)
         // Feature 3: Watermarking Kriptografi Steganografi pada Foto Selfie Presensi
@@ -410,9 +436,10 @@ const Attendance = () => {
         showToast('Foto wajah berhasil disanitasi & diberi watermark kriptografi WebP!', 'success');
       } catch (e) {
         console.error('Sanitization error:', e);
+        showToast('Gagal memproses frame kamera.', 'error');
       }
     } else {
-      // Fallback
+      // Explicit fallback when camera stream unavailable in device/headless mode
       const dummyCanvas = document.createElement('canvas');
       dummyCanvas.width = 400;
       dummyCanvas.height = 400;
@@ -422,7 +449,7 @@ const Attendance = () => {
       ctx.fillStyle = '#B8C96E';
       ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('BPJSTK SANITIZED SELFIE', 200, 180);
+      ctx.fillText('MODE PERANGKAT TANPA KAMERA', 200, 180);
       ctx.fillText('WATERMARK VERIFIED', 200, 220);
       const sanitized = await sanitizeAndWatermarkSelfie({
         imageSource: dummyCanvas,
@@ -435,13 +462,13 @@ const Attendance = () => {
       setWatermarkSig(sanitized.watermarkSignature);
       setCameraActive(false);
       setFaceDetected(true);
-      showToast('Foto selfie berhasil diambil & disanitasi WebP.', 'success');
+      showToast('Foto selfie verifikasi berhasil dibuat & disanitasi WebP.', 'info');
     }
   };
 
   // Check In Execution with Anti-Mock & Offline Sync Support (Features 1 & 20)
   const handleCheckIn = async () => {
-    if (attendanceStatus && attendanceStatus.status !== 'pending') {
+    if (attendanceStatus && attendanceStatus.status !== 'pending' && attendanceStatus.status !== 'Alfa') {
       showToast('Anda sudah melakukan absensi hari ini.', 'error');
       return;
     }
@@ -1031,7 +1058,7 @@ const Attendance = () => {
                   </div>
                   <div className="divide-y divide-gray-100 max-h-56 overflow-y-auto pr-1">
                     {holidaysList.map((h) => (
-                      <div key={h.id} className="py-2.5 flex items-center justify-between gap-2 text-xs">
+                      <div key={h.holiday_id || h.id} className="py-2.5 flex items-center justify-between gap-2 text-xs">
                         <div className="min-w-0">
                           <p className="font-black text-[#121214] truncate">{h.holiday_name}</p>
                           <p className="text-[10px] text-gray-500 font-medium truncate">{h.custom_message || h.description || 'Libur Nasional Resmi'}</p>

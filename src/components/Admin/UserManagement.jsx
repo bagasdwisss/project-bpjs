@@ -40,10 +40,25 @@ const Toast = ({ message, type = 'success', onClose, duration = 3500 }) => {
 
 // Confirm Delete Modal in Soft Neo-Brutalism Style
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, userName }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Konfirmasi Hapus Pengguna"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="bg-white rounded-[26px] border border-[#EAE9E4] shadow-2xl max-w-sm w-full p-6 text-center space-y-4">
         <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto">
           <Trash2 className="w-6 h-6" />
@@ -167,16 +182,18 @@ const UserManagement = () => {
   const handleImportClick = () => fileInputRef.current.click();
 
   const handleFileImport = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     try {
       const result = await userService.importUsers(file);
-      showToast(result.data.message || 'Users imported successfully!', 'success');
+      showToast(result.data.message || 'Data pengguna berhasil diimpor!', 'success');
       await loadUsers();
     } catch (error) {
       console.error('Error importing users:', error);
-      showToast('Failed to import users', 'error');
+      showToast(error.response?.data?.message || error.message || 'Gagal mengimpor pengguna', 'error');
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -294,7 +311,7 @@ const UserManagement = () => {
           <TableSkeleton rows={7} cols={7} />
         ) : (
           <div className="bg-white rounded-2xl border-2 border-[#121214] overflow-hidden shadow-[4px_4px_0px_#121214]">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Pengguna Sistem">
             <table className="w-full text-left text-xs min-w-[720px] divide-y-2 divide-[#121214]">
               <thead className="bg-[#121214] text-white">
                 <tr>
@@ -331,8 +348,8 @@ const UserManagement = () => {
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full capitalize ${
-                          u.penempatan === 'kantor' ? 'bg-[#BDD4F2] text-[#121214]' :
-                          u.penempatan === 'lapangan' ? 'bg-[#FCE373] text-[#121214]' :
+                          u.penempatan?.toLowerCase() === 'kantor' ? 'bg-[#BDD4F2] text-[#121214]' :
+                          u.penempatan?.toLowerCase() === 'lapangan' ? 'bg-[#FCE373] text-[#121214]' :
                           'bg-[#FAF9F6] text-[#6E6D6A] border border-[#EAE9E4]'
                         }`}>
                           {u.penempatan || 'Kantor'}

@@ -12,7 +12,7 @@ export const Table = ({
 }) => {
   return (
     <div className={`overflow-hidden rounded-[22px] bg-white border border-[#EAE9E4] ${className}`}>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Tabel Data">
         <table className="min-w-full divide-y divide-[#EAE9E4]">
           <thead className="bg-[#FAF9F6]">
             <tr>

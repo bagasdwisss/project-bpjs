@@ -4,7 +4,7 @@ const ipAuthFails = new Map();
 const ipJails = new Map();
 
 // Helper to clean up expired windows periodically (every 10 minutes)
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, data] of ipWindows.entries()) {
     if (now - data.startTime > 120000) ipWindows.delete(ip);
@@ -16,6 +16,7 @@ setInterval(() => {
     if (now - fails.lastAttempt > 900000) ipAuthFails.delete(ip);
   }
 }, 600000);
+if (cleanupTimer.unref) cleanupTimer.unref();
 
 export const recordFailedAuth = (ip) => {
   const now = Date.now();

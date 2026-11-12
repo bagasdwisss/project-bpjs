@@ -58,6 +58,17 @@ function AdminBatchManagement() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowModal(false);
+        setShowAssignModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const handleOpenCreate = () => {
     setSelectedBatch(null);
     setFormData({
@@ -138,9 +149,13 @@ function AdminBatchManagement() {
     setSelectedBatch(batch);
     try {
       const res = await batchService.getParticipants(batch.batch_id);
-      if (res.data.success) {
-        const assignedIds = res.data.data.map(p => p.user_id);
+      if (res.data?.success) {
+        const raw = res.data.data;
+        const participantsList = Array.isArray(raw) ? raw : (raw?.participants || []);
+        const assignedIds = participantsList.map(p => p.user_id).filter(Boolean);
         setSelectedUsers(assignedIds);
+      } else {
+        setSelectedUsers([]);
       }
     } catch (err) {
       console.error('Error getting batch participants:', err);
@@ -249,7 +264,7 @@ function AdminBatchManagement() {
           ) : batches.length === 0 ? (
             <div className="p-12 text-center text-xs text-[#6E6D6A]">Belum ada batch terdaftar. Silakan buat batch baru.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Gelombang Pelatihan">
               <table className="min-w-full divide-y-2 divide-[#121214] text-xs">
                 <thead className="bg-[#121214] text-white uppercase text-[10px] font-black tracking-wider">
                   <tr>
@@ -323,8 +338,14 @@ function AdminBatchManagement() {
 
         {/* Create/Edit Batch Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-[28px] border-2 border-[#121214] max-w-lg w-full p-6 shadow-[8px_8px_0px_#121214] space-y-4 animate-in zoom-in-95 duration-150">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label={selectedBatch ? 'Edit Batch Pelatihan' : 'Tambah Batch Baru'}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+          >
+            <div className="bg-white rounded-[28px] border-2 border-[#121214] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 shadow-[8px_8px_0px_#121214] space-y-4 animate-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-[#EAE9E4] pb-3">
                 <div>
                   <h3 className="text-base font-extrabold text-[#121214]">
@@ -380,7 +401,7 @@ function AdminBatchManagement() {
                   options={[
                     { value: 'Aktif', label: 'Aktif' },
                     { value: 'Selesai', label: 'Selesai' },
-                    { value: 'Direncanakan', label: 'Direncanakan' }
+                    { value: 'Mendatang', label: 'Mendatang' }
                   ]}
                 />
                 <div className="flex justify-end gap-2.5 pt-3 border-t border-[#EAE9E4]">
@@ -405,8 +426,14 @@ function AdminBatchManagement() {
 
         {/* Assign Participants Modal */}
         {showAssignModal && selectedBatch && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-[28px] border border-[#EAE9E4] max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tugaskan Peserta"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowAssignModal(false); }}
+          >
+            <div className="bg-white rounded-[28px] border border-[#EAE9E4] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-[#EAE9E4] pb-3">
                 <div>
                   <h3 className="text-base font-extrabold text-[#121214]">Tugaskan Peserta</h3>

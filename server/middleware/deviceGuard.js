@@ -1,6 +1,5 @@
 // server/middleware/deviceGuard.js - Device Fingerprinting & Session Hijacking Guard
-import { query } from '../db.js';
-import crypto from 'crypto';
+import { logActivity } from '../utils/logger.js';
 
 // In-memory session fingerprint cache: userId -> { fingerprint, userAgent, ip, recordedAt, sessionToken }
 const activeSessionFingerprints = new Map();
@@ -108,21 +107,16 @@ export const deviceGuardMiddleware = async (req, res, next) => {
     console.warn(`🚨 [Session Guard] Potensi Session Hijacking terdeteksi pada User ID ${userId}!`);
     console.warn(`Original FP: ${existing.fingerprint} vs Incoming FP: ${clientFingerprint}`);
 
-    // Log suspicious activity asynchronously
-    try {
-      await query(
-        `INSERT INTO activity_logs (user_id, activity_type, details, ip_address, device_fingerprint, created_at)
-         VALUES ($1, 'SECURITY_ALERT_SESSION_HIJACK', $2, $3, $4, CURRENT_TIMESTAMP)`,
-        [
-          req.user.user_id,
-          `Ketidakcocokan sidik jari perangkat (Device Fingerprint Mismatch). Kemungkinan pembajakan token atau session fixation. IP: ${clientIp}, UserAgent: ${userAgent}`,
-          clientIp,
-          clientFingerprint
-        ]
-      );
-    } catch (e) {
-      // Ignore logging failure to avoid blocking
-    }
+    // Log suspicious activity using centralized Merkle-chained audit logger
+    await logActivity({
+      userId: req.user.user_id,
+      action: 'SECURITY_ALERT_SESSION_HIJACK',
+      details: `Ketidakcocokan sidik jari perangkat (Device Fingerprint Mismatch). IP: ${clientIp}, UserAgent: ${userAgent}`,
+      req,
+      deviceFingerprint: clientFingerprint,
+      isAnomaly: true,
+      anomalyReason: 'Device Fingerprint Mismatch / Session Fixation Attempt'
+    });
 
     // Reject suspicious request
     return res.status(401).json({

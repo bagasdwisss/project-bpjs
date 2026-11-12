@@ -83,11 +83,12 @@ const ArchivalAlertModal = () => {
 
   return (
     <div 
-      className="fixed inset-0 z-[9990] flex items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9990] flex items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-xs animate-in fade-in duration-200 overscroll-contain"
       role="alertdialog"
       aria-modal="true"
+      onKeyDown={(e) => { if (e.key === 'Escape' && !loading) setIsOpen(false); }}
     >
-      <div className="w-full max-w-lg bg-white rounded-[26px] border-3 border-[#121214] shadow-[8px_8px_0px_#121214] overflow-hidden transform animate-in zoom-in-95 duration-200 flex flex-col">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain bg-white rounded-[26px] border-3 border-[#121214] shadow-[8px_8px_0px_#121214] transform animate-in zoom-in-95 duration-200 flex flex-col">
         
         {/* Header Strip */}
         <div className="bg-[#F5C6EC] p-5 sm:p-6 border-b-2 border-[#121214] relative">

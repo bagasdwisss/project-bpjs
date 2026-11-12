@@ -31,18 +31,20 @@ export async function extractKtmMetadata(imageSource) {
         }
         ctx.putImageData(imageData, 0, 0);
 
-        // 3. Extracted metadata simulation based on standard Indonesian campus card patterns
-        // Standard pattern: 8-12 digits NIM, Uppercase Name, University entity
-        const simulatedNim = '2110' + Math.floor(100000 + Math.random() * 900000);
-        
+        // 3. Extract verifiable hints from filename if uploaded as a File (never fabricate random NIM/Name)
+        const fileNameStr = (typeof imageSource === 'object' && imageSource?.name) ? String(imageSource.name) : '';
+        const nimMatch = fileNameStr.match(/\b(\d{8,14})\b/);
+
         resolve({
           success: true,
+          requiresManualEntry: true,
+          ocrMode: 'HIGH_CONTRAST_PREPROCESS',
           extractedData: {
-            nim: simulatedNim,
-            fullName: 'MAHASISWA MAGANG BPJS',
-            university: 'Universitas Indonesia / Institut Terbuka',
-            major: 'Sistem Informasi & Manajemen Operasional',
-            confidenceScore: '96.4%'
+            nim: nimMatch ? nimMatch[1] : '',
+            fullName: '',
+            university: '',
+            major: '',
+            resolution: `${canvas.width}x${canvas.height}`
           },
           processedCanvasUri: canvas.toDataURL('image/jpeg', 0.85)
         });

@@ -23,6 +23,7 @@ const Scores = () => {
   const [certificate, setCertificate] = useState(null);
   const [showCertModal, setShowCertModal] = useState(false);
   const [downloadingCert, setDownloadingCert] = useState(false);
+  const [cutoffs, setCutoffs] = useState({ grade_a: 85, grade_b: 75, grade_c: 65 });
 
   const handleDownloadCertificate = async () => {
     if (!certificate) return;
@@ -35,7 +36,7 @@ const Scores = () => {
       });
     } catch (e) {
       console.error('Download error:', e);
-      window.open(`/api/certificates/download/${encodeURIComponent(certificate.certificate_number)}`, '_blank');
+      setError('Gagal mengunduh gambar sertifikat: ' + e.message);
     } finally {
       setDownloadingCert(false);
     }
@@ -57,7 +58,18 @@ const Scores = () => {
       setLoading(true);
       setError(null);
       
-      const response = await api.get('/participant/scores');
+      const [response, cfgRes] = await Promise.all([
+        api.get('/participant/scores'),
+        api.get('/grading/configuration').catch(() => null)
+      ]);
+      if (cfgRes?.data?.data?.cutoffs) {
+        const c = cfgRes.data.data.cutoffs;
+        setCutoffs({
+          grade_a: Number(c.grade_a) || 85,
+          grade_b: Number(c.grade_b) || 75,
+          grade_c: Number(c.grade_c) || 65
+        });
+      }
       
       if (!response.data?.success) {
         throw new Error(response.data?.message || 'Gagal mengambil data skor');
@@ -130,13 +142,18 @@ const Scores = () => {
   };
 
   const calculateAverage = (scoresList) => {
-    if (scoresList.length === 0) return 0;
+    if (!scoresList || scoresList.length === 0) return 0;
     
     const totalWeighted = scoresList.reduce((acc, curr) => {
-      return acc + (curr.score / curr.maxScore) * 100 * (curr.weight / 100);
+      const maxVal = curr.maxScore || 100;
+      return acc + (curr.score / maxVal) * 100 * ((curr.weight || 0) / 100);
     }, 0);
     
-    const totalWeight = scoresList.reduce((acc, curr) => acc + (curr.weight / 100), 0);
+    const totalWeight = scoresList.reduce((acc, curr) => acc + ((curr.weight || 0) / 100), 0);
+    if (!totalWeight) {
+      const simpleSum = scoresList.reduce((acc, curr) => acc + ((curr.score / (curr.maxScore || 100)) * 100), 0);
+      return Math.round(simpleSum / scoresList.length);
+    }
     
     return Math.round(totalWeighted / totalWeight);
   };
@@ -224,14 +241,19 @@ const Scores = () => {
                   <span>Sertifikat Resmi Telah Diterbitkan</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black font-heading tracking-tight text-white">
-                  Sertifikat Kelulusan Program Magang BPJSTK
+                  {(() => {
+                    const t = (certificate.certificate_type || certificate.type || 'Kelulusan').toLowerCase();
+                    if (t.includes('prestasi')) return 'Sertifikat Prestasi Program Magang BPJSTK';
+                    if (t.includes('partisipasi')) return 'Sertifikat Partisipasi Program Magang BPJSTK';
+                    return 'Sertifikat Kelulusan Program Magang BPJSTK';
+                  })()}
                 </h2>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-emerald-100 font-medium pt-1">
                   <span>No. Seri: <strong className="text-white font-mono">{certificate.certificate_number}</strong></span>
                   <span>•</span>
-                  <span>Tanggal Terbit: <strong className="text-white">{new Date(certificate.issue_date || certificate.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>
+                  <span>Tanggal Terbit: <strong className="text-white">{new Date(certificate.issue_date || certificate.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}</strong></span>
                   <span>•</span>
-                  <span>Predikat: <strong className="text-[#FCE373] font-extrabold">{certificate.final_grade || 'Sangat Baik (A)'}</strong></span>
+                  <span>Predikat: <strong className="text-[#FCE373] font-extrabold">{certificate.predicate || certificate.final_grade || 'Sangat Memuaskan'}</strong></span>
                 </div>
               </div>
 
@@ -310,7 +332,7 @@ const Scores = () => {
               </div>
             </div>
             <div className="pt-4 mt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
-              <span>Grade: {overallAverage >= 85 ? 'A (Sangat Baik)' : overallAverage >= 75 ? 'B (Baik)' : 'C (Cukup)'}</span>
+              <span>Grade: {overallAverage >= cutoffs.grade_a ? 'A (Sangat Baik)' : overallAverage >= cutoffs.grade_b ? 'B (Baik)' : overallAverage >= cutoffs.grade_c ? 'C (Cukup)' : 'D/E (Evaluasi)'}</span>
               <TrendingUp className="w-4 h-4 text-[#121214]" />
             </div>
           </div>
@@ -481,9 +503,10 @@ const Scores = () => {
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="w-3.5 h-3.5" />
                               {(() => {
+                                if (!score.date) return '-';
                                 const date = new Date(score.date);
-                                if (isNaN(date.getTime())) return 'Tanggal tidak valid';
-                                return date.toLocaleDateString('id-ID');
+                                if (isNaN(date.getTime())) return '-';
+                                return date.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
                               })()}
                             </span>
                             <span>•</span>
@@ -541,8 +564,8 @@ const Scores = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium pt-2">
             <div className="p-3.5 bg-white/60 rounded-xl space-y-1.5 backdrop-blur-sm">
-              <p><strong className="text-[#121214]">Tren Capaian:</strong> {overallAverage >= 80 ? 'Sangat Baik (Stabil)' : overallAverage >= 70 ? 'Cukup (Perlu Ditingkatkan)' : 'Perlu Pendampingan Khusus'}</p>
-              <p><strong className="text-[#121214]">Standar Kelulusan:</strong> Minimal 75.0% di setiap modul kompetensi inti</p>
+              <p><strong className="text-[#121214]">Tren Capaian:</strong> {overallAverage >= cutoffs.grade_a ? 'Sangat Baik (Stabil)' : overallAverage >= cutoffs.grade_b ? 'Cukup Memenuhi Standar' : 'Perlu Pendampingan Khusus'}</p>
+              <p><strong className="text-[#121214]">Standar Kelulusan:</strong> Minimal {cutoffs.grade_b}.0% di setiap modul kompetensi inti</p>
             </div>
             <div className="p-3.5 bg-white/60 rounded-xl space-y-1.5 backdrop-blur-sm">
               <p><strong className="text-[#121214]">Modul Unggulan:</strong> {(() => {
@@ -552,7 +575,7 @@ const Scores = () => {
                     calculateModuleAverage(current) > calculateModuleAverage(best) ? current : best
                   ) : 'Modul Pembelajaran BPJSTK';
               })()}</p>
-              <p><strong className="text-[#121214]">Evaluasi Memenuhi Target:</strong> {scores.filter(s => s.score >= 75).length} dari {scores.length} penilaian</p>
+              <p><strong className="text-[#121214]">Evaluasi Memenuhi Target:</strong> {scores.filter(s => s.score >= cutoffs.grade_b).length} dari {scores.length} penilaian</p>
             </div>
           </div>
         </div>

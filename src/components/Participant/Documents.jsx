@@ -96,9 +96,11 @@ const Documents = () => {
     return colors[category] || 'bg-[#FAF9F6] text-[#121214]';
   };
 
-  const handleDownload = async (document) => {
+  const handleDownload = async (docItem) => {
+    const docId = docItem.id || docItem.document_id;
+    const docName = docItem.name || docItem.file_name || `dokumen-${docId}.pdf`;
     try {
-      const response = await api.get(`/documents/${document.id}/download`, {
+      const response = await api.get(`/documents/${docId}/download`, {
         responseType: 'blob'
       });
       
@@ -106,7 +108,7 @@ const Documents = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = document.name;
+      link.download = docName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -115,40 +117,54 @@ const Documents = () => {
       // Update download count in state
       setDocuments(prevDocs => 
         prevDocs.map(doc => 
-          doc.id === document.id 
-            ? {...doc, downloadCount: (doc.downloadCount || 0) + 1} 
+          (doc.id || doc.document_id) === docId 
+            ? {...doc, downloadCount: (doc.downloadCount || doc.download_count || 0) + 1} 
             : doc
         )
       );
     } catch (error) {
       console.error('Error downloading document:', error);
-      toast.error('Terjadi kesalahan saat mengunduh dokumen.');
+      toast.error(error.response?.data?.message || 'Terjadi kesalahan saat mengunduh dokumen.');
     }
   };
 
   const handleFileUpload = async (event) => {
     if (user?.role && (user.role.toLowerCase().includes('admin') || user.role.toLowerCase().includes('koordinator'))) {
-      const file = event.target.files[0];
-      if (file) {
-        setUploading(true);
-        try {
-          const res = await api.post('/documents/upload', {
-            file_name: file.name,
-            category: 'submissions',
-            description: 'File upload baru'
-          });
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        toast.warning('Ukuran file maksimal 5 MB.');
+        event.target.value = '';
+        return;
+      }
 
-          if (res.data.success) {
-            setDocuments(prev => [res.data.data, ...prev]);
-            toast.success('File berhasil diupload!');
-          }
-        } catch (error) {
-          console.error('Error uploading file:', error);
-          toast.error('Gagal mengupload file: ' + (error.response?.data?.message || error.message));
-        } finally {
-          setUploading(false);
-          event.target.value = '';
+      setUploading(true);
+      try {
+        const fileData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('Gagal membaca file'));
+          reader.readAsDataURL(file);
+        });
+        const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : 'pdf';
+        const res = await api.post('/documents/upload', {
+          file_name: file.name,
+          file_data: fileData,
+          file_type: ext,
+          category: selectedCategory !== 'all' ? selectedCategory : 'submissions',
+          description: `Diunggah oleh ${user?.full_name || 'Pembina'}`
+        });
+
+        if (res.data.success) {
+          setDocuments(prev => [res.data.data, ...prev]);
+          toast.success('File berhasil diupload!');
         }
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        toast.error('Gagal mengupload file: ' + (error.response?.data?.message || error.message));
+      } finally {
+        setUploading(false);
+        event.target.value = '';
       }
     } else {
       toast.warning('Hanya admin dan koordinator yang dapat mengupload dokumen.');
@@ -332,13 +348,13 @@ const Documents = () => {
                           <p className="text-xs text-[#6E6D6A] mb-2 line-clamp-1">{doc.description}</p>
                           
                           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-[#8A8985]">
-                            <span>{doc.size || '1.2 MB'}</span>
+                            <span>{doc.size || doc.file_size || '-'}</span>
                             <span>•</span>
-                            <span>{new Date(doc.uploadDate || Date.now()).toLocaleDateString('id-ID')}</span>
+                            <span>{doc.uploadDate || doc.created_at ? new Date(doc.uploadDate || doc.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) : '-'}</span>
                             <span>•</span>
-                            <span>{doc.uploadedBy || 'Admin BPJSTK'}</span>
+                            <span>{doc.uploadedBy || doc.uploaded_by_name || 'Admin BPJSTK'}</span>
                             <span>•</span>
-                            <span>{doc.downloadCount || 0}x diunduh</span>
+                            <span>{doc.downloadCount ?? doc.download_count ?? 0}x diunduh</span>
                           </div>
                         </div>
                       </div>

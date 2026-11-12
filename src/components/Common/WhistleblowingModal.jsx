@@ -1,7 +1,7 @@
 // src/components/Common/WhistleblowingModal.jsx - Pusat Konseling & Pengaduan Anonim Terisolasi
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, EyeOff, Send, CheckCircle2, Copy, Search, AlertCircle, X, HelpCircle } from 'lucide-react';
-import axios from 'axios';
+import api from '../../services/api';
 
 export const WhistleblowingModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('submit'); // 'submit' | 'track'
@@ -22,6 +22,15 @@ export const WhistleblowingModal = ({ isOpen, onClose }) => {
   const [trackedReport, setTrackedReport] = useState(null);
   const [trackError, setTrackError] = useState('');
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
@@ -30,7 +39,7 @@ export const WhistleblowingModal = ({ isOpen, onClose }) => {
     setSubmitting(true);
 
     try {
-      const res = await axios.post('/api/whistleblowing/submit', {
+      const res = await api.post('/whistleblowing/submit', {
         category,
         location_or_unit: location,
         subject,
@@ -60,7 +69,7 @@ export const WhistleblowingModal = ({ isOpen, onClose }) => {
 
     setTracking(true);
     try {
-      const res = await axios.get(`/api/whistleblowing/status/${encodeURIComponent(trackCode.trim())}`);
+      const res = await api.get(`/whistleblowing/status/${encodeURIComponent(trackCode.trim())}`);
       if (res.data?.success) {
         setTrackedReport(res.data.data);
       } else {
@@ -95,8 +104,14 @@ export const WhistleblowingModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border-2 border-[#121214] rounded-[24px] shadow-[6px_6px_0px_#121214] max-w-xl w-full p-6 relative animate-in fade-in zoom-in-95 duration-200">
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Pusat Konseling dan Pengaduan Anonim"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white border-2 border-[#121214] rounded-[24px] shadow-[6px_6px_0px_#121214] max-w-xl w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 relative animate-in fade-in zoom-in-95 duration-200">
         
         {/* Close Button */}
         <button

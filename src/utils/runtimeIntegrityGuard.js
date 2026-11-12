@@ -11,16 +11,15 @@ export function initRuntimeIntegrityGuard() {
 
   console.log('🛡️ [Integrity Guard] Initializing Client-Side Runtime Anti-Tamper & DOM Integrity Guard...');
 
-  // 1. Prototype Pollution Hardening: Freeze Object prototype methods if not already frozen
-  try {
-    Object.freeze(Object.prototype);
-  } catch (e) {
-    // Some polyfills might complain, ignore gracefully
-  }
+  // 1. Freeze own security shield metadata rather than global Object.prototype (which breaks third-party libs in strict ESM)
+  window.__BPJS_INTEGRITY_SHIELD__ = Object.freeze({
+    active: true,
+    initializedAt: new Date().toISOString(),
+    status: 'ENFORCED'
+  });
 
   // 2. Native API Monkey-Patch Detector
   const originalFetch = window.fetch;
-  const originalGetCurrentPosition = navigator.geolocation?.getCurrentPosition?.bind(navigator.geolocation);
 
   // Periodic tamper probe
   setInterval(() => {
@@ -31,11 +30,14 @@ export function initRuntimeIntegrityGuard() {
         dispatchTamperAlert('NATIVE_FETCH_MONKEY_PATCHED', 'Deteksi modifikasi tidak sah pada antarmuka window.fetch.');
       }
 
-      // Check if geolocation has been hijacked
-      if (navigator.geolocation && navigator.geolocation.getCurrentPosition.toString().includes('fake') ||
-          navigator.geolocation.getCurrentPosition.toString().includes('mock')) {
-        console.error('🚨 [TAMPER DETECTED] navigator.geolocation.getCurrentPosition modified!');
-        dispatchTamperAlert('GEOLOCATION_TAMPERED', 'Deteksi modifikasi tidak sah pada API Geolocation.');
+      // Check if geolocation has been hijacked safely
+      const geo = navigator.geolocation;
+      if (geo && typeof geo.getCurrentPosition === 'function') {
+        const fnStr = Function.prototype.toString.call(geo.getCurrentPosition).toLowerCase();
+        if (fnStr.includes('fake') || fnStr.includes('mock')) {
+          console.error('🚨 [TAMPER DETECTED] navigator.geolocation.getCurrentPosition modified!');
+          dispatchTamperAlert('GEOLOCATION_TAMPERED', 'Deteksi modifikasi tidak sah pada API Geolocation.');
+        }
       }
     } catch {
       // Ignore probe exceptions

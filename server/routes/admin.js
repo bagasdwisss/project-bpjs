@@ -1,11 +1,21 @@
 // api/routes/admin.js
 import { Router } from 'express';
+import os from 'os';
 import { query } from '../db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 import { decompressPayload } from '../utils/payloadCompressor.js';
+import cache from '../utils/cache.js';
 
 const router = Router();
+
+const escapeCsvCell = (val) => {
+  let str = String(val ?? '');
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+};
 
 /**
  * GET /api/admin/monitoring/activity-logs
@@ -41,19 +51,43 @@ router.get('/monitoring/activity-logs', authenticateToken, requireRole('Administ
  */
 router.get('/monitoring/system-stats', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
-    const usersCount = await query(`SELECT COUNT(*) as count FROM users WHERE status = 'Aktif'`);
-    const logsCount = await query(`SELECT COUNT(*) as count FROM activity_logs`);
+    const [usersCount, logsCount, anomalyCount, dbSizeRes] = await Promise.all([
+      query(`SELECT COUNT(*)::int as count FROM users WHERE status = 'Aktif'`),
+      query(`SELECT COUNT(*)::int as count FROM activity_logs`),
+      query(`SELECT COUNT(*)::int as count FROM activity_logs WHERE is_anomaly = TRUE AND created_at >= NOW() - INTERVAL '24 hours'`),
+      query(`SELECT pg_database_size(current_database())::bigint as size_bytes, pg_size_pretty(pg_database_size(current_database())) as size_pretty`).catch(() => ({ rows: [{ size_bytes: 0, size_pretty: '0 B' }] }))
+    ]);
+
+    const totalMem = os.totalmem() || 1;
+    const freeMem = os.freemem();
+    const processMemPct = Number((((totalMem - freeMem) / totalMem) * 100).toFixed(1));
+    const cpus = os.cpus() || [];
+    const load1m = os.loadavg ? os.loadavg()[0] : 0;
+    const cpuPct = cpus.length > 0 && load1m > 0
+      ? Number(Math.min(100, (load1m / cpus.length) * 100).toFixed(1))
+      : Number(Math.min(100, (process.memoryUsage().heapUsed / Math.max(1, process.memoryUsage().heapTotal)) * 50).toFixed(1));
+
+    const dbBytes = Number(dbSizeRes.rows[0]?.size_bytes || 0);
+    // Neon free tier baseline 512 MB quota indicator
+    const neonQuotaBytes = 512 * 1024 * 1024;
+    const storagePct = Number(Math.min(100, (dbBytes / neonQuotaBytes) * 100).toFixed(2));
+    const totalLogsNum = logsCount.rows[0]?.count || 0;
+    const recentAnomalies = anomalyCount.rows[0]?.count || 0;
 
     return res.json({
       success: true,
       data: {
-        cpu: Math.floor(Math.random() * 25) + 20, // 20-45% realistic range
-        memory: Math.floor(Math.random() * 20) + 45, // 45-65% realistic range
-        storage: 28, // 28% realistic Neon PostgreSQL storage usage
-        uptime: '99.98%',
-        activeUsers: parseInt(usersCount.rows[0].count, 10) || 11,
-        errorRate: 0.01,
-        totalLogs: parseInt(logsCount.rows[0].count, 10) || 0
+        cpu: cpuPct,
+        memory: processMemPct,
+        heapUsedMb: Number((process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(1)),
+        storage: storagePct,
+        storagePretty: dbSizeRes.rows[0]?.size_pretty || '0 B',
+        uptimeSeconds: Math.floor(process.uptime()),
+        uptime: `${Math.floor(process.uptime() / 3600)}j ${Math.floor((process.uptime() % 3600) / 60)}m`,
+        activeUsers: usersCount.rows[0]?.count || 0,
+        recentAnomalies,
+        totalLogs: totalLogsNum,
+        environment: process.env.VERCEL ? 'Vercel Serverless' : 'Node.js Local'
       }
     });
   } catch (error) {
@@ -84,32 +118,67 @@ router.get('/monitoring/active-users', authenticateToken, requireRole('Administr
  */
 router.post('/reports/generate', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
-    const { report_type, start_date, end_date } = req.body;
+    const { report_type, start_date, end_date, format } = req.body;
+    const fmt = String(format || 'CSV').toUpperCase() === 'PDF' ? 'PDF' : 'CSV';
+    const reportName = `Laporan_${report_type || 'Monthly'}_${start_date || 'ALL'}_${end_date || new Date().toISOString().split('T')[0]}`;
 
-    const reportName = `Laporan_${report_type || 'Monthly'}_${new Date().toISOString().split('T')[0]}`;
+    // Compute live date-bounded summary stats
+    const dateFilter = start_date && end_date ? `AND attendance_date BETWEEN $1::date AND $2::date` : '';
+    const dateParams = start_date && end_date ? [start_date, end_date] : [];
+
+    const [coreStats, attStats] = await Promise.all([
+      query(`
+        SELECT 
+          (SELECT COUNT(*)::int FROM users WHERE role_id = 1) as total_participants,
+          (SELECT COALESCE(AVG(nilai), 0) FROM progress) as avg_score,
+          (SELECT COALESCE(COUNT(CASE WHEN nilai >= 75 THEN 1 END)::float / NULLIF(COUNT(*), 0) * 100, 0) FROM progress) as completion_rate,
+          (SELECT COUNT(*)::int FROM peserta) as total_bpu_acquired
+      `),
+      query(`
+        SELECT
+          COUNT(*)::int as total_records,
+          COUNT(CASE WHEN status = 'Hadir' THEN 1 END)::int as hadir_count,
+          COUNT(CASE WHEN status = 'Terlambat' THEN 1 END)::int as terlambat_count,
+          COUNT(CASE WHEN status IN ('Izin', 'Sakit') THEN 1 END)::int as leave_count,
+          COUNT(CASE WHEN status IN ('Alfa', 'Alpa') THEN 1 END)::int as alfa_count
+        FROM attendance_records
+        WHERE 1=1 ${dateFilter}
+      `, dateParams)
+    ]);
+
+    const summary = {
+      ...coreStats.rows[0],
+      ...attStats.rows[0],
+      total_hours: (attStats.rows[0]?.hadir_count || 0) * 8,
+      start_date: start_date || null,
+      end_date: end_date || null
+    };
 
     const result = await query(
       `INSERT INTO report_logs (report_name, generated_by, generated_at, file_format, file_path)
-       VALUES ($1, $2, CURRENT_TIMESTAMP, 'PDF', $3)
+       VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4)
        RETURNING *`,
-      [reportName, req.user.user_id, `/reports/${reportName}.pdf`]
+      [reportName, req.user.user_id, fmt, '']
     );
+    const created = result.rows[0];
+    const apiPath = `/api/admin/reports/${created.log_id}/download`;
+    await query(`UPDATE report_logs SET file_path = $1 WHERE log_id = $2`, [apiPath, created.log_id]);
+    created.file_path = apiPath;
 
-    // Compute live summary stats
-    const statsRes = await query(`
-      SELECT 
-        (SELECT COUNT(*) FROM users WHERE role_id = 1) as total_participants,
-        (SELECT COALESCE(AVG(nilai), 0) FROM progress) as avg_score,
-        (SELECT COUNT(CASE WHEN nilai >= 75 THEN 1 END)::float / NULLIF(COUNT(*), 0) * 100 FROM progress) as completion_rate,
-        (SELECT COUNT(*) FROM attendance_records WHERE status = 'Hadir') * 8 as total_hours
-    `);
+    await logActivity({
+      req,
+      userId: req.user.user_id,
+      action: 'REPORT_GENERATED',
+      description: `Admin membuat laporan ${reportName} (${fmt})`
+    });
 
     return res.json({
       success: true,
-      message: 'Laporan berhasil dibuat.',
+      message: 'Laporan berhasil dibuat dan siap diunduh.',
       data: {
-        report: result.rows[0],
-        summary: statsRes.rows[0]
+        report: created,
+        summary,
+        downloadUrl: apiPath
       }
     });
   } catch (error) {
@@ -135,23 +204,92 @@ router.get('/reports/history', authenticateToken, requireRole('Administrator'), 
 });
 
 /**
+ * GET /api/admin/backup/export-data
+ * Exports real live database snapshot JSON (excluding credential hashes & secrets)
+ */
+router.get('/backup/export-data', authenticateToken, requireRole('Administrator'), async (req, res) => {
+  try {
+    const [
+      usersRes, batchesRes, modulesRes, progressRes, attendanceRes,
+      scoresRes, pesertaRes, holidaysRes, settingsRes, gradingRes,
+      bpuRatesRes, geofencesRes
+    ] = await Promise.all([
+      query(`SELECT user_id, unique_id, full_name, email, role_id, coordinator_id, status, penempatan, created_at FROM users ORDER BY user_id ASC`),
+      query(`SELECT * FROM batches ORDER BY batch_id ASC`),
+      query(`SELECT * FROM modules ORDER BY module_id ASC`),
+      query(`SELECT * FROM progress ORDER BY id ASC`),
+      query(`SELECT attendance_id, user_id, attendance_date, check_in_time, status, notes, location_coordinates, location_address, geofence_id, distance_meters, is_mock_location, created_at FROM attendance_records ORDER BY attendance_date DESC LIMIT 5000`),
+      query(`SELECT * FROM scores ORDER BY score_id ASC`),
+      query(`SELECT peserta_id, user_id, nama_peserta, pekerjaan, status_pendaftaran, biaya, program_terdaftar, tanggal_pendaftaran, created_at FROM peserta ORDER BY peserta_id ASC`),
+      query(`SELECT * FROM holidays ORDER BY holiday_date ASC`),
+      query(`SELECT * FROM attendance_settings ORDER BY id ASC`),
+      query(`SELECT * FROM grading_settings ORDER BY id ASC`),
+      query(`SELECT * FROM bpu_rates ORDER BY id ASC`),
+      query(`SELECT * FROM geofence_locations ORDER BY id ASC`)
+    ]);
+
+    const snapshot = {
+      exportedAt: new Date().toISOString(),
+      exportedBy: req.user.full_name || req.user.unique_id,
+      engine: 'Neon PostgreSQL Logical Snapshot',
+      tables: {
+        users: usersRes.rows,
+        batches: batchesRes.rows,
+        modules: modulesRes.rows,
+        progress: progressRes.rows,
+        attendance_records: attendanceRes.rows,
+        scores: scoresRes.rows,
+        peserta: pesertaRes.rows,
+        holidays: holidaysRes.rows,
+        attendance_settings: settingsRes.rows,
+        grading_settings: gradingRes.rows,
+        bpu_rates: bpuRatesRes.rows,
+        geofence_locations: geofencesRes.rows
+      }
+    };
+
+    return res.json({ success: true, data: snapshot });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * POST /api/admin/backup/create
  */
 router.post('/backup/create', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
-    const backupName = `backup_db_absen_nilai_${Date.now()}.sql`;
+    const countsRes = await query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM users) as users_count,
+        (SELECT COUNT(*)::int FROM attendance_records) as attendance_count,
+        (SELECT COUNT(*)::int FROM progress) as progress_count,
+        (SELECT COUNT(*)::int FROM scores) as scores_count,
+        (SELECT COUNT(*)::int FROM peserta) as peserta_count,
+        (SELECT GREATEST(1, pg_database_size(current_database()) / 1024)::int) as size_kb
+    `);
+    const c = countsRes.rows[0] || {};
+    const backupName = `backup_bpjstk_${new Date().toISOString().slice(0, 10)}_${Date.now()}.json`;
 
     const result = await query(
       `INSERT INTO backup_logs (backup_name, file_path, file_size_kb, created_by, created_at)
-       VALUES ($1, $2, 512, $3, CURRENT_TIMESTAMP)
+       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
        RETURNING *`,
-      [backupName, `/backups/${backupName}`, req.user.user_id]
+      [backupName, '/api/admin/backup/export-data', c.size_kb || 64, req.user.user_id]
     );
+
+    await logActivity({
+      req,
+      userId: req.user.user_id,
+      action: 'BACKUP_CREATED',
+      description: `Snapshot backup ${backupName} dibuat (${c.users_count || 0} users, ${c.attendance_count || 0} presensi, ${c.size_kb || 64} KB)`
+    });
 
     return res.json({
       success: true,
-      message: 'Backup database berhasil dibuat di cloud storage Neon.',
-      data: result.rows[0]
+      message: `Backup database tercatat (${c.size_kb || 64} KB, ${c.attendance_count || 0} presensi).`,
+      data: result.rows[0],
+      snapshotSummary: c
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -180,10 +318,37 @@ router.get('/backup/list', authenticateToken, requireRole('Administrator'), asyn
  */
 router.post('/backup/:id/restore', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
-    const { id } = req.params;
+    const backupId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(backupId) || backupId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID backup tidak valid.' });
+    }
+
+    const exists = await query(`SELECT * FROM backup_logs WHERE backup_id = $1`, [backupId]);
+    if (exists.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Rekam jejak backup tidak ditemukan di basis data.' });
+    }
+
+    const healthCheck = await query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM users) as users,
+        (SELECT COUNT(*)::int FROM attendance_records) as attendance_records,
+        (SELECT COUNT(*)::int FROM progress) as progress
+    `);
+
+    await logActivity({
+      req,
+      userId: req.user.user_id,
+      action: 'BACKUP_RESTORE_VERIFIED',
+      description: `Admin memverifikasi integritas restore snapshot #${backupId} (${exists.rows[0].backup_name})`
+    });
+
     return res.json({
       success: true,
-      message: `Restore database dari snapshot ${id} berhasil diverifikasi.`
+      message: `Verifikasi snapshot ${exists.rows[0].backup_name} berhasil.`,
+      data: {
+        backup: exists.rows[0],
+        currentCounts: healthCheck.rows[0]
+      }
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -195,78 +360,64 @@ router.post('/backup/:id/restore', authenticateToken, requireRole('Administrator
  */
 router.get(['/reports/:id/download', '/:id/download'], authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await query(`SELECT * FROM report_logs WHERE log_id = $1`, [id]);
+    const reportId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(reportId) || reportId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID laporan tidak valid.' });
+    }
+
+    const result = await query(`SELECT * FROM report_logs WHERE log_id = $1`, [reportId]);
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Laporan tidak ditemukan.' });
     }
     const report = result.rows[0];
+
+    const rowsRes = await query(`
+      SELECT u.unique_id, u.full_name, u.penempatan, u.status,
+             COALESCE(p.kunjungan_bpu, 0) as kunjungan_bpu,
+             COALESCE(p.hasil_akuisisi_bpu, 0) as hasil_akuisisi_bpu,
+             COALESCE(p.kunjungan_pu, 0) as kunjungan_pu,
+             COALESCE(p.nilai, 0) as nilai,
+             COALESCE(p.grade, '-') as grade,
+             COUNT(CASE WHEN a.status = 'Hadir' THEN 1 END)::int as total_hadir,
+             COUNT(CASE WHEN a.status = 'Terlambat' THEN 1 END)::int as total_terlambat,
+             COUNT(CASE WHEN a.status IN ('Alfa', 'Alpa') THEN 1 END)::int as total_alfa
+      FROM users u
+      LEFT JOIN progress p ON u.user_id = p.user_id
+      LEFT JOIN attendance_records a ON u.user_id = a.user_id
+      WHERE u.role_id = 1
+      GROUP BY u.user_id, u.unique_id, u.full_name, u.penempatan, u.status,
+               p.kunjungan_bpu, p.hasil_akuisisi_bpu, p.kunjungan_pu, p.nilai, p.grade
+      ORDER BY u.full_name ASC
+    `);
+
+    const header = [
+      'NIM/NIP', 'Nama Lengkap', 'Penempatan', 'Status',
+      'Kunjungan BPU', 'Akuisisi BPU', 'Kunjungan PU',
+      'Hadir', 'Terlambat', 'Alfa', 'Nilai Akhir', 'Grade'
+    ];
+    const csvLines = [
+      header.map(escapeCsvCell).join(','),
+      ...rowsRes.rows.map(r => [
+        r.unique_id, r.full_name, r.penempatan || '-', r.status,
+        r.kunjungan_bpu, r.hasil_akuisisi_bpu, r.kunjungan_pu,
+        r.total_hadir, r.total_terlambat, r.total_alfa, r.nilai, r.grade
+      ].map(escapeCsvCell).join(','))
+    ];
+    const csvContent = `\uFEFF${csvLines.join('\r\n')}`;
+
+    if (req.query.download === '1' || req.query.format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${report.report_name}.csv"`);
+      return res.send(csvContent);
+    }
+
     return res.json({
       success: true,
       message: 'Laporan siap diunduh.',
       data: report,
-      downloadUrl: report.file_path || `/reports/${report.report_name}.pdf`
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// ========================================================
-// COORDINATOR CERTIFICATES
-// ========================================================
-
-/**
- * GET /api/coordinator/certificates/history
- */
-router.get(['/coordinator/certificates/history', '/certificates/history', '/history'], authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
-  try {
-    const result = await query(
-      `SELECT r.log_id as id, r.report_name, r.generated_at as "issueDate", r.file_path,
-              u.full_name as participant, 'Completion' as type, 'issued' as status
-       FROM report_logs r
-       LEFT JOIN users u ON r.generated_by = u.user_id
-       WHERE r.report_name LIKE '%Sertifikat%' OR r.file_format = 'PDF'
-       ORDER BY r.generated_at DESC`
-    );
-
-    return res.json({ success: true, data: result.rows });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-/**
- * POST /api/coordinator/certificates/generate
- */
-router.post(['/coordinator/certificates/generate', '/certificates/generate', '/generate'], authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
-  try {
-    const { participant_id, type } = req.body;
-    const certType = type || 'Completion';
-
-    const pRes = await query(`SELECT * FROM users WHERE user_id = $1`, [participant_id || req.user.user_id]);
-    const pName = pRes.rows[0]?.full_name || 'Peserta';
-
-    const reportName = `Sertifikat_${certType}_${pName.replace(/\s+/g, '_')}`;
-
-    const result = await query(
-      `INSERT INTO report_logs (report_name, generated_by, generated_at, file_format, file_path)
-       VALUES ($1, $2, CURRENT_TIMESTAMP, 'PDF', $3)
-       RETURNING *`,
-      [reportName, participant_id || req.user.user_id, `/certificates/${reportName}.pdf`]
-    );
-
-    return res.json({
-      success: true,
-      message: `Sertifikat ${certType} untuk ${pName} berhasil diterbitkan!`,
-      data: {
-        id: result.rows[0].log_id,
-        participant: pName,
-        type: certType,
-        issueDate: new Date().toISOString().split('T')[0],
-        status: 'issued',
-        downloadUrl: `/certificates/${reportName}.pdf`
-      }
+      rows: rowsRes.rows,
+      csvContent,
+      downloadUrl: `/api/admin/reports/${report.log_id}/download?format=csv`
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -319,32 +470,51 @@ router.put('/attendance-settings', authenticateToken, requireRole('Administrator
     } = req.body;
 
     const result = await query(
-      `UPDATE attendance_settings
-       SET work_start_time = COALESCE($1, work_start_time),
-           work_ontime_limit = COALESCE($2, work_ontime_limit),
-           work_end_time = COALESCE($3, work_end_time),
-           work_days = COALESCE($4, work_days),
-           allow_weekend = COALESCE($5, allow_weekend),
-           late_tolerance_minutes = COALESCE($6, late_tolerance_minutes),
-           weekend_message = COALESCE($7, weekend_message),
-           before_start_message = COALESCE($8, before_start_message),
-           after_end_message = COALESCE($9, after_end_message),
-           inactivity_timeout_minutes = COALESCE($10, inactivity_timeout_minutes),
-           updated_at = CURRENT_TIMESTAMP,
-           updated_by = $11
-       WHERE id = 1
+      `INSERT INTO attendance_settings (
+         id, work_start_time, work_ontime_limit, work_end_time, work_days, allow_weekend,
+         late_tolerance_minutes, weekend_message, before_start_message, after_end_message,
+         inactivity_timeout_minutes, updated_at, updated_by
+       )
+       VALUES (
+         1,
+         COALESCE($1, '07:00:00'),
+         COALESCE($2, '08:00:00'),
+         COALESCE($3, '17:00:00'),
+         COALESCE($4, '1,2,3,4,5'),
+         COALESCE($5, FALSE),
+         COALESCE($6, 0),
+         COALESCE($7, 'Hari ini adalah hari libur akhir pekan (Sabtu/Minggu). Presensi dinonaktifkan.'),
+         COALESCE($8, 'Presensi belum dibuka. Jam masuk dimulai pukul {start_time}.'),
+         COALESCE($9, 'Presensi hari ini telah ditutup pada pukul {end_time}.'),
+         COALESCE($10, 5),
+         CURRENT_TIMESTAMP,
+         $11
+       )
+       ON CONFLICT (id) DO UPDATE SET
+         work_start_time = COALESCE($1, attendance_settings.work_start_time),
+         work_ontime_limit = COALESCE($2, attendance_settings.work_ontime_limit),
+         work_end_time = COALESCE($3, attendance_settings.work_end_time),
+         work_days = COALESCE($4, attendance_settings.work_days),
+         allow_weekend = COALESCE($5, attendance_settings.allow_weekend),
+         late_tolerance_minutes = COALESCE($6, attendance_settings.late_tolerance_minutes),
+         weekend_message = COALESCE($7, attendance_settings.weekend_message),
+         before_start_message = COALESCE($8, attendance_settings.before_start_message),
+         after_end_message = COALESCE($9, attendance_settings.after_end_message),
+         inactivity_timeout_minutes = COALESCE($10, attendance_settings.inactivity_timeout_minutes),
+         updated_at = CURRENT_TIMESTAMP,
+         updated_by = $11
        RETURNING *`,
       [
-        work_start_time,
-        work_ontime_limit,
-        work_end_time,
-        work_days,
-        allow_weekend,
-        late_tolerance_minutes,
-        weekend_message,
-        before_start_message,
-        after_end_message,
-        inactivity_timeout_minutes,
+        work_start_time ?? null,
+        work_ontime_limit ?? null,
+        work_end_time ?? null,
+        work_days ?? null,
+        allow_weekend ?? null,
+        late_tolerance_minutes ?? null,
+        weekend_message ?? null,
+        before_start_message ?? null,
+        after_end_message ?? null,
+        inactivity_timeout_minutes ?? null,
         req.user.user_id
       ]
     );
@@ -393,17 +563,30 @@ router.put('/geofence/office', authenticateToken, requireRole('Administrator'), 
   try {
     const { name, address, latitude, longitude, radius_meters } = req.body;
     const result = await query(
-      `UPDATE geofence_locations
-       SET name = COALESCE($1, name),
-           address = COALESCE($2, address),
-           latitude = COALESCE($3, latitude),
-           longitude = COALESCE($4, longitude),
-           radius_meters = COALESCE($5, radius_meters),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE category = 'kantor' AND id = 1
+      `INSERT INTO geofence_locations (id, name, category, address, latitude, longitude, radius_meters, is_active, updated_at)
+       VALUES (
+         1,
+         COALESCE($1, 'Kantor Cabang BPJS Ketenagakerjaan'),
+         'kantor',
+         COALESCE($2, ''),
+         COALESCE($3, 3.5758),
+         COALESCE($4, 98.6475),
+         COALESCE($5, 100),
+         TRUE,
+         CURRENT_TIMESTAMP
+       )
+       ON CONFLICT (id) DO UPDATE SET
+         name = COALESCE($1, geofence_locations.name),
+         address = COALESCE($2, geofence_locations.address),
+         latitude = COALESCE($3, geofence_locations.latitude),
+         longitude = COALESCE($4, geofence_locations.longitude),
+         radius_meters = COALESCE($5, geofence_locations.radius_meters),
+         updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [name, address, latitude, longitude, radius_meters]
+      [name ?? null, address ?? null, latitude ?? null, longitude ?? null, radius_meters ?? null]
     );
+
+    cache.del('sys_geofence_locations');
 
     await logActivity({
       userId: req.user.user_id,

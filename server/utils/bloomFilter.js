@@ -13,6 +13,7 @@ class BloomFilter {
     this.buffer = Buffer.alloc(Math.ceil(sizeBits / 8));
     this.elementCount = 0;
     this.isInitialized = false;
+    this.preloadPromise = null;
   }
 
   _getHashes(item) {
@@ -59,29 +60,45 @@ class BloomFilter {
     this.elementCount = 0;
   }
 
-  async preloadFromDatabase() {
-    try {
-      this.clear();
-      const usersRes = await query(`SELECT unique_id FROM users WHERE unique_id IS NOT NULL`);
-      for (const row of usersRes.rows) {
-        this.add(row.unique_id);
-      }
-
-      const pesertaRes = await query(`SELECT nik FROM peserta WHERE nik IS NOT NULL`);
-      for (const row of pesertaRes.rows) {
-        if (row.nik) this.add(row.nik);
-      }
-
-      this.isInitialized = true;
-      return {
-        loaded: this.elementCount,
-        memoryBytes: this.buffer.length,
-        falsePositiveRate: this.getEstimatedFpRate()
-      };
-    } catch (err) {
-      console.error('Bloom filter preload error:', err.message);
-      return { error: err.message };
+  async preloadFromDatabase(force = false) {
+    if (this.preloadPromise && !force) {
+      return this.preloadPromise;
     }
+
+    this.preloadPromise = (async () => {
+      try {
+        this.clear();
+        const usersRes = await query(`SELECT unique_id FROM users WHERE unique_id IS NOT NULL`);
+        for (const row of usersRes.rows) {
+          this.add(row.unique_id);
+        }
+
+        const pesertaRes = await query(`SELECT nik FROM peserta WHERE nik IS NOT NULL`);
+        for (const row of pesertaRes.rows) {
+          if (row.nik) this.add(row.nik);
+        }
+
+        this.isInitialized = true;
+        return {
+          loaded: this.elementCount,
+          memoryBytes: this.buffer.length,
+          falsePositiveRate: this.getEstimatedFpRate()
+        };
+      } catch (err) {
+        console.error('Bloom filter preload error:', err.message);
+        return { error: err.message };
+      } finally {
+        this.preloadPromise = null;
+      }
+    })();
+
+    return this.preloadPromise;
+  }
+
+  async ensureInitialized() {
+    if (this.isInitialized) return true;
+    await this.preloadFromDatabase();
+    return this.isInitialized;
   }
 
   getEstimatedFpRate() {

@@ -13,6 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { downloadCertificateDirectly } from '../../utils/certificateDownloader';
+import { generateQrDataUrl } from '../../utils/qrMatrix';
 
 /**
  * CompanyCertificateModal
@@ -31,6 +32,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const [containerWidth, setContainerWidth] = useState(1050);
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
 
   // Close on ESC key
   useEffect(() => {
@@ -62,38 +64,50 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
     };
   }, [isOpen]);
 
+  const certNumberForQr = certificate?.certificate_number || `BPJSTK/MAGANG/${new Date().getFullYear()}/001`;
+  const verifyUrlForQr = `${typeof window !== 'undefined' ? window.location.origin : ''}/verify-certificate/${encodeURIComponent(certNumberForQr)}`;
+
+  useEffect(() => {
+    if (!isOpen || !certificate) return;
+    let active = true;
+    generateQrDataUrl(verifyUrlForQr, { width: 240, colorDark: '#00552B', colorLight: '#FFFFFF' })
+      .then((url) => { if (active) setQrCodeUrl(url); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [isOpen, certificate, verifyUrlForQr]);
+
   if (!isOpen || !certificate) return null;
 
-  const certNumber = certificate.certificate_number || 'BPJSTK/MAGANG/2026/001';
+  const certNumber = certificate.certificate_number || `BPJSTK/MAGANG/${new Date().getFullYear()}/001`;
   const recipientName = certificate.participant_name || participant?.full_name || 'Peserta Magang';
-  const recipientNim = certificate.participant_nim || participant?.unique_id || participant?.nim || '12345678';
+  const recipientNim = certificate.participant_nim || participant?.unique_id || participant?.nim || '-';
   const penempatan = certificate.penempatan || participant?.penempatan || 'Bidang Kepesertaan & Pelayanan';
-  const batchName = certificate.batch_name || 'Batch 1 - Gelombang Berjalan';
-  const score = certificate.score_average ? Number(certificate.score_average).toFixed(1) : '92.5';
+  const batchName = certificate.batch_name || 'Program Magang Industri';
+  const score = certificate.score_average !== undefined && certificate.score_average !== null ? Number(certificate.score_average).toFixed(1) : '-';
   
-  // Format Date (ID)
+  // Format Date (ID - WIB)
   const issueDateFormatted = new Date(certificate.issue_date || certificate.created_at || Date.now()).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta'
   });
 
   // Dynamic Mentor & Institutional Leadership
-  const mentorName = certificate.mentor_name || certificate.coordinator_name || participant?.coordinator_name || certificate.default_coordinator_name || 'Budi Santoso, S.Kom., M.T.';
-  const mentorNpp = certificate.mentor_npp || certificate.coordinator_npp || participant?.coordinator_npp || certificate.default_coordinator_npp || '8765432109';
+  const mentorName = certificate.mentor_name || certificate.coordinator_name || participant?.coordinator_name || certificate.default_coordinator_name || 'Mentor Pembimbing';
+  const mentorNpp = certificate.mentor_npp || certificate.coordinator_npp || participant?.coordinator_npp || certificate.default_coordinator_npp || '-';
   const mentorSig = certificate.mentor_signature || null;
   
-  const branchHeadName = certificate.branch_head_name || 'Dr. Hendra Wijaya, S.E., M.M.';
-  const branchHeadNpp = certificate.branch_head_npp || '9876543210';
+  const branchHeadName = certificate.branch_head_name || 'Kepala Kantor Cabang';
+  const branchHeadNpp = certificate.branch_head_npp || '-';
   const branchHeadSig = certificate.branch_head_signature || null;
 
-  const branchName = certificate.branch_name || 'BPJS Ketenagakerjaan Kantor Cabang Jakarta Gambir';
-  const branchAddress = certificate.branch_address || 'Jl. Kebon Sirih No. 40, Jakarta Pusat 10110';
+  const branchName = certificate.branch_name || 'BPJS Ketenagakerjaan Kantor Cabang';
+  const branchAddress = certificate.branch_address || '';
 
   const sha256Hash = certificate.digital_signature_hash || certificate.digital_signature || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
-  const verifyUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://bpjs-magang.go.id'}/verify-certificate/${encodeURIComponent(certNumber)}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(verifyUrl)}&color=00552B&bgcolor=FFFFFF`;
+  const verifyUrl = verifyUrlForQr;
 
   // =========================================================================
   // DEDICATED DESIGN & WORDING BY CERTIFICATE TYPE
@@ -184,7 +198,10 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
           onClose();
         }
       }}
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Pratinjau Sertifikat Resmi BPJSTK"
     >
       {/* Floating Top-Right Close Button */}
       <button
@@ -501,7 +518,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                   {/* Left Signature: Mentor Pembimbing Magang */}
                   <div className="text-center relative">
                     <p className="text-[11px] font-bold text-gray-600">
-                      Medan, {issueDateFormatted}
+                      Diterbitkan {issueDateFormatted}
                     </p>
                     <p className="text-[11px] font-bold text-[#121214]">
                       Mentor Pembimbing Magang
@@ -545,12 +562,16 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
                       className="p-1.5 bg-white rounded-lg shadow-sm"
                       style={{ border: `1px solid ${primaryColor}` }}
                     >
-                      <img 
-                        src={qrCodeUrl} 
-                        alt="QR Code Verifikasi Sertifikat" 
-                        className="w-16 h-16 object-contain"
-                        loading="lazy"
-                      />
+                      {qrCodeUrl ? (
+                        <img 
+                          src={qrCodeUrl} 
+                          alt="QR Code Verifikasi Sertifikat" 
+                          className="w-16 h-16 object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-slate-50 flex items-center justify-center text-[8px] font-mono text-gray-500">QR</div>
+                      )}
                     </div>
                     <span className="text-[9px] font-black uppercase tracking-wider mt-1" style={{ color: primaryColor }}>
                       Scan Untuk Verifikasi

@@ -189,13 +189,14 @@ router.put('/leaves/settings', authenticateToken, requireRole('Administrator'), 
   try {
     const { max_leave_days_per_batch, allowed_leave_types } = req.body;
     const result = await query(
-      `UPDATE leave_settings
-       SET max_leave_days_per_batch = COALESCE($1, max_leave_days_per_batch),
-           allowed_leave_types = COALESCE($2, allowed_leave_types),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = 1
+      `INSERT INTO leave_settings (id, max_leave_days_per_batch, allowed_leave_types, updated_at)
+       VALUES (1, COALESCE($1, 3), COALESCE($2, 'Izin,Sakit,Cuti'), CURRENT_TIMESTAMP)
+       ON CONFLICT (id) DO UPDATE SET
+         max_leave_days_per_batch = COALESCE($1, leave_settings.max_leave_days_per_batch),
+         allowed_leave_types = COALESCE($2, leave_settings.allowed_leave_types),
+         updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [max_leave_days_per_batch, allowed_leave_types]
+      [max_leave_days_per_batch ?? null, allowed_leave_types ?? null]
     );
 
     return res.json({
@@ -224,12 +225,21 @@ router.post('/leaves', authenticateToken, async (req, res) => {
       });
     }
 
-    // Strict monthly quota validation: Maksimal 3 kali per bulan untuk Cuti & Izin
+    const startStr = String(start_date).slice(0, 10);
+    const endStr = String(end_date).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startStr) || !/^\d{4}-\d{2}-\d{2}$/.test(endStr) || endStr < startStr) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rentang tanggal mulai dan tanggal selesai tidak valid.'
+      });
+    }
+
+    // Strict monthly quota validation based on Asia/Jakarta / ISO calendar month
     const normalizedType = String(leave_type).trim().toLowerCase();
     if (normalizedType === 'cuti' || normalizedType === 'izin') {
-      const reqDate = new Date(start_date);
-      const reqYear = isNaN(reqDate.getFullYear()) ? new Date().getFullYear() : reqDate.getFullYear();
-      const reqMonth = isNaN(reqDate.getMonth()) ? (new Date().getMonth() + 1) : (reqDate.getMonth() + 1);
+      const [reqYearStr, reqMonthStr] = startStr.split('-');
+      const reqYear = parseInt(reqYearStr, 10);
+      const reqMonth = parseInt(reqMonthStr, 10);
 
       const monthCheckRes = await query(
         `SELECT COUNT(*) as count FROM leave_requests 
@@ -256,20 +266,16 @@ router.post('/leaves', authenticateToken, async (req, res) => {
       `INSERT INTO leave_requests (user_id, leave_type, start_date, end_date, reason, proof_file_url, status, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, 'Pending', CURRENT_TIMESTAMP)
        RETURNING *`,
-      [userId, leave_type, start_date, end_date, reason, proof_file_url || null]
+      [userId, leave_type, startStr, endStr, reason, proof_file_url || null]
     );
 
-    // Audit log
-    await query(
-      `INSERT INTO activity_logs (user_id, activity_type, details, ip_address, is_anomaly, user_agent)
-       VALUES ($1, 'LEAVE_REQUEST', $2, $3, FALSE, $4)`,
-      [
-        userId,
-        `Pengajuan ${leave_type} dari ${start_date} s.d. ${end_date}`,
-        req.ip || '127.0.0.1',
-        req.headers['user-agent'] || null
-      ]
-    );
+    // Chained Merkle Audit log
+    await logActivity({
+      req,
+      userId,
+      action: 'LEAVE_REQUEST',
+      description: `Pengajuan ${leave_type} dari ${startStr} s.d. ${endStr}`
+    });
 
     return res.status(201).json({
       success: true,
@@ -334,14 +340,24 @@ router.put('/leaves/:id/status', authenticateToken, requireRole('Koordinator', '
       ]
     );
 
-    // If approved, create attendance record with appropriate status
+    // If approved, backfill or override every day in [start_date .. end_date]
     if (status === 'Disetujui') {
       const attendanceStatus = leave.leave_type === 'Sakit' ? 'Sakit' : 'Izin';
       await query(
         `INSERT INTO attendance_records (user_id, attendance_date, check_in_time, status, notes, created_at)
-         VALUES ($1, $2, '08:00:00', $3, $4, CURRENT_TIMESTAMP)
-         ON CONFLICT DO NOTHING`,
-        [leave.user_id, leave.start_date, attendanceStatus, `Disetujui koordinator: ${leave.reason}`]
+         SELECT $1, d::date, '08:00:00', $4, $5, CURRENT_TIMESTAMP
+         FROM generate_series($2::date, $3::date, INTERVAL '1 day') AS d
+         ON CONFLICT (user_id, attendance_date) DO UPDATE SET
+           status = EXCLUDED.status,
+           notes = EXCLUDED.notes
+         WHERE attendance_records.status IN ('Alfa', 'Alpa', 'Izin', 'Sakit')`,
+        [
+          leave.user_id,
+          leave.start_date,
+          leave.end_date || leave.start_date,
+          attendanceStatus,
+          `Disetujui koordinator: ${leave.reason}`
+        ]
       );
     }
 
@@ -685,7 +701,22 @@ router.post('/ai/ask', authenticateToken, async (req, res) => {
 
     const qLower = question.toLowerCase();
 
-    // Find best matching knowledge document
+    // 1. Live database lookups (Full-Text Knowledge Base + live BPU rates + Work Schedule)
+    const [kbSearchRes, ratesRes, schedRes] = await Promise.all([
+      searchKnowledgeBase(question, 'all', 3).catch(() => ({ results: [] })),
+      query(`SELECT * FROM bpu_rates ORDER BY id ASC LIMIT 1`).catch(() => ({ rows: [] })),
+      query(`SELECT check_in_start, work_start_time, work_end_time FROM attendance_settings ORDER BY id ASC LIMIT 1`).catch(() => ({ rows: [] }))
+    ]);
+
+    const liveRate = ratesRes.rows[0] || {};
+    const jkkMin = Number(liveRate.jkk_min_amount ?? 10000);
+    const jkmFlat = Number(liveRate.jkm_flat_amount ?? 6800);
+    const jhtMin = Number(liveRate.jht_min_amount ?? 20000);
+    const deathBenefit = Number(liveRate.death_benefit_amount ?? 42000000);
+    const maxScholarship = Number(liveRate.max_scholarship_amount ?? 174000000);
+    const fmtRp = (v) => `Rp ${Number(v).toLocaleString('id-ID')}`;
+
+    // 2. Match curated regulations & dynamic database values
     let bestMatch = null;
     let highestScore = 0;
 
@@ -702,20 +733,43 @@ router.post('/ai/ask', authenticateToken, async (req, res) => {
       }
     }
 
+    const kbHits = kbSearchRes?.results || [];
     let responseAnswer = '';
     let matchedTopic = '';
+    let sourceUsed = 'regulation_kb';
 
-    if (bestMatch && highestScore >= 2) {
+    if (kbHits.length > 0 && (highestScore < 2 || qLower.length > 18)) {
+      const topDoc = kbHits[0];
+      matchedTopic = topDoc.title;
+      responseAnswer = `${topDoc.content}\n\n---\n*Sumber Database Knowledge Base (${topDoc.category || 'Regulasi'})*`;
+      if (bestMatch && highestScore >= 2) {
+        responseAnswer += `\n\n**Ringkasan Terkait (${bestMatch.topic}):**\n${bestMatch.answer}`;
+      }
+      sourceUsed = 'postgresql_fts';
+    } else if (bestMatch && highestScore >= 2) {
       matchedTopic = bestMatch.topic;
-      responseAnswer = bestMatch.answer;
+      responseAnswer = bestMatch.answer
+        .replace(/Rp 16\.800/g, fmtRp(jkkMin + jkmFlat))
+        .replace(/Rp 10\.000/g, fmtRp(jkkMin))
+        .replace(/Rp 6\.800/g, fmtRp(jkmFlat))
+        .replace(/Rp 36\.800/g, fmtRp(jkkMin + jkmFlat + jhtMin))
+        .replace(/Rp 20\.000(?![.\d])/g, fmtRp(jhtMin))
+        .replace(/Rp 42\.000\.000/g, fmtRp(deathBenefit))
+        .replace(/Rp 42 Juta/g, fmtRp(deathBenefit))
+        .replace(/Rp 174\.000\.000/g, fmtRp(maxScholarship))
+        .replace(/Rp 174 Juta/g, fmtRp(maxScholarship));
     } else {
       matchedTopic = 'Ketentuan Umum BPJSTK';
-      responseAnswer = `Halo! Terkait pertanyaan Anda: "${question}", berikut panduan ringkas operasional BPJSTK:\n\n` +
-        `• **Pekerja BPU**: Dapat mengikuti program JKK & JKM dengan iuran Rp 16.800/bulan (santunan kematian Rp 42 juta).\n` +
+      const sched = schedRes.rows[0];
+      const schedInfo = sched
+        ? `\n• **Jam Operasional Presensi**: Buka ${String(sched.check_in_start).slice(0, 5)} WIB, masuk ${String(sched.work_start_time).slice(0, 5)} WIB, batas pulang/auto-alfa ${String(sched.work_end_time).slice(0, 5)} WIB.`
+        : '';
+      responseAnswer = `Halo! Terkait pertanyaan Anda: "${question}", berikut panduan ringkas operasional BPJSTK (sinkron database live):\n\n` +
+        `• **Pekerja BPU (2 Program JKK+JKM)**: Iuran aktif ${fmtRp(jkkMin + jkmFlat)}/bulan (santunan kematian ${fmtRp(deathBenefit)}, beasiswa maksimal ${fmtRp(maxScholarship)}).\n` +
+        `• **Pekerja BPU (3 Program JKK+JKM+JHT)**: Iuran mulai ${fmtRp(jkkMin + jkmFlat + jhtMin)}/bulan.\n` +
         `• **Pekerja Penerima Upah (PU)**: Diikutsertakan oleh pemberi kerja untuk program JKK, JKM, JHT, JP, dan JKP.\n` +
-        `• **Klaim & Layanan**: Dapat diakses melalui aplikasi JMO (Jamsostek Mobile), Call Center 175, atau Kantor Cabang terdekat.\n` +
-        `• **Presensi & Tugas Lapangan**: Pastikan Anda berada dalam radius titik binaan geofence dan mengunggah bukti akuisisi formulir BPU secara berkala.\n\n` +
-        `*Silakan tanyakan hal spesifik seperti "Iuran BPU", "Santunan JKM 42 Juta", "STMB JKK", atau "Aturan Geofence".*`;
+        `• **Klaim & Layanan**: Dapat diakses melalui aplikasi JMO (Jamsostek Mobile), Call Center 175, atau Kantor Cabang terdekat.${schedInfo}\n\n` +
+        `*Silakan tanyakan hal spesifik seperti "Iuran BPU", "Santunan JKM", "STMB JKK", atau "Aturan Geofence".*`;
     }
 
     return res.json({
@@ -724,7 +778,8 @@ router.post('/ai/ask', authenticateToken, async (req, res) => {
         question,
         topic: matchedTopic,
         answer: responseAnswer,
-        confidence: highestScore > 0 ? 'High' : 'General',
+        source: sourceUsed,
+        confidence: kbHits.length > 0 || highestScore > 0 ? 'High' : 'General',
         timestamp: new Date().toISOString()
       }
     });
@@ -1384,12 +1439,18 @@ router.get('/admin/certificates/monitoring-logs', authenticateToken, requireRole
       ORDER BY c.created_at DESC
     `);
 
-    // Anti-fraud heuristics check
+    // Anti-fraud heuristics check strictly in Asia/Jakarta (WIB)
+    const wibFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jakarta',
+      weekday: 'short',
+      hour: '2-digit',
+      hour12: false
+    });
     const enrichedLogs = result.rows.map(row => {
       const issueTime = new Date(row.created_at);
-      const hour = issueTime.getHours();
-      const day = issueTime.getDay(); // 0 is Sunday, 6 is Saturday
-      const isWeekend = day === 0 || day === 6;
+      const parts = Object.fromEntries(wibFormatter.formatToParts(issueTime).map(p => [p.type, p.value]));
+      const hour = parseInt(parts.hour, 10) % 24;
+      const isWeekend = parts.weekday === 'Sat' || parts.weekday === 'Sun';
       const isOffHours = hour < 7 || hour >= 19 || isWeekend;
 
       return {
@@ -2197,11 +2258,11 @@ router.get('/admin/comparison', authenticateToken, requireRole('Administrator'),
       const partCount = parseInt(b.participants, 10) || 0;
       const att = parseInt(b.total_attendance, 10) || 0;
       const hadir = parseInt(b.total_hadir, 10) || 0;
-      const attRate = att > 0 ? parseFloat(((hadir / att) * 100).toFixed(1)) : 95.0;
+      const attRate = att > 0 ? parseFloat(((hadir / att) * 100).toFixed(1)) : 0;
       const realBpu = parseInt(b.realized_bpu, 10) || 0;
       const targetBpu = Math.max(50, partCount * 20);
       const compRate = targetBpu > 0 ? parseFloat(Math.min(100, (realBpu / targetBpu) * 100).toFixed(1)) : 0;
-      const yearStr = b.start_date ? new Date(b.start_date).getFullYear().toString() : '2026';
+      const yearStr = b.start_date ? new Date(b.start_date).getFullYear().toString() : String(new Date().getFullYear());
 
       return {
         batchName: b.batch_name,
@@ -2216,10 +2277,13 @@ router.get('/admin/comparison', authenticateToken, requireRole('Administrator'),
       };
     });
 
+    const inst = await getInstitutionalSettings();
+
     // 2. Real regional / placement performance data directly from database
     const placementRes = await query(`
       SELECT 
-        COALESCE(u.penempatan, 'kantor') as placement_name,
+        LOWER(COALESCE(u.penempatan, 'kantor')) as placement_key,
+        MAX(COALESCE(u.penempatan, 'Kantor')) as placement_label,
         COUNT(DISTINCT u.user_id) as participants,
         COUNT(DISTINCT pes.peserta_id) as bpu_acquired,
         COUNT(DISTINCT a.attendance_id) as total_att,
@@ -2228,32 +2292,33 @@ router.get('/admin/comparison', authenticateToken, requireRole('Administrator'),
       LEFT JOIN peserta pes ON u.user_id = pes.user_id
       LEFT JOIN attendance_records a ON u.user_id = a.user_id
       WHERE u.role_id = 1 AND u.status = 'Aktif'
-      GROUP BY u.penempatan
+      GROUP BY LOWER(COALESCE(u.penempatan, 'kantor'))
       ORDER BY participants DESC
     `);
 
     const regionalData = placementRes.rows.map((r, idx) => {
       const totalA = parseInt(r.total_att, 10) || 0;
       const hadirA = parseInt(r.hadir_att, 10) || 0;
-      const retRate = totalA > 0 ? parseFloat(((hadirA / totalA) * 100).toFixed(1)) : 95.0;
-      const name = r.placement_name === 'kantor' ? 'Kantor Cabang BPJSTK Medan Kota (WFO)' :
-                   r.placement_name === 'lapangan' ? 'Penugasan Sentra BPU Lapangan' :
-                   `Bidang ${r.placement_name}`;
+      const retRate = totalA > 0 ? parseFloat(((hadirA / totalA) * 100).toFixed(1)) : 0;
+      const name = r.placement_key === 'kantor' ? `${inst.branch_name} (WFO)` :
+                   r.placement_key === 'lapangan' ? 'Penugasan Sentra BPU Lapangan' :
+                   `Bidang ${r.placement_label}`;
 
       return {
         region: name,
-        area: 'Sumatera Utara',
+        area: inst.branch_name,
         participants: parseInt(r.participants, 10) || 0,
         bpuAcquired: parseInt(r.bpu_acquired, 10) || 0,
         retentionRate: retRate,
-        topPoint: idx === 0 ? 'Pusat Usaha Mikro Petisah & Medan Kota' : 'Sentra UMKM Binaan BPU'
+        topPoint: r.placement_key === 'lapangan' ? 'Sentra UMKM Binaan BPU' : inst.branch_name
       };
     });
 
     const totalRealizedBpu = batchData.reduce((acc, b) => acc + b.realizedBPU, 0);
-    const avgAttendance = batchData.length > 0 
-      ? (batchData.reduce((acc, b) => acc + b.attendanceRate, 0) / batchData.length).toFixed(1)
-      : '95.0';
+    const activeAttBatches = batchData.filter(b => b.attendanceRate > 0);
+    const avgAttendance = activeAttBatches.length > 0
+      ? (activeAttBatches.reduce((acc, b) => acc + b.attendanceRate, 0) / activeAttBatches.length).toFixed(1)
+      : '0.0';
 
     return res.json({
       success: true,
@@ -2379,27 +2444,28 @@ router.put('/bpu/rates', authenticateToken, requireRole('Administrator'), async 
     } = req.body;
 
     const result = await query(
-      `UPDATE bpu_rates
-       SET jkk_percentage = COALESCE($1, jkk_percentage),
-           jkk_min_amount = COALESCE($2, jkk_min_amount),
-           jkm_flat_amount = COALESCE($3, jkm_flat_amount),
-           jht_percentage = COALESCE($4, jht_percentage),
-           jht_min_amount = COALESCE($5, jht_min_amount),
-           death_benefit_amount = COALESCE($6, death_benefit_amount),
-           max_scholarship_amount = COALESCE($7, max_scholarship_amount),
-           description = COALESCE($8, description),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = 1
+      `INSERT INTO bpu_rates (id, jkk_percentage, jkk_min_amount, jkm_flat_amount, jht_percentage, jht_min_amount, death_benefit_amount, max_scholarship_amount, description, updated_at)
+       VALUES (1, COALESCE($1, 0.01), COALESCE($2, 10000), COALESCE($3, 6800), COALESCE($4, 0.02), COALESCE($5, 20000), COALESCE($6, 42000000), COALESCE($7, 174000000), COALESCE($8, 'Tarif Iuran Resmi BPJSTK BPU'), CURRENT_TIMESTAMP)
+       ON CONFLICT (id) DO UPDATE SET
+         jkk_percentage = COALESCE($1, bpu_rates.jkk_percentage),
+         jkk_min_amount = COALESCE($2, bpu_rates.jkk_min_amount),
+         jkm_flat_amount = COALESCE($3, bpu_rates.jkm_flat_amount),
+         jht_percentage = COALESCE($4, bpu_rates.jht_percentage),
+         jht_min_amount = COALESCE($5, bpu_rates.jht_min_amount),
+         death_benefit_amount = COALESCE($6, bpu_rates.death_benefit_amount),
+         max_scholarship_amount = COALESCE($7, bpu_rates.max_scholarship_amount),
+         description = COALESCE($8, bpu_rates.description),
+         updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
       [
-        jkk_percentage,
-        jkk_min_amount,
-        jkm_flat_amount,
-        jht_percentage,
-        jht_min_amount,
-        death_benefit_amount,
-        max_scholarship_amount,
-        description
+        jkk_percentage ?? null,
+        jkk_min_amount ?? null,
+        jkm_flat_amount ?? null,
+        jht_percentage ?? null,
+        jht_min_amount ?? null,
+        death_benefit_amount ?? null,
+        max_scholarship_amount ?? null,
+        description ?? null
       ]
     );
 
@@ -2695,15 +2761,16 @@ router.post('/admin/security/verify-pin', authenticateToken, requireRole('Admini
       `SELECT setting_value FROM system_settings WHERE setting_key = 'master_security_pin_hash' LIMIT 1`
     );
 
-    const storedHash = pinRes.rows.length > 0 ? pinRes.rows[0].setting_value : '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK';
-    
-    // Default PIN: 123456 or password123
+    const envDefaultPinHash = process.env.DEFAULT_MASTER_PIN_HASH || '$2b$10$0PI6Y9S8btRBiK89dNhwWOK5d593S0.0FvnbhszwsCmriSu2vCqPK';
+    const storedHash = pinRes.rows.length > 0 && pinRes.rows[0].setting_value
+      ? pinRes.rows[0].setting_value
+      : envDefaultPinHash;
+
     let isMatch = false;
     if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$')) {
       isMatch = await bcrypt.compare(String(pin), storedHash);
-      if (!isMatch && pin === '123456') isMatch = true;
     } else {
-      isMatch = (String(pin) === storedHash || pin === '123456');
+      isMatch = (String(pin) === String(storedHash));
     }
 
     if (!isMatch) {
@@ -2841,15 +2908,18 @@ router.post('/admin/approvals/:id/review', authenticateToken, requireRole('Admin
 // 15. DIRECT-TO-CLOUD PRE-SIGNED URL UPLOAD (BYPASS SERVER EXPRESS)
 // =========================================================================
 
-const presignedTickets = new Map();
+const UPLOAD_SIGNING_SECRET =
+  process.env.UPLOAD_SIGNING_SECRET ||
+  process.env.JWT_SECRET ||
+  crypto.createHmac('sha256', 'bpjstk-upload-ticket-secret-2026').update(process.env.DATABASE_URL || 'local-dev').digest('hex');
 
 /**
  * POST /api/upload/pre-signed-url
- * Issues short-lived pre-signed ticket for direct upload
+ * Issues short-lived pre-signed ticket stored in PostgreSQL for serverless consistency
  */
 router.post('/upload/pre-signed-url', authenticateToken, async (req, res) => {
   try {
-    const { filename, fileType, purpose } = req.body;
+    const { filename, fileType } = req.body;
     if (!filename || !fileType) {
       return res.status(400).json({ success: false, message: 'Filename dan fileType wajib diisi.' });
     }
@@ -2862,17 +2932,15 @@ router.post('/upload/pre-signed-url', authenticateToken, async (req, res) => {
 
     const ticketId = crypto.randomUUID();
     const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
-    const secretSignature = crypto.createHmac('sha256', 'bpjstk-upload-presigned-secret-key-2026')
+    const secretSignature = crypto.createHmac('sha256', UPLOAD_SIGNING_SECRET)
       .update(`${ticketId}:${req.user.user_id}:${expiresAt}`)
       .digest('hex');
 
-    presignedTickets.set(ticketId, {
-      userId: req.user.user_id,
-      filename,
-      fileType,
-      expiresAt,
-      signature: secretSignature
-    });
+    await query(
+      `INSERT INTO upload_tickets (ticket_id, user_id, filename, file_type, signature, used, expires_at)
+       VALUES ($1, $2, $3, $4, $5, FALSE, to_timestamp($6 / 1000.0))`,
+      [ticketId, req.user.user_id, filename, fileType.toLowerCase(), secretSignature, expiresAt]
+    );
 
     return res.json({
       success: true,
@@ -2891,25 +2959,34 @@ router.post('/upload/pre-signed-url', authenticateToken, async (req, res) => {
 
 /**
  * POST /api/upload/direct/:ticket
- * Direct endpoint receiving file payload with valid ticket
+ * Direct endpoint receiving file payload with valid DB ticket & authenticated owner
  */
-router.post('/upload/direct/:ticket', async (req, res) => {
+router.post('/upload/direct/:ticket', authenticateToken, async (req, res) => {
   try {
     const { ticket } = req.params;
-    const { fileDataUri } = req.body;
-
-    const session = presignedTickets.get(ticket);
-    if (!session || Date.now() > session.expiresAt) {
-      return res.status(403).json({ success: false, message: 'Tiket pre-signed upload sudah kadaluwarsa atau tidak valid.' });
-    }
+    const { fileDataUri, signature } = req.body;
 
     if (!fileDataUri) {
       return res.status(400).json({ success: false, message: 'Konten file tidak ditemukan.' });
     }
 
-    // Ticket used: delete immediately
-    presignedTickets.delete(ticket);
+    const ticketRes = await query(
+      `UPDATE upload_tickets
+       SET used = TRUE
+       WHERE ticket_id = $1
+         AND user_id = $2
+         AND used = FALSE
+         AND expires_at > NOW()
+         AND ($3::text IS NULL OR signature = $3)
+       RETURNING *`,
+      [ticket, req.user.user_id, signature || null]
+    );
 
+    if (ticketRes.rows.length === 0) {
+      return res.status(403).json({ success: false, message: 'Tiket pre-signed upload sudah kadaluwarsa, sudah terpakai, atau tidak valid.' });
+    }
+
+    const session = ticketRes.rows[0];
     return res.json({
       success: true,
       message: 'File berhasil diunggah secara langsung.',
@@ -3322,12 +3399,10 @@ router.get('/admin/database/brin-status', authenticateToken, requireRole('Admini
       success: true,
       data: {
         brinSupported: true,
-        compressionEstimatedSavings: '88.4%',
-        activeIndexes: rows.length > 0 ? rows : [
-          { index_name: 'idx_attendance_brin_date', table_name: 'attendance', index_type: 'brin', index_size: '48 kB (vs 1.2 MB B-Tree)' },
-          { index_name: 'idx_activity_logs_brin_time', table_name: 'activity_logs', index_type: 'brin', index_size: '32 kB (vs 860 kB B-Tree)' }
-        ],
-        message: 'Indeks BRIN (Block Range Index) aktif untuk optimasi query time-series pada Neon DB.'
+        activeIndexes: rows,
+        message: rows.length > 0
+          ? 'Indeks PostgreSQL time-series aktif dan terdeteksi.'
+          : 'Belum ada indeks BRIN/time-series khusus pada tabel aktivitas/kehadiran.'
       }
     });
   } catch (error) {
@@ -3430,18 +3505,21 @@ router.post(['/incident-test', '/admin/incident-test'], authenticateToken, requi
 // =========================================================================
 // 36. TYPO-TOLERANT FUZZY SEARCH (LEVENSHTEIN DISTANCE)
 // =========================================================================
-router.get(['/search/fuzzy', '/search-fuzzy'], authenticateToken, async (req, res) => {
+router.get(['/search/fuzzy', '/search-fuzzy'], authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { q, entity, threshold, limit } = req.query;
     if (!q) {
       return res.status(400).json({ success: false, message: 'Parameter query q diperlukan.' });
     }
 
+    const isCoordinator = req.user.role === 'Koordinator' || req.user.role_id === 2;
     const results = await searchEntitiesFuzzy({
       searchTerm: q,
       entityType: entity || 'peserta',
       threshold: threshold ? parseFloat(threshold) : 0.45,
-      limit: limit ? parseInt(limit, 10) : 20
+      limit: limit ? parseInt(limit, 10) : 20,
+      userRole: req.user.role || req.user.role_name,
+      coordinatorId: isCoordinator ? req.user.user_id : null
     });
 
     return res.json({ success: true, query: q, count: results.length, data: results });
@@ -3554,20 +3632,20 @@ router.get(['/admin/canary-traps', '/canary-traps'], authenticateToken, requireR
 // =========================================================================
 // 41. CRYPTOGRAPHIC PROOF OF WORK (PoW) CHALLENGE ENGINE
 // =========================================================================
-router.get('/security/pow/challenge', (req, res) => {
+router.get('/security/pow/challenge', async (req, res) => {
   try {
     const difficulty = parseInt(req.query.difficulty, 10) || 4;
-    const challenge = createPowChallenge(difficulty);
+    const challenge = await createPowChallenge(difficulty);
     return res.json({ success: true, ...challenge });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
 });
 
-router.post('/security/pow/verify', (req, res) => {
+router.post('/security/pow/verify', async (req, res) => {
   try {
     const { challengeId, nonce } = req.body;
-    const verification = verifyPowSolution(challengeId, nonce);
+    const verification = await verifyPowSolution(challengeId, nonce);
     if (!verification.valid) {
       return res.status(400).json({ success: false, ...verification });
     }
@@ -3601,13 +3679,14 @@ router.post(['/admin/database/rls-setup', '/database/rls-setup'], authenticateTo
 // =========================================================================
 // 43. BLOOM FILTER FAST DUPLICATE CHECK (NIK / NIM)
 // =========================================================================
-router.get('/participant/check-duplicate-fast', async (req, res) => {
+router.get('/participant/check-duplicate-fast', authenticateToken, async (req, res) => {
   try {
     const { identifier } = req.query;
     if (!identifier) {
       return res.status(400).json({ success: false, message: 'Parameter identifier (NIK / NIM) diperlukan.' });
     }
 
+    await globalBloomFilter.ensureInitialized();
     const mightContain = globalBloomFilter.mightContain(identifier);
 
     if (!mightContain) {
@@ -3703,10 +3782,11 @@ router.post(['/admin/database/partitions/create', '/database/partitions/create']
 // =========================================================================
 // 46. VECTORISED PARQUET / DUCKDB COLUMNAR EXPORT
 // =========================================================================
-router.get(['/reports/columnar-export', '/columnar-export'], authenticateToken, async (req, res) => {
+router.get(['/reports/columnar-export', '/columnar-export'], authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const entity = req.query.entity || 'attendance';
-    const result = await generateColumnarExport(entity);
+    const isCoordinator = req.user.role === 'Koordinator' || req.user.role_id === 2;
+    const result = await generateColumnarExport(entity, isCoordinator ? req.user.user_id : null);
     return res.json({ success: true, ...result });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -3818,7 +3898,14 @@ router.get(['/admin/storage/tier-status', '/storage/tier-status'], authenticateT
 // =========================================================================
 const ssePresenceClients = new Set();
 
-router.get(['/coordinator/presence-stream', '/presence-stream'], (req, res) => {
+const sseAuthAdapter = (req, res, next) => {
+  if (!req.headers['authorization'] && typeof req.query?.token === 'string' && req.query.token.trim()) {
+    req.headers['authorization'] = `Bearer ${req.query.token.trim()}`;
+  }
+  return authenticateToken(req, res, next);
+};
+
+router.get(['/coordinator/presence-stream', '/presence-stream'], sseAuthAdapter, requireRole('Koordinator', 'Administrator'), (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -3826,7 +3913,12 @@ router.get(['/coordinator/presence-stream', '/presence-stream'], (req, res) => {
     'X-Accel-Buffering': 'no'
   });
 
-  const clientInfo = { id: Date.now(), res };
+  const isCoordinator = req.user.role === 'Koordinator' || req.user.role_id === 2;
+  const clientInfo = {
+    id: `${req.user.user_id}-${Date.now()}`,
+    coordinatorId: isCoordinator ? req.user.user_id : null,
+    res
+  };
   ssePresenceClients.add(clientInfo);
 
   // Send initial welcome event
@@ -3834,8 +3926,14 @@ router.get(['/coordinator/presence-stream', '/presence-stream'], (req, res) => {
 
   // Send periodic heartbeat every 15 seconds
   const heartbeatTimer = setInterval(() => {
-    res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT', time: new Date().toISOString() })}\n\n`);
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT', time: new Date().toISOString() })}\n\n`);
+    } catch {
+      clearInterval(heartbeatTimer);
+      ssePresenceClients.delete(clientInfo);
+    }
   }, 15000);
+  if (typeof heartbeatTimer.unref === 'function') heartbeatTimer.unref();
 
   req.on('close', () => {
     clearInterval(heartbeatTimer);
@@ -3847,6 +3945,9 @@ router.get(['/coordinator/presence-stream', '/presence-stream'], (req, res) => {
 export function broadcastPresenceEvent(eventData) {
   const payload = `data: ${JSON.stringify({ type: 'PRESENCE_EVENT', ...eventData })}\n\n`;
   for (const client of ssePresenceClients) {
+    if (client.coordinatorId && eventData?.coordinatorId && Number(client.coordinatorId) !== Number(eventData.coordinatorId)) {
+      continue;
+    }
     try {
       client.res.write(payload);
     } catch (_) {
@@ -3881,7 +3982,7 @@ router.get('/participant/digital-id-card', authenticateToken, async (req, res) =
   }
 });
 
-router.post(['/coordinator/digital-id-card/verify', '/digital-id-card/verify'], authenticateToken, (req, res) => {
+router.post(['/coordinator/digital-id-card/verify', '/digital-id-card/verify'], authenticateToken, requireRole('Koordinator', 'Administrator'), (req, res) => {
   try {
     const { qrPayload } = req.body;
     if (!qrPayload) {
@@ -3901,6 +4002,20 @@ router.post(['/coordinator/digital-id-card/verify', '/digital-id-card/verify'], 
 router.get('/coordinator/dossier/generate/:userId', authenticateToken, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.userId, 10);
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID peserta tidak valid.' });
+    }
+
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && req.user.user_id !== targetUserId) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat mengunduh dossier Anda sendiri.' });
+    }
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     const dossier = await compileEvaluationDossier(targetUserId);
 
     if (req.query.format === 'html') {
@@ -3930,6 +4045,20 @@ router.get(['/time-bank/my-balance', '/api/time-bank/my-balance'], authenticateT
 router.get(['/time-bank/ledger/:userId', '/api/time-bank/ledger/:userId'], authenticateToken, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.userId, 10);
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID peserta tidak valid.' });
+    }
+
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && req.user.user_id !== targetUserId) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat melihat buku kas waktu Anda sendiri.' });
+    }
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     const ledgerData = await getTimeBankLedger(targetUserId);
     return res.json({ success: true, ...ledgerData });
   } catch (err) {
@@ -3937,21 +4066,30 @@ router.get(['/time-bank/ledger/:userId', '/api/time-bank/ledger/:userId'], authe
   }
 });
 
-router.post(['/time-bank/record-overtime', '/api/time-bank/record-overtime'], authenticateToken, async (req, res) => {
+router.post(['/time-bank/record-overtime', '/api/time-bank/record-overtime'], authenticateToken, requireRole('Koordinator', 'Administrator'), async (req, res) => {
   try {
     const { userId, hours, eventDesc } = req.body;
-    if (!userId || !hours || !eventDesc) {
+    const targetUserId = parseInt(userId, 10);
+    if (!Number.isInteger(targetUserId) || !hours || !eventDesc) {
       return res.status(400).json({ success: false, message: 'Parameter userId, hours, dan eventDesc diperlukan.' });
     }
+
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     const result = await recordOvertimeHours({
-      userId: parseInt(userId, 10),
+      userId: targetUserId,
       hours: parseFloat(hours),
       eventDesc,
       approvedBy: req.user.user_id
     });
     return res.json(result);
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 });
 
@@ -3978,6 +4116,20 @@ router.post(['/time-bank/claim-leave', '/api/time-bank/claim-leave'], authentica
 router.get(['/coordinator/mbkm-export/:userId', '/mbkm-export/:userId'], authenticateToken, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.userId, 10);
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID peserta tidak valid.' });
+    }
+
+    if ((req.user.role === 'Peserta' || req.user.role_id === 1) && req.user.user_id !== targetUserId) {
+      return res.status(403).json({ success: false, message: 'Akses dilarang. Anda hanya dapat mengekspor logbook MBKM Anda sendiri.' });
+    }
+    if (req.user.role === 'Koordinator' || req.user.role_id === 2) {
+      const check = await query(`SELECT coordinator_id FROM users WHERE user_id = $1`, [targetUserId]);
+      if (check.rows.length === 0 || check.rows[0].coordinator_id !== req.user.user_id) {
+        return res.status(403).json({ success: false, message: 'Akses dilarang. Peserta ini tidak berada di bawah bimbingan Anda.' });
+      }
+    }
+
     const dossier = await generateMbkmDossier(targetUserId);
 
     if (req.query.format === 'html') {
@@ -4030,10 +4182,24 @@ router.post(['/admin/certificates/revoke', '/certificates/revoke'], authenticate
   }
 });
 
-router.get(['/admin/certificates/crl', '/certificates/crl'], async (req, res) => {
+router.get('/admin/certificates/crl', authenticateToken, requireRole('Administrator'), async (req, res) => {
   try {
     const crlData = await getCrlList();
     return res.json(crlData);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/certificates/crl', async (req, res) => {
+  try {
+    const crlData = await getCrlList();
+    const safeList = (crlData.revokedCertificates || crlData.data || []).map((c) => ({
+      certificate_number: c.certificate_number,
+      revoked_at: c.revoked_at,
+      revocation_reason: c.revocation_reason
+    }));
+    return res.json({ success: true, count: safeList.length, revokedCertificates: safeList });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

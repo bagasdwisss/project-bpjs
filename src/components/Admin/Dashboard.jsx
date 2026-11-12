@@ -118,21 +118,26 @@ const AdminDashboard = () => {
   };
 
   const stats = dashboardData?.stats || {
-    totalUsers: 11,
-    activeParticipants: 4,
-    totalCoordinators: 4,
-    totalBatches: 2,
-    totalModules: 4,
+    totalUsers: 0,
+    activeParticipants: 0,
+    totalCoordinators: 0,
+    totalBatches: 0,
+    totalModules: 0,
+    passRate: 0,
     systemHealth: '100% Online'
   };
 
   const activities = dashboardData?.recent_activities || [];
   const events = dashboardData?.upcoming_events || [];
 
-  const today = new Date();
+  const [calendarOffset, setCalendarOffset] = useState(0);
+  const todayWib = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+  const calViewDate = new Date(todayWib.getFullYear(), todayWib.getMonth() + calendarOffset, 1);
+  const daysInMonth = new Date(calViewDate.getFullYear(), calViewDate.getMonth() + 1, 0).getDate();
+  const isCurrentWibMonth = calViewDate.getFullYear() === todayWib.getFullYear() && calViewDate.getMonth() === todayWib.getMonth();
   const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const currentMonthStr = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
-  const currentDay = today.getDate();
+  const currentMonthStr = `${monthNames[calViewDate.getMonth()]} ${calViewDate.getFullYear()}`;
+  const currentDay = todayWib.getDate();
 
   return (
     <Layout>
@@ -306,7 +311,7 @@ const AdminDashboard = () => {
 
             <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
               <span>Evaluasi Standar Kelulusan</span>
-              <span className="text-[#121214]/80">{stats.passRate ?? 90}% Memenuhi Standar</span>
+              <span className="text-[#121214]/80">{stats.passRate ?? 0}% Memenuhi Standar</span>
             </div>
           </div>
 
@@ -331,7 +336,7 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Batch</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalBatches ?? 1} Gelombang</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalBatches ?? 0} Gelombang</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Terselenggara</p>
                 </div>
                 <div>
@@ -585,13 +590,23 @@ const AdminDashboard = () => {
             {/* Mini Calendar Widget (Intelly Style) */}
             <div className="bg-white rounded-2xl border-2 border-[#121214] p-5 shadow-[4px_4px_0px_#121214]">
               <div className="flex items-center justify-between mb-4">
-                <button className="p-1 rounded-lg border border-[#121214] hover:bg-[#F5F4F0] text-[#121214]">
+                <button
+                  type="button"
+                  onClick={() => setCalendarOffset(o => o - 1)}
+                  aria-label="Bulan sebelumnya"
+                  className="p-1 rounded-lg border border-[#121214] hover:bg-[#F5F4F0] text-[#121214]"
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <div className="bg-[#F5C6EC] text-[#121214] border border-[#121214] px-3.5 py-1 rounded-full text-xs font-black tracking-tight shadow-[1px_1px_0px_#121214]">
                   {currentMonthStr}
                 </div>
-                <button className="p-1 rounded-lg border border-[#121214] hover:bg-[#F5F4F0] text-[#121214]">
+                <button
+                  type="button"
+                  onClick={() => setCalendarOffset(o => o + 1)}
+                  aria-label="Bulan berikutnya"
+                  className="p-1 rounded-lg border border-[#121214] hover:bg-[#F5F4F0] text-[#121214]"
+                >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -609,9 +624,12 @@ const AdminDashboard = () => {
 
               {/* Day numbers grid */}
               <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-[#121214]">
-                {[...Array(31)].map((_, i) => {
+                {Array.from({ length: (calViewDate.getDay() + 6) % 7 }).map((_, padIdx) => (
+                  <div key={`pad-${padIdx}`} className="h-8" />
+                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => {
                   const dayNum = i + 1;
-                  const isCurrent = dayNum === currentDay;
+                  const isCurrent = isCurrentWibMonth && dayNum === currentDay;
                   return (
                     <div 
                       key={dayNum} 

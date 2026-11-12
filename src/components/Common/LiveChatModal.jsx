@@ -15,8 +15,6 @@ import {
 import api from '../../services/api';
 
 const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
-  if (!isOpen) return null;
-
   const [contacts, setContacts] = useState([]);
   const [activeContact, setActiveContact] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -24,6 +22,7 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
   const [showMobileChat, setShowMobileChat] = useState(false);
   
   const messagesEndRef = useRef(null);
@@ -44,7 +43,6 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
         const contactList = res.data.data || [];
         setContacts(contactList);
         
-        // If defaultRecipientId provided, set as active
         if (defaultRecipientId) {
           const found = contactList.find(c => c.user_id === Number(defaultRecipientId));
           if (found) {
@@ -79,34 +77,46 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
   };
 
   useEffect(() => {
+    if (!isOpen) return;
     fetchContacts();
-  }, [defaultRecipientId]);
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, defaultRecipientId]);
 
   useEffect(() => {
-    if (activeContact) {
-      fetchMessages(activeContact.user_id);
-
+    if (!isOpen || !activeContact) {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = setInterval(() => {
-        fetchMessages(activeContact.user_id, true);
-      }, 3000);
+      return;
     }
+
+    fetchMessages(activeContact.user_id);
+
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    pollIntervalRef.current = setInterval(() => {
+      fetchMessages(activeContact.user_id, true);
+    }, 3000);
 
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
-  }, [activeContact]);
+  }, [isOpen, activeContact]);
 
   useEffect(() => {
+    if (!isOpen) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [isOpen, messages]);
+
+  if (!isOpen) return null;
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!messageInput.trim() || !activeContact || sending) return;
 
     const text = messageInput.trim();
-    setMessageInput('');
+    setSendError('');
     setSending(true);
 
     try {
@@ -116,11 +126,15 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
       });
 
       if (res.data?.success) {
+        setMessageInput('');
         setMessages(prev => [...prev, res.data.data]);
-        fetchContacts(); // Refresh last message in contacts
+        fetchContacts();
+      } else {
+        setSendError(res.data?.message || 'Gagal mengirim pesan.');
       }
     } catch (err) {
       console.error('Error sending message:', err);
+      setSendError(err.response?.data?.message || 'Gagal mengirim pesan, coba lagi.');
     } finally {
       setSending(false);
     }
@@ -159,8 +173,11 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[8px_8px_0px_#121214] w-full max-w-4xl h-[94vh] sm:h-[620px] flex flex-col overflow-hidden">
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-150"
+    >
+      <div className="bg-[#F5F4F0] border-2 border-[#121214] rounded-2xl shadow-[8px_8px_0px_#121214] w-full max-w-4xl h-[94vh] sm:h-[620px] flex flex-col overflow-hidden overscroll-contain">
         
         {/* Header */}
         <div className="flex items-center justify-between p-3 sm:p-4 border-b-2 border-[#121214] bg-[#F5C6EC]">
@@ -326,6 +343,11 @@ const LiveChatModal = ({ isOpen, onClose, defaultRecipientId = null }) => {
                 </div>
 
                 {/* Message Input Footer */}
+                {sendError && (
+                  <div className="px-3 py-1.5 bg-rose-100 border-t border-rose-300 text-rose-800 text-[11px] font-bold">
+                    {sendError}
+                  </div>
+                )}
                 <form
                   onSubmit={handleSendMessage}
                   className="p-2.5 sm:p-3 bg-white border-t-2 border-[#121214] flex items-center space-x-2"

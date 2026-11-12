@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../Layout/Layout';
 import userService from '../../services/userService';
 import progressService from '../../services/progressService';
+import api from '../../services/api';
 import ParticipantDetails from './ParticipantDetails';
 import { TableSkeleton } from '../Common/Skeleton';
 import { Users, Search, RefreshCw, Eye, ArrowUpRight, CheckCircle2, FileDown } from 'lucide-react';
@@ -18,6 +19,7 @@ const Participants = () => {
   const [placementFilter, setPlacementFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
+  const [targetAkuisisi, setTargetAkuisisi] = useState(20);
 
   const loadParticipants = async () => {
     try {
@@ -26,8 +28,16 @@ const Participants = () => {
 
       let participantsData = [];
       try {
-        const response = await userService.getMyParticipants();
+        const [response, cfgRes] = await Promise.all([
+          userService.getMyParticipants(),
+          api.get('/grading/configuration').catch(() => null)
+        ]);
         participantsData = response.data?.data || (Array.isArray(response.data) ? response.data : []);
+        const cfgTarget = Number(cfgRes?.data?.data?.targets?.max_akuisisi_bpu) || 20;
+        setTargetAkuisisi(cfgTarget);
+        setParticipants(participantsData);
+        await loadProgressData(participantsData, cfgTarget);
+        return;
       } catch (e) {
         const allRes = await userService.getUsers();
         const raw = allRes.data?.data || allRes.data || [];
@@ -35,7 +45,7 @@ const Participants = () => {
       }
 
       setParticipants(participantsData);
-      await loadProgressData(participantsData);
+      await loadProgressData(participantsData, targetAkuisisi);
     } catch (err) {
       console.error('Error loading participants:', err);
       setError('Gagal memuat data peserta. Periksa koneksi internet Anda.');
@@ -44,7 +54,7 @@ const Participants = () => {
     }
   };
 
-  const loadProgressData = async (participantsList) => {
+  const loadProgressData = async (participantsList, targetBpu = 20) => {
     try {
       const progressMap = {};
       const res = await userService.getProgressSummary();
@@ -52,8 +62,7 @@ const Participants = () => {
 
       for (const participant of participantsList) {
         const userData = summaryData[participant.user_id] || {};
-        const targetAkuisisi = 20;
-        const progressPercentage = Math.round(((userData.hasil_akuisisi_bpu || 0) / targetAkuisisi) * 100);
+        const progressPercentage = Math.round(((userData.hasil_akuisisi_bpu || 0) / targetBpu) * 100);
         
         progressMap[participant.user_id] = {
           progress: Math.min(100, progressPercentage),
@@ -200,7 +209,7 @@ const Participants = () => {
               Tidak ada peserta yang cocok dengan kriteria pencarian.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-[#121214]" tabIndex={0} role="region" aria-label="Daftar Peserta Magang">
               <table className="min-w-full divide-y divide-[#EAE9E4] text-xs">
                 <thead className="bg-[#FAF9F6] text-[#6E6D6A] uppercase text-[10px] font-bold tracking-wider">
                   <tr>
@@ -232,8 +241,8 @@ const Participants = () => {
                         </td>
                         <td className="px-5 py-4 whitespace-nowrap">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize ${
-                            p.penempatan === 'kantor' ? 'bg-[#BDD4F2] text-[#121214]' :
-                            p.penempatan === 'lapangan' ? 'bg-[#FCE373] text-[#121214]' :
+                            p.penempatan?.toLowerCase() === 'kantor' ? 'bg-[#BDD4F2] text-[#121214]' :
+                            p.penempatan?.toLowerCase() === 'lapangan' ? 'bg-[#FCE373] text-[#121214]' :
                             'bg-[#FAF9F6] text-[#6E6D6A] border border-[#EAE9E4]'
                           }`}>
                             {p.penempatan || 'Kantor'}
@@ -242,7 +251,7 @@ const Participants = () => {
                         <td className="px-5 py-4 whitespace-nowrap">
                           <div className="w-36">
                             <div className="flex justify-between text-[10px] font-bold mb-1">
-                              <span>{akuisisi} / 20 BPU</span>
+                              <span>{akuisisi} / {targetAkuisisi} BPU</span>
                               <span>{prog}%</span>
                             </div>
                             <div className="w-full bg-[#EAE9E4] h-2 rounded-full overflow-hidden">
@@ -272,8 +281,17 @@ const Participants = () => {
                         <td className="px-5 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => {
-                                window.open(`/api/coordinator/dossier/generate/${p.user_id}?format=html`, '_blank');
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const res = await api.get(`/coordinator/dossier/generate/${p.user_id}?format=html`, { responseType: 'text' });
+                                  const htmlContent = typeof res.data === 'string' ? res.data : String(res.data || '');
+                                  const blobUrl = window.URL.createObjectURL(new Blob([htmlContent], { type: 'text/html;charset=utf-8' }));
+                                  window.open(blobUrl, '_blank', 'noopener,noreferrer');
+                                  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+                                } catch (err) {
+                                  setError(err.response?.data?.message || 'Gagal membuka dossier peserta.');
+                                }
                               }}
                               className="px-2.5 py-1.5 bg-[#FAF9F6] border border-[#EAE9E4] text-[#121214] rounded-full text-[11px] font-bold hover:bg-[#F0EFEA] transition-colors flex items-center gap-1 shadow-sm"
                               title="Cetak Bundel Berkas Penilaian Resmi Magang (Dossier PDF)"

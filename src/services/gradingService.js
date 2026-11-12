@@ -24,10 +24,11 @@ const gradingService = {
   },
 
   // ✅ Create progress entry for participant
-  createProgressEntry: async (participantId) => {
+  createProgressEntry: async (participantId, extraData = {}) => {
     try {
       const response = await api.post('/grading/participants/create-progress', {
-        participant_id: participantId,
+        user_id: participantId,
+        ...extraData
       });
       return response.data;
     } catch (error) {

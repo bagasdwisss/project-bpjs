@@ -12,7 +12,7 @@ const SecurityPinModal = ({ isOpen, onClose, onSuccess, title = 'Otorisasi Tinda
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (pin.length < 4) {
+    if (pin.length < 6) {
       setErrorMsg('Masukkan minimal 6-digit PIN Keamanan Master.');
       return;
     }
@@ -36,8 +36,15 @@ const SecurityPinModal = ({ isOpen, onClose, onSuccess, title = 'Otorisasi Tinda
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-sm sm:max-w-md rounded-2xl border-2 border-[#121214] shadow-[6px_6px_0px_#121214] overflow-hidden">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title || 'Otorisasi PIN Keamanan'}
+      onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}
+      onKeyDown={(e) => { if (e.key === 'Escape' && !loading) onClose(); }}
+    >
+      <div className="bg-white w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto overscroll-contain rounded-2xl border-2 border-[#121214] shadow-[6px_6px_0px_#121214]">
         
         {/* Header */}
         <div className="bg-[#F5C6EC] border-b-2 border-[#121214] p-4 flex items-center justify-between">
@@ -82,7 +89,7 @@ const SecurityPinModal = ({ isOpen, onClose, onSuccess, title = 'Otorisasi Tinda
               />
             </div>
             <p className="text-[10px] text-gray-500 font-medium">
-              Default master development: <span className="font-mono font-bold text-[#121214]">123456</span>
+              Masukkan PIN Keamanan Master yang telah ditetapkan Administrator.
             </p>
           </div>
 
@@ -103,7 +110,7 @@ const SecurityPinModal = ({ isOpen, onClose, onSuccess, title = 'Otorisasi Tinda
             </button>
             <button
               type="submit"
-              disabled={loading || pin.length < 4}
+              disabled={loading || pin.length < 6}
               className="w-1/2 py-2.5 rounded-xl border-2 border-[#121214] font-black text-xs text-[#121214] bg-[#F5C6EC] hover:bg-[#e7b4dc] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50 transition-all"
             >
               {loading ? 'Memverifikasi...' : 'Otorisasi Tindakan'}

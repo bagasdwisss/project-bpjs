@@ -2,6 +2,7 @@
 import { query } from '../db.js';
 import cache from '../utils/cache.js';
 import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from './auth.js';
 
 export const getMaintenanceSettings = async () => {
   return await cache.getOrSet('sys_maintenance_settings', async () => {
@@ -40,6 +41,8 @@ export const maintenanceMiddleware = async (req, res, next) => {
     '/api/health',
     '/login',
     '/api/login',
+    '/auth/login',
+    '/api/auth/login',
     '/init-db',
     '/api/init-db',
     '/admin/system/maintenance',
@@ -56,13 +59,13 @@ export const maintenanceMiddleware = async (req, res, next) => {
     return next();
   }
 
-  // Check if requester has Administrator token
+  // Check if requester has verified Administrator JWT
   let isAdmin = false;
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
     try {
-      const decoded = jwt.decode(token);
+      const decoded = jwt.verify(token, JWT_SECRET);
       if (decoded && (decoded.role === 'Administrator' || decoded.role_id === 3)) {
         isAdmin = true;
       }

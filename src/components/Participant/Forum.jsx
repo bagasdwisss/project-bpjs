@@ -41,6 +41,15 @@ const ParticipantForum = () => {
     loadTopics();
   }, []);
 
+  useEffect(() => {
+    if (!showCreateModal) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowCreateModal(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showCreateModal]);
+
   const handleOpenTopic = async (topic) => {
     setSelectedTopic(topic);
     try {
@@ -169,7 +178,7 @@ const ParticipantForum = () => {
                       }`}>
                         <div className="flex items-center justify-between gap-4 text-[10px] opacity-70">
                           <span className="font-bold">{msg.author_name} ({msg.author_role || 'Peserta'})</span>
-                          <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>{new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB</span>
                         </div>
                         <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{msg.message_content}</p>
                       </div>
@@ -258,8 +267,14 @@ const ParticipantForum = () => {
 
         {/* Create Topic Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-[26px] border border-[#EAE9E4] max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-4">
+          <div
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mulai Topik Diskusi Baru"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}
+          >
+            <div className="bg-white rounded-[26px] border border-[#EAE9E4] max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-[#EAE9E4]">
                 <h3 className="text-base font-bold text-[#121214]">Mulai Topik Diskusi Baru</h3>
                 <button 

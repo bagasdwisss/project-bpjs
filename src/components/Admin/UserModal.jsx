@@ -56,14 +56,31 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
     }
   }, [user]);
 
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const [passwordError, setPasswordError] = useState('');
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setPasswordError('');
+    if (formData.password && formData.password.length < 6) {
+      setPasswordError('Kata sandi minimal 6 karakter.');
+      return;
+    }
     const submitData = { ...formData };
     if (user && !submitData.password) {
       delete submitData.password;
     }
     if (!submitData.penempatan) {
       submitData.penempatan = null;
+    } else {
+      submitData.penempatan = submitData.penempatan.toLowerCase() === 'lapangan' ? 'Lapangan' : 'Kantor';
     }
     onSave(submitData);
   };
@@ -77,8 +94,14 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-[28px] border border-[#EAE9E4] shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-150">
+    <div
+      className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-label={user ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-[28px] border border-[#EAE9E4] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="px-6 py-5 border-b border-[#EAE9E4] flex items-center justify-between">
           <div>
@@ -171,7 +194,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {placementOptions.map(p => {
-                const isSelected = formData.penempatan === p.code;
+                const isSelected = (formData.penempatan || '').toLowerCase() === (p.code || '').toLowerCase();
                 return (
                   <button
                     key={p.code}
@@ -220,9 +243,12 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder={user ? "Kosongkan jika tidak ingin mengubah sandi" : "Default: password123"}
+              placeholder={user ? "Kosongkan jika tidak ingin mengubah sandi" : "Kosongkan untuk sandi default sistem"}
               className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
             />
+            {passwordError && (
+              <p className="text-[11px] font-bold text-rose-600 mt-1">{passwordError}</p>
+            )}
           </div>
 
           {/* Action Buttons */}

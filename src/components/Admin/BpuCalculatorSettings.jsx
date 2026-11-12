@@ -43,11 +43,13 @@ const BpuCalculatorSettings = () => {
       const res = await api.get('/bpu/rates');
       if (res.data?.success && res.data.data) {
         const d = res.data.data;
+        const rawJkk = Number(d.jkk_percentage);
+        const rawJht = Number(d.jht_percentage);
         setBpuRates({
-          jkk_percentage: Number(d.jkk_percentage) || 1,
+          jkk_percentage: !isNaN(rawJkk) && rawJkk > 0 ? (rawJkk <= 0.25 ? Number((rawJkk * 100).toFixed(2)) : rawJkk) : 1,
           jkk_min_amount: Number(d.jkk_min_amount) || 10000,
           jkm_flat_amount: Number(d.jkm_flat_amount) || 6800,
-          jht_percentage: Number(d.jht_percentage) || 2,
+          jht_percentage: !isNaN(rawJht) && rawJht > 0 ? (rawJht <= 0.25 ? Number((rawJht * 100).toFixed(2)) : rawJht) : 2,
           jht_min_amount: Number(d.jht_min_amount) || 20000,
           death_benefit_amount: Number(d.death_benefit_amount) || 42000000,
           max_scholarship_amount: Number(d.max_scholarship_amount) || 174000000
@@ -69,7 +71,12 @@ const BpuCalculatorSettings = () => {
     e.preventDefault();
     try {
       setSaving(true);
-      const res = await api.put('/bpu/rates', bpuRates);
+      const payload = {
+        ...bpuRates,
+        jkk_percentage: Number(bpuRates.jkk_percentage) / 100,
+        jht_percentage: Number(bpuRates.jht_percentage) / 100
+      };
+      const res = await api.put('/bpu/rates', payload);
       if (res.data?.success) {
         toast.success('Konfigurasi tarif iuran & manfaat BPU berhasil diperbarui!');
         fetchBpuRates();

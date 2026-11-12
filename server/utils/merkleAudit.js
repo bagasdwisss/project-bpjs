@@ -1,8 +1,9 @@
 // server/utils/merkleAudit.js - Append-Only Merkle Hash Chain Audit Trail & Multi-Layer Anti-Tamper Engine
 import crypto from 'crypto';
-import { query } from '../db.js';
+import { query, pool } from '../db.js';
 
 export const GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
+export const AUDIT_LOCK_KEY = 84729333;
 
 /**
  * Computes deterministic SHA-256 block hash for an activity log record
@@ -29,34 +30,64 @@ export const computeLogHash = (prevHash, userId, activityType, details, timestam
 };
 
 /**
- * Inserts a cryptographically chained activity log entry
+ * Inserts a cryptographically chained activity log entry atomically using PostgreSQL advisory lock
  */
-export const insertChainedLog = async (userId, activityType, details, ipAddress = '127.0.0.1', deviceFingerprint = null) => {
+export const insertChainedLog = async (
+  userId,
+  activityType,
+  details,
+  ipAddress = '127.0.0.1',
+  deviceFingerprint = null,
+  options = {}
+) => {
+  const client = await pool.connect();
   try {
-    const latestRes = await query(
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [AUDIT_LOCK_KEY]);
+
+    const latestRes = await client.query(
       `SELECT current_hash FROM activity_logs ORDER BY log_id DESC LIMIT 1`
     );
-    const prevHash = latestRes.rows.length > 0 && latestRes.rows[0].current_hash 
-      ? latestRes.rows[0].current_hash 
+    const prevHash = latestRes.rows.length > 0 && latestRes.rows[0].current_hash
+      ? latestRes.rows[0].current_hash
       : GENESIS_HASH;
 
     const timestamp = new Date();
+    const isAnomaly = Boolean(options?.isAnomaly);
+    const anomalyReason = options?.anomalyReason || null;
+    const userAgent = options?.userAgent || null;
     const currentHash = computeLogHash(prevHash, userId, activityType, details, timestamp);
 
-    const result = await query(
+    const result = await client.query(
       `INSERT INTO activity_logs (
-        user_id, activity_type, details, ip_address, device_fingerprint,
-        prev_hash, current_hash, created_at
+        user_id, activity_type, details, ip_address, is_anomaly, anomaly_reason,
+        user_agent, device_fingerprint, prev_hash, current_hash, created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
-      [userId || null, activityType, details, ipAddress, deviceFingerprint, prevHash, currentHash, timestamp.toISOString()]
+      [
+        userId || null,
+        activityType,
+        details,
+        ipAddress,
+        isAnomaly,
+        anomalyReason,
+        userAgent,
+        deviceFingerprint,
+        prevHash,
+        currentHash,
+        timestamp.toISOString()
+      ]
     );
 
+    await client.query('COMMIT');
     return result.rows[0];
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Failed to insert chained activity log:', err.message);
     return null;
+  } finally {
+    client.release();
   }
 };
 
@@ -64,7 +95,7 @@ export const insertChainedLog = async (userId, activityType, details, ipAddress 
  * Verifies the mathematical integrity of the Merkle Hash Chain and Database State
  * Returns { isValid: boolean, checkedCount: number, tamperedAt: number | null, tamperType: string, message: string }
  */
-export const verifyAuditChainIntegrity = async (limit = 1000) => {
+export const verifyAuditChainIntegrity = async (limit = 10000) => {
   try {
     const res = await query(
       `SELECT log_id, user_id, activity_type, details, prev_hash, current_hash, created_at
@@ -202,17 +233,31 @@ export const verifyAuditChainIntegrity = async (limit = 1000) => {
  * Rebuilds the entire audit chain cryptographically (useful for initial migration or maintenance)
  */
 export const rebuildAuditChain = async () => {
-  const res = await query('SELECT log_id, user_id, activity_type, details, created_at FROM activity_logs ORDER BY log_id ASC');
-  let prevHash = GENESIS_HASH;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [AUDIT_LOCK_KEY]);
 
-  for (const row of res.rows) {
-    const curHash = computeLogHash(prevHash, row.user_id, row.activity_type, row.details, row.created_at);
-    await query(
-      'UPDATE activity_logs SET prev_hash = $1, current_hash = $2 WHERE log_id = $3',
-      [prevHash, curHash, row.log_id]
+    const res = await client.query(
+      'SELECT log_id, user_id, activity_type, details, created_at FROM activity_logs ORDER BY log_id ASC'
     );
-    prevHash = curHash;
-  }
+    let prevHash = GENESIS_HASH;
 
-  return { success: true, count: res.rows.length, latestHash: prevHash };
+    for (const row of res.rows) {
+      const curHash = computeLogHash(prevHash, row.user_id, row.activity_type, row.details, row.created_at);
+      await client.query(
+        'UPDATE activity_logs SET prev_hash = $1, current_hash = $2 WHERE log_id = $3',
+        [prevHash, curHash, row.log_id]
+      );
+      prevHash = curHash;
+    }
+
+    await client.query('COMMIT');
+    return { success: true, count: res.rows.length, latestHash: prevHash };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 };

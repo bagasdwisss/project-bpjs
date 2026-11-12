@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Layout from '../Layout/Layout';
 import { AuthContext } from '../../context/AuthContext';
 import userService from '../../services/userService';
+import dashboardService from '../../services/DashboardService';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { getTimeGreeting } from '../../utils/trueTime';
@@ -38,6 +39,12 @@ const CoordinatorDashboard = () => {
     note: '',
     submitting: false,
   });
+  const [liveStats, setLiveStats] = useState({
+    attendanceRate: 0,
+    targetAkuisisi: 20,
+    passingMin: 75,
+    activeBatchName: 'Batch Aktif'
+  });
 
   const loadParticipants = async () => {
     try {
@@ -45,10 +52,25 @@ const CoordinatorDashboard = () => {
       setError('');
 
       let participantsList = [];
+      let fetchedTargetBpu = 20;
       try {
-        const response = await userService.getMyParticipants();
-        const raw = response.data;
+        const [myRes, cfgRes, dashRes] = await Promise.all([
+          userService.getMyParticipants(),
+          api.get('/grading/configuration').catch(() => null),
+          dashboardService.getCoordinatorDashboard().catch(() => null)
+        ]);
+        const raw = myRes.data;
         participantsList = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+        fetchedTargetBpu = Number(cfgRes?.data?.data?.targets?.max_akuisisi_bpu) || 20;
+        const passingMin = Number(cfgRes?.data?.data?.cutoffs?.grade_b) || 75;
+        const attRate = Number(dashRes?.data?.stats?.attendanceRate ?? dashRes?.data?.stats?.complianceRate ?? 0);
+        const batchName = dashRes?.data?.stats?.activeBatchName || 'Batch Aktif';
+        setLiveStats({
+          attendanceRate: Number.isFinite(attRate) ? attRate : 0,
+          targetAkuisisi: fetchedTargetBpu,
+          passingMin,
+          activeBatchName: batchName
+        });
       } catch (e) {
         // Fallback to all users filtered by role peserta
         const allUsersRes = await userService.getUsers();
@@ -67,16 +89,16 @@ const CoordinatorDashboard = () => {
       try {
         const pSummaryRes = await userService.getProgressSummary();
         const summaryData = pSummaryRes?.data?.data || {};
+        const target = fetchedTargetBpu;
         for (const p of participantsList) {
           const d = summaryData[p.user_id] || {};
-          const target = 20;
           const pct = Math.min(100, Math.round(((d.hasil_akuisisi_bpu || 0) / target) * 100));
           progressMap[p.user_id] = {
             progress: pct,
             hasilAkuisisiBPU: d.hasil_akuisisi_bpu || 0,
             kunjunganBPU: d.kunjungan_bpu || 0,
             kunjunganPU: d.kunjungan_pu || 0,
-            videoVirialisasi: d.video_viralisasi || 0,
+            videoViralisasi: d.video_viralisasi || 0,
             kehadiranSeminar: d.kehadiran_seminar || 0,
             kehadiranSosialisasi: d.kehadiran_sosialisasi || 0,
             totalPoin: d.total_poin || 0,
@@ -166,9 +188,10 @@ const CoordinatorDashboard = () => {
 
   // Filtered participants list
   const filteredParticipants = participants.filter(p => {
+    const place = (p.penempatan || '').toLowerCase();
     if (filterType === 'all') return true;
-    if (filterType === 'kantor') return p.penempatan === 'kantor';
-    if (filterType === 'lapangan') return p.penempatan === 'lapangan';
+    if (filterType === 'kantor') return place === 'kantor';
+    if (filterType === 'lapangan') return place === 'lapangan';
     return true;
   });
 
@@ -179,9 +202,14 @@ const CoordinatorDashboard = () => {
     : 0;
   const totalAkuisisi = participants.reduce((acc, p) => acc + (progressData[p.user_id]?.hasilAkuisisiBPU || 0), 0);
   const totalKunjunganPU = participants.reduce((acc, p) => acc + (progressData[p.user_id]?.kunjunganPU || 0), 0);
+  const totalSeminar = participants.reduce((acc, p) => acc + (progressData[p.user_id]?.kehadiranSeminar || 0), 0);
+  const totalSosialisasi = participants.reduce((acc, p) => acc + (progressData[p.user_id]?.kehadiranSosialisasi || 0), 0);
+  const totalVideo = participants.reduce((acc, p) => acc + (progressData[p.user_id]?.videoViralisasi || 0), 0);
   const gradeACount = participants.filter(p => progressData[p.user_id]?.grade === 'A').length;
   const gradeBCount = participants.filter(p => progressData[p.user_id]?.grade === 'B').length;
-  const complianceRate = totalCount > 0 ? Math.min(100, Math.max(80, Math.round(92 + (totalAkuisisi > 0 ? 5 : 0)))) : 95;
+  const passingCount = participants.filter(p => (progressData[p.user_id]?.nilai || 0) >= liveStats.passingMin).length;
+  const passRatePct = totalCount > 0 ? Math.round((passingCount / totalCount) * 100) : 0;
+  const complianceRate = liveStats.attendanceRate;
 
   const currentSelectedProgress = selectedParticipant ? (progressData[selectedParticipant.user_id] || {}) : {};
 
@@ -373,14 +401,14 @@ const CoordinatorDashboard = () => {
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Kantor</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {participants.filter(p => p.penempatan === 'kantor').length}
+                    {participants.filter(p => (p.penempatan || '').toLowerCase() === 'kantor').length}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Administrasi</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Lapangan</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {participants.filter(p => p.penempatan === 'lapangan').length}
+                    {participants.filter(p => (p.penempatan || '').toLowerCase() === 'lapangan').length}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Akuisisi Mitra</p>
                 </div>
@@ -414,7 +442,7 @@ const CoordinatorDashboard = () => {
                   Kehadiran & Kunjungan
                 </span>
                 <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                  Target BPU: 20
+                  Target BPU: {liveStats.targetAkuisisi}
                 </span>
               </div>
 
@@ -481,8 +509,8 @@ const CoordinatorDashboard = () => {
             </div>
 
             <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
-              <span>Standar Kelulusan BPJSTK: Nilai &gt;= 75</span>
-              <span className="text-[#121214]/80">92% Memenuhi</span>
+              <span>Standar Kelulusan BPJSTK: Nilai &gt;= {liveStats.passingMin}</span>
+              <span className="text-[#121214]/80">{passRatePct}% Memenuhi</span>
             </div>
           </div>
 
@@ -498,24 +526,24 @@ const CoordinatorDashboard = () => {
                   Sosialisasi & Viralisasi
                 </span>
                 <span className="text-xs font-bold bg-[#121214] text-white px-2.5 py-0.5 rounded-full">
-                  Batch 1
+                  {liveStats.activeBatchName}
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Seminar</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">12 Sesi</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{totalSeminar} Sesi</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Terlaksana</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Sosialisasi</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">8 Kegiatan</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{totalSosialisasi} Kegiatan</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Masyarakat</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Video Konten</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">18 Video</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5">{totalVideo} Video</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Edukasi Program</p>
                 </div>
               </div>
@@ -523,7 +551,7 @@ const CoordinatorDashboard = () => {
 
             <div className="pt-3 border-t border-[#121214]/15 flex items-center justify-between text-xs font-bold">
               <span>Kanal Edukasi Digital</span>
-              <span className="text-[#121214]/80">Tercapai 100%</span>
+              <span className="text-[#121214]/80">{totalVideo + totalSeminar + totalSosialisasi} Total Aksi</span>
             </div>
           </div>
         </div>
@@ -711,8 +739,15 @@ const CoordinatorDashboard = () => {
 
         {/* Leave Workflow Review Modal (Branded Neo-Brutalist) */}
         {reviewModal.isOpen && reviewModal.leave && (
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-            <div className="bg-white border-2 border-[#121214] rounded-2xl p-5 sm:p-6 shadow-[6px_6px_0px_#121214] max-w-lg w-full space-y-4 animate-in zoom-in-95 duration-150">
+          <div
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 overscroll-contain"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Review Pengajuan Izin"
+            onClick={(e) => { if (e.target === e.currentTarget && !reviewModal.submitting) setReviewModal((prev) => ({ ...prev, isOpen: false })); }}
+            onKeyDown={(e) => { if (e.key === 'Escape' && !reviewModal.submitting) setReviewModal((prev) => ({ ...prev, isOpen: false })); }}
+          >
+            <div className="bg-white border-2 border-[#121214] rounded-2xl p-5 sm:p-6 shadow-[6px_6px_0px_#121214] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain space-y-4 animate-in zoom-in-95 duration-150">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-2.5">
                   <div
@@ -759,9 +794,9 @@ const CoordinatorDashboard = () => {
                   </strong>
                 </p>
                 <p className="text-gray-600 italic text-[11px]">"{reviewModal.leave.reason}"</p>
-                {reviewModal.leave.attachment_url && (
+                {(reviewModal.leave.proof_file_url || reviewModal.leave.attachment_url) && (
                   <a
-                    href={reviewModal.leave.attachment_url}
+                    href={reviewModal.leave.proof_file_url || reviewModal.leave.attachment_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-emerald-700 hover:underline font-bold text-[11px] pt-1"

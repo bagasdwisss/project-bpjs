@@ -1,5 +1,5 @@
 // src/components/Common/KtmScannerModal.jsx - Student ID (KTM) Scanner & Autofill Modal
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, CheckCircle2, Sparkles, X, RefreshCw, AlertCircle } from 'lucide-react';
 import { extractKtmMetadata } from '../../utils/ktmOcrExtractor';
 
@@ -8,6 +8,15 @@ export default function KtmScannerModal({ isOpen, onClose, onAutofill }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -36,8 +45,14 @@ export default function KtmScannerModal({ isOpen, onClose, onAutofill }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Pemindai KTM Cerdas"
+      onClick={(e) => { if (e.target === e.currentTarget && !processing) onClose(); }}
+    >
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain">
         {/* Modal Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
