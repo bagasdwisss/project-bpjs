@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { triggerMicroFeedback } from '../utils/microFeedback';
 
 const ToastContext = createContext(null);
 
@@ -16,11 +15,6 @@ export const ToastProvider = ({ children }) => {
     if (!message) return;
     const id = Date.now() + Math.random().toString(36).substring(2, 7);
     const newToast = { id, message, type, duration };
-
-    if (type === 'success') triggerMicroFeedback('success');
-    else if (type === 'error' || type === 'danger') triggerMicroFeedback('error');
-    else if (type === 'warning') triggerMicroFeedback('warning');
-    else triggerMicroFeedback('tap');
 
     setToasts((prev) => [...prev, newToast]);
 

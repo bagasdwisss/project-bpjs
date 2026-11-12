@@ -1,11 +1,10 @@
 import React, { useContext, useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bell, User, Settings, LogOut, Key, Search, ChevronDown, Check, ChevronRight, Clock, Sparkles, X, ShieldCheck, RefreshCw, AlertTriangle, Volume2, VolumeX, Command } from 'lucide-react';
+import { Menu, Bell, User, Settings, LogOut, Key, Search, ChevronDown, Check, ChevronRight, Clock, Sparkles, X, ShieldCheck, RefreshCw, AlertTriangle, Command } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import { getClockStatus } from '../../utils/trueTime';
 import { getPendingDlqCount } from '../../utils/deadLetterQueue';
-import { isMicroSoundEnabled, setMicroSoundEnabled, triggerMicroFeedback } from '../../utils/microFeedback';
 
 const ChangePasswordModal = lazy(() => import('./ChangePasswordModal'));
 
@@ -19,7 +18,6 @@ const Header = ({ toggleSidebar }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dlqCount, setDlqCount] = useState(0);
   const [clockStatus, setClockStatus] = useState({ isClockTampered: false, driftSeconds: 0 });
-  const [microSoundOn, setMicroSoundOn] = useState(() => isMicroSoundEnabled());
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifs, setRecentNotifs] = useState([]);
@@ -45,13 +43,11 @@ const Header = ({ toggleSidebar }) => {
   };
 
   useEffect(() => {
-    // Monitor Dead Letter Queue & Micro Sound sync
+    // Monitor Dead Letter Queue
     const updateDlq = () => setDlqCount(getPendingDlqCount());
-    const onSoundSync = (e) => setMicroSoundOn(Boolean(e?.detail?.enabled));
     updateDlq();
     window.addEventListener('dlq-change', updateDlq);
     window.addEventListener('dlq-recovered', updateDlq);
-    window.addEventListener('micro-sound-change', onSoundSync);
 
     // Monitor NTP Clock Status
     const clockInterval = setInterval(() => {
@@ -61,7 +57,6 @@ const Header = ({ toggleSidebar }) => {
     return () => {
       window.removeEventListener('dlq-change', updateDlq);
       window.removeEventListener('dlq-recovered', updateDlq);
-      window.removeEventListener('micro-sound-change', onSoundSync);
       clearInterval(clockInterval);
     };
   }, []);
@@ -263,28 +258,6 @@ const Header = ({ toggleSidebar }) => {
               >
                 <Command className="w-3.5 h-3.5 text-[#FCE373]" />
                 <span className="hidden lg:inline text-[10px] font-bold tracking-wider">K</span>
-              </button>
-
-              <div className="w-[1px] h-4 bg-neutral-700 mx-0.5"></div>
-
-              {/* Micro Audio Feedback Toggle */}
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !microSoundOn;
-                  setMicroSoundEnabled(next);
-                  setMicroSoundOn(next);
-                  if (next) triggerMicroFeedback('success');
-                }}
-                className="p-1.5 rounded-full hover:bg-neutral-800 text-[#9CA3AF] hover:text-[#B8C96E] transition-colors cursor-pointer"
-                title={microSoundOn ? 'Efek Suara UI: Aktif (Klik untuk matikan)' : 'Efek Suara UI: Mati (Klik untuk aktifkan)'}
-                aria-label="Toggle efek suara interaksi"
-              >
-                {microSoundOn ? (
-                  <Volume2 className="w-4 h-4 text-[#B8C96E]" />
-                ) : (
-                  <VolumeX className="w-4 h-4 text-[#9CA3AF]" />
-                )}
               </button>
 
               <div className="w-[1px] h-4 bg-neutral-700 mx-0.5"></div>

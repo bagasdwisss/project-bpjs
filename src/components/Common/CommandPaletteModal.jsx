@@ -4,11 +4,10 @@ import {
   Search, X, ArrowRight, Home, Users, Calendar, Clock, MapPin, Target,
   Calculator, FileText, BarChart3, Download, Database, Radio, Award,
   ClipboardList, MessageSquare, Bell, ShieldCheck, FolderOpen, TrendingUp,
-  Volume2, VolumeX, Copy
+  Copy
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { isMicroSoundEnabled, setMicroSoundEnabled, triggerMicroFeedback } from '../../utils/microFeedback';
 
 const ROLE_COMMANDS = {
   admin: [
@@ -61,34 +60,24 @@ export default function CommandPaletteModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [queryText, setQueryText] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(() => isMicroSoundEnabled());
   const inputRef = useRef(null);
 
   useEffect(() => {
     const onKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        triggerMicroFeedback('open');
         setIsOpen((prev) => !prev);
       } else if (e.key === 'Escape' && isOpen) {
         setIsOpen(false);
       }
     };
-    const onOpenPalette = () => {
-      triggerMicroFeedback('open');
-      setIsOpen(true);
-    };
-    const onSoundSync = (e) => {
-      setSoundEnabled(Boolean(e?.detail?.enabled));
-    };
+    const onOpenPalette = () => setIsOpen(true);
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('open-command-palette', onOpenPalette);
-    window.addEventListener('micro-sound-change', onSoundSync);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('open-command-palette', onOpenPalette);
-      window.removeEventListener('micro-sound-change', onSoundSync);
     };
   }, [isOpen]);
 
@@ -141,23 +130,9 @@ export default function CommandPaletteModal() {
           }
         },
       },
-      {
-        id: 'toggle-sound',
-        label: soundEnabled ? 'Matikan Efek Suara Interaksi UI' : 'Aktifkan Efek Suara Interaksi UI',
-        group: 'Preferensi Mikro',
-        icon: soundEnabled ? VolumeX : Volume2,
-        keywords: 'suara audio efek feedback klik',
-        action: () => {
-          const next = !isMicroSoundEnabled();
-          setMicroSoundEnabled(next);
-          setSoundEnabled(next);
-          if (next) triggerMicroFeedback('success');
-          toast.info(next ? 'Efek suara interaksi UI diaktifkan.' : 'Efek suara interaksi UI dinonaktifkan.');
-        },
-      },
     ];
     return [...navItems, ...quickActions];
-  }, [roleKey, user?.unique_id, soundEnabled, toast]);
+  }, [roleKey, user?.unique_id, toast]);
 
   const filteredCommands = useMemo(() => {
     const q = queryText.trim().toLowerCase();
@@ -178,7 +153,6 @@ export default function CommandPaletteModal() {
 
   const runCommand = (cmd) => {
     if (!cmd) return;
-    triggerMicroFeedback('tap');
     setIsOpen(false);
     if (cmd.action) cmd.action();
     else if (cmd.path) navigate(cmd.path);
@@ -211,7 +185,7 @@ export default function CommandPaletteModal() {
         onClick={() => setIsOpen(false)}
       />
 
-      <div className="relative w-full max-w-xl bg-white border-2 border-[#121214] rounded-2xl shadow-[8px_8px_0px_#121214] overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-xl bg-white border-2 border-[#121214] rounded-2xl shadow-[8px_8px_0px_#121214] overflow-hidden z-10 modal-surface-enter">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b-2 border-[#121214] bg-[#FAF9F6]">
           <Search className="w-4 h-4 text-[#121214] shrink-0" />
           <input
@@ -248,7 +222,7 @@ export default function CommandPaletteModal() {
                   type="button"
                   onMouseEnter={() => setSelectedIndex(idx)}
                   onClick={() => runCommand(cmd)}
-                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer border-2 ${
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer border-2 ${
                     isSelected
                       ? 'bg-[#FCE373] border-[#121214] shadow-[2px_2px_0px_#121214] text-[#121214]'
                       : 'bg-transparent border-transparent hover:bg-[#F5F4F0] text-[#121214]'

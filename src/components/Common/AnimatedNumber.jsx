@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { prefersReducedMotion } from '../../utils/microFeedback';
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
 /**
  * Komponen angka KPI beranimasi halus (easeOutExpo) yang langsung melompat ke nilai akhir

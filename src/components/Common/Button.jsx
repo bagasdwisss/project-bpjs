@@ -1,6 +1,5 @@
 // src/components/Common/Button.jsx
 import React from 'react';
-import { triggerMicroFeedback } from '../../utils/microFeedback';
 
 export const Button = ({
   children,
@@ -13,10 +12,10 @@ export const Button = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#121214] cursor-pointer';
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#121214] cursor-pointer';
   
   const variants = {
-    primary: 'bg-[#121214] hover:bg-neutral-800 text-white shadow-sm hover:shadow-md',
+    primary: 'bg-[#121214] hover:bg-neutral-800 text-white shadow-sm',
     secondary: 'bg-white hover:bg-[#EAE9E4] text-[#121214] border border-[#EAE9E4] shadow-sm',
     pink: 'bg-[#F5C6EC] hover:bg-[#E59CD8] text-[#121214] font-semibold',
     yellow: 'bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-semibold',
@@ -37,17 +36,11 @@ export const Button = ({
   const isDisabled = disabled || loading;
   const disabledClasses = isDisabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
 
-  const handleClick = (e) => {
-    if (isDisabled) return;
-    triggerMicroFeedback('tap');
-    if (onClick) onClick(e);
-  };
-
   return (
     <button
       type={type}
       disabled={isDisabled}
-      onClick={handleClick}
+      onClick={onClick}
       className={`${baseClasses} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${disabledClasses} ${className}`}
       {...props}
     >

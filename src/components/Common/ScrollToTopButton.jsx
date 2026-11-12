@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
-import { prefersReducedMotion, triggerMicroFeedback } from '../../utils/microFeedback';
 
 /**
  * Tombol mikro mengambang untuk kembali cepat ke atas area konten yang digulir.
@@ -29,12 +28,12 @@ export default function ScrollToTopButton({ scrollContainerRef }) {
   if (!visible) return null;
 
   const handleClick = () => {
-    triggerMicroFeedback('tap');
     const el = scrollContainerRef?.current;
+    const reduce = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
     if (el) {
       el.scrollTo({
         top: 0,
-        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+        behavior: reduce ? 'auto' : 'smooth',
       });
     }
   };
@@ -45,7 +44,7 @@ export default function ScrollToTopButton({ scrollContainerRef }) {
       onClick={handleClick}
       aria-label="Kembali ke atas halaman"
       title="Kembali ke atas"
-      className="fixed bottom-5 left-4 lg:left-[17rem] z-30 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-white hover:bg-[#FCE373] text-[#121214] border-2 border-[#121214] shadow-[3px_3px_0px_#121214] text-xs font-black transition-all duration-150 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer animate-in fade-in zoom-in-95"
+      className="fixed bottom-5 left-4 lg:left-[17rem] z-30 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-white hover:bg-[#FCE373] text-[#121214] border-2 border-[#121214] shadow-[3px_3px_0px_#121214] text-xs font-black transition-all duration-150 cursor-pointer animate-in fade-in zoom-in-95"
     >
       <ArrowUp className="w-3.5 h-3.5" />
       <span className="hidden sm:inline">Ke Atas</span>
