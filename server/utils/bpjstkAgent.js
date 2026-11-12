@@ -12,11 +12,17 @@ import { getJakartaNow } from './jakartaTime.js';
 
 const fmtRp = (val) => `Rp ${Math.round(Number(val || 0)).toLocaleString('id-ID')}`;
 
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const hasWordKeyword = (textLower, kw) => {
+  const rx = new RegExp(`(?:^|[^a-z0-9])${escapeRegex(kw)}(?:$|[^a-z0-9])`, 'i');
+  return rx.test(textLower);
+};
+
 const CURATED_REGULATIONS = [
   {
     id: '5_program',
     topic: '5 Program Utama BPJSTK',
-    keywords: ['5 program', 'program bpjs', 'apa saja', 'jkk', 'jkm', 'jht', 'jp', 'jkp', 'cakupan', 'manfaat utama'],
+    keywords: ['5 program', 'program bpjs', 'program bpjstk', 'apa itu bpjs', 'apa itu bpjstk', 'tentang bpjs', 'jaminan sosial', 'jkk', 'jkm', 'jht', 'jp', 'jkp', 'cakupan program', 'manfaat utama'],
     buildAnswer: () =>
       `BPJS Ketenagakerjaan menyelenggarakan **5 Program Jaminan Sosial** (UU No. 40/2004 & UU No. 24/2011):\n` +
       `1. **JKK (Jaminan Kecelakaan Kerja)**: Perlindungan kecelakaan kerja sejak berangkat, saat bekerja, perjalanan pulang, hingga penyakit akibat kerja. Biaya pengobatan medis **unlimited** di RS PLKK + santunan upah STMB.\n` +
@@ -154,7 +160,7 @@ function createAgentTools(user, executionTrace) {
         for (const item of CURATED_REGULATIONS) {
           let score = 0;
           for (const kw of item.keywords) {
-            if (qLower.includes(kw)) score += kw.includes(' ') ? 3 : 2;
+            if (hasWordKeyword(qLower, kw)) score += kw.includes(' ') ? 3 : 2;
           }
           if (score > bestScore) {
             bestScore = score;
@@ -362,26 +368,32 @@ function createAgentTools(user, executionTrace) {
 
     get_attendance_schedule_and_geofence: tool({
       description:
-        'Mengambil jadwal jam kerja resmi, batas Auto-Alfa (WIB), hari libur terdekat, kuota izin bulanan, dan daftar titik lokasi geofence aktif dari database.',
+        'Mengambil jadwal jam kerja resmi, batas tepat waktu, batas Auto-Alfa (WIB), hari libur terdekat, kuota izin bulanan, dan daftar titik lokasi geofence aktif dari database.',
       inputSchema: z.object({}),
       execute: async () => {
         const { dateStr } = getJakartaNow();
         const [schedRes, holRes, geoRes, quotaRes] = await Promise.all([
-          query(`SELECT check_in_start, work_start_time, work_end_time, work_days, allow_weekend, inactivity_timeout_minutes FROM attendance_settings ORDER BY id ASC LIMIT 1`).catch(() => ({ rows: [] })),
+          query(
+            `SELECT work_start_time, work_ontime_limit, work_end_time, work_days, allow_weekend, late_tolerance_minutes, inactivity_timeout_minutes
+             FROM attendance_settings ORDER BY id ASC LIMIT 1`
+          ).catch(() => ({ rows: [] })),
           query(`SELECT holiday_name, TO_CHAR(holiday_date, 'YYYY-MM-DD') AS holiday_date FROM holidays WHERE holiday_date >= $1::date ORDER BY holiday_date ASC LIMIT 5`, [dateStr]).catch(() => ({ rows: [] })),
           query(`SELECT name, category, address, radius_meters FROM geofence_locations WHERE is_active = TRUE ORDER BY id ASC LIMIT 10`).catch(() => ({ rows: [] })),
           query(`SELECT setting_value FROM system_settings WHERE setting_key = 'max_monthly_leaves' LIMIT 1`).catch(() => ({ rows: [] }))
         ]);
 
+        const sched = schedRes.rows[0] || {
+          work_start_time: '07:00:00',
+          work_ontime_limit: '08:00:00',
+          work_end_time: '17:00:00',
+          work_days: '1,2,3,4,5',
+          allow_weekend: false,
+          late_tolerance_minutes: 0
+        };
+
         track('get_attendance_schedule_and_geofence', `${geoRes.rows.length} titik geofence, ${holRes.rows.length} libur`);
         return {
-          schedule: schedRes.rows[0] || {
-            check_in_start: '06:00:00',
-            work_start_time: '08:00:00',
-            work_end_time: '17:00:00',
-            work_days: '1,2,3,4,5',
-            allow_weekend: false
-          },
+          schedule: sched,
           maxMonthlyLeavesQuota: parseInt(quotaRes.rows[0]?.setting_value || '3', 10),
           upcomingHolidays: holRes.rows || [],
           activeGeofences: geoRes.rows || []
@@ -391,7 +403,7 @@ function createAgentTools(user, executionTrace) {
 
     get_grading_targets_and_rules: tool({
       description:
-        'Mengambil target pencapaian magang aktif (Kunjungan BPU, Akuisisi BPU, Kunjungan PU, Video, Seminar, Sosialisasi), bobot penilaian %, batas nilai kelulusan, dan profil penandatangan sertifikat resmi.',
+        'Mengambil target pencapaian magang aktif (Kunjungan BPU, Akuisisi BPU, Kunjungan PU, Video, Seminar, Sosialisasi), bobot penilaian %, batas nilai kelulusan (Grade A/B/C), dan profil penandatangan sertifikat resmi.',
       inputSchema: z.object({}),
       execute: async () => {
         const [gRes, instRes] = await Promise.all([
@@ -400,19 +412,32 @@ function createAgentTools(user, executionTrace) {
         ]);
         const instMap = {};
         (instRes.rows || []).forEach((r) => { instMap[r.setting_key] = r.setting_value; });
+        const rawG = gRes.rows[0] || {};
+        const toWeightPct = (val, fallback) => {
+          const n = Number(val ?? fallback);
+          return n > 0 && n <= 1 ? Math.round(n * 100) : Math.round(n);
+        };
+        const gradingSettings = {
+          target_kunjungan_bpu: Number(rawG.target_kunjungan_bpu ?? 30),
+          target_akuisisi_bpu: Number(rawG.target_akuisisi_bpu ?? 20),
+          target_kunjungan_pu: Number(rawG.target_kunjungan_pu ?? 7),
+          target_video: Number(rawG.target_video ?? 1),
+          target_seminar: Number(rawG.target_seminar ?? 2),
+          target_sosialisasi: Number(rawG.target_sosialisasi ?? 1),
+          weight_akuisisi_bpu: toWeightPct(rawG.weight_akuisisi_bpu, 35),
+          weight_kunjungan_bpu: toWeightPct(rawG.weight_kunjungan_bpu, 25),
+          weight_kunjungan_pu: toWeightPct(rawG.weight_kunjungan_pu, 15),
+          weight_video: toWeightPct(rawG.weight_video, 10),
+          weight_seminar: toWeightPct(rawG.weight_seminar, 10),
+          weight_sosialisasi: toWeightPct(rawG.weight_sosialisasi, 5),
+          grade_a_cutoff: Number(rawG.grade_a_cutoff ?? 85),
+          grade_b_cutoff: Number(rawG.grade_b_cutoff ?? 75),
+          grade_c_cutoff: Number(rawG.grade_c_cutoff ?? 60),
+          passing_grade: Number(rawG.passing_grade ?? rawG.grade_b_cutoff ?? 75)
+        };
         track('get_grading_targets_and_rules', 'Target & bobot penilaian diambil');
         return {
-          gradingSettings: gRes.rows[0] || {
-            target_kunjungan_bpu: 30,
-            target_akuisisi_bpu: 20,
-            target_kunjungan_pu: 7,
-            target_video: 1,
-            target_seminar: 2,
-            target_sosialisasi: 1,
-            passing_grade: 75,
-            grade_a_cutoff: 85,
-            grade_b_cutoff: 75
-          },
+          gradingSettings,
           institution: instMap
         };
       }
@@ -484,9 +509,9 @@ function createAgentTools(user, executionTrace) {
 
     search_mentee_status: tool({
       description:
-        'Khusus Koordinator dan Administrator: mencari profil, kehadiran, progres, nilai/grade, dan status sertifikat seorang anak didik berdasarkan nama atau unique_id (mis. PES001 / Arthur). Ditolak untuk Peserta.',
+        'Khusus Koordinator dan Administrator: mencari profil, kehadiran, progres, nilai/grade, dan status sertifikat peserta magang berdasarkan nama atau unique_id (mis. PES001 / Arthur), atau isi ALL untuk daftar seluruh anak didik aktif. Ditolak untuk Peserta.',
       inputSchema: z.object({
-        searchNameOrId: z.string().describe('Nama lengkap/panggilan atau unique_id peserta yang dicari.')
+        searchNameOrId: z.string().describe('Nama lengkap/panggilan, unique_id peserta, atau ALL untuk seluruh peserta binaan.')
       }),
       execute: async ({ searchNameOrId }) => {
         if (roleGroup === 'Peserta') {
@@ -497,25 +522,42 @@ function createAgentTools(user, executionTrace) {
           };
         }
 
-        const q = `%${String(searchNameOrId || '').trim()}%`;
+        const rawSearch = String(searchNameOrId || '').trim();
+        const isListAll = !rawSearch || rawSearch.toUpperCase() === 'ALL' || rawSearch === '*';
+        const q = `%${rawSearch}%`;
         const isCoord = roleGroup === 'Koordinator';
+
+        const whereParts = [`u.role_id = 1`, `u.status = 'Aktif'`];
+        const params = [];
+        if (isCoord) {
+          params.push(user.user_id);
+          whereParts.push(`u.coordinator_id = $${params.length}`);
+        }
+        if (!isListAll) {
+          params.push(q);
+          whereParts.push(`(u.full_name ILIKE $${params.length} OR u.unique_id ILIKE $${params.length})`);
+        }
+
         const sql = `
-          SELECT u.user_id, u.full_name, u.unique_id, u.penempatan, u.status,
-                 p.kunjungan_bpu, p.hasil_akuisisi_bpu, p.kunjungan_pu, p.nilai, p.grade,
-                 c.certificate_number, c.certificate_type
-          FROM users u
-          LEFT JOIN progress p ON u.user_id = p.user_id
-          LEFT JOIN certificates c ON u.user_id = c.user_id
-          WHERE u.role_id = 1
-            ${isCoord ? 'AND u.coordinator_id = $2' : ''}
-            AND (u.full_name ILIKE $1 OR u.unique_id ILIKE $1)
-          ORDER BY u.full_name ASC
-          LIMIT 3
+          SELECT * FROM (
+            SELECT DISTINCT ON (u.user_id)
+                   u.user_id, u.full_name, u.unique_id, u.penempatan, u.status,
+                   p.kunjungan_bpu, p.hasil_akuisisi_bpu, p.kunjungan_pu, p.nilai, p.grade,
+                   c.certificate_number, c.certificate_type
+            FROM users u
+            LEFT JOIN progress p ON u.user_id = p.user_id
+            LEFT JOIN certificates c ON u.user_id = c.user_id
+            WHERE ${whereParts.join(' AND ')}
+            ORDER BY u.user_id, c.created_at DESC NULLS LAST
+          ) sub
+          ORDER BY ${isListAll ? 'COALESCE(sub.nilai, 0) DESC, sub.full_name ASC' : 'sub.full_name ASC'}
+          LIMIT ${isListAll ? 10 : 5}
         `;
-        const res = await query(sql, isCoord ? [q, user.user_id] : [q]).catch(() => ({ rows: [] }));
+        const res = await query(sql, params).catch(() => ({ rows: [] }));
         track('search_mentee_status', `${res.rows.length} peserta ditemukan`);
         return {
           authorized: true,
+          isListAll,
           matches: res.rows || []
         };
       }
@@ -564,32 +606,117 @@ function parseCalculatorParams(text) {
  */
 async function runDeterministicPlannerAgent({ user, question, history, tools, trace }) {
   const roleGroup = getUserRoleGroup(user);
+  const firstName = user?.full_name?.split(' ')[0] || 'Sobat BPJSTK';
+  const qRaw = String(question || '').trim();
+  const qLower = qRaw.toLowerCase();
   const recentContext = Array.isArray(history)
     ? history
         .slice(-4)
         .map((m) => String(m?.text || m?.content || ''))
         .join(' ')
     : '';
-  const combinedText = `${question} ${question.length < 28 ? recentContext : ''}`.toLowerCase();
+  const combinedText = `${qRaw} ${qRaw.length < 24 ? recentContext : ''}`.toLowerCase();
 
-  const wantsCalc = /\b(hitung|simulasi|kalkulator|estimasi|biaya|iuran|bayar)\b/.test(combinedText) &&
-    /\b(bpu|jkk|jkm|jht|program|juta|jt|bulan|bln|tahun|gaji|upah|penghasilan)\b/.test(combinedText);
-  const wantsMySummary = /\b(saya|aku|ku|progres|progress|rekap|ringkasan|nilai|grade|performa|anak didik|binaan|monitoring|sistem|hari ini|anomali)\b/.test(combinedText);
-  const wantsSchedule = /\b(jadwal|jam kerja|jam masuk|jam pulang|libur|geofence|radius|lokasi|kantor|auto.?alfa|timeout)\b/.test(combinedText);
-  const wantsGradingRules = /\b(target|bobot|kelulusan|passing|syarat lulus|standar nilai|kepala cabang|penandatangan|kop surat)\b/.test(combinedText);
+  const wantsCalc =
+    /\b(hitung|simulasi|kalkulator|estimasi|biaya|iuran|bayar|tarif)\b/.test(combinedText) &&
+    /\b(bpu|jkk|jkm|jht|program|juta|jt|ribu|rb|bulan|bln|tahun|gaji|upah|penghasilan|omzet)\b/.test(combinedText);
+  const wantsMenteeList =
+    roleGroup !== 'Peserta' &&
+    /\b(siapa saja|daftar|list|semua|tampilkan)\b/.test(qLower) &&
+    /\b(peserta|anak didik|binaan|magang)\b/.test(qLower);
+  const wantsMySummary = /\b(saya|aku|ku|progres|progress|rekap|ringkasan|nilai|grade|performa|anak didik|binaan|monitoring|sistem|hari ini|anomali|presensi|absen|absensi)\b/.test(combinedText);
+  const wantsSchedule = /\b(jadwal|jam kerja|jam masuk|jam pulang|jam absen|libur|geofence|radius|lokasi|kantor|auto.?alfa|timeout|weekend|sabtu|minggu)\b/.test(combinedText);
+  const wantsGradingRules = /\b(target|bobot|kelulusan|passing|syarat lulus|standar nilai|kepala cabang|penandatangan|kop surat|predikat|cara lulus|penilaian)\b/.test(combinedText);
   const wantsLeaveCert = /\b(izin|sakit|cuti|kuota|sertifikat|reissue|koreksi|terbit)\b/.test(combinedText);
 
   // Extract potential student ID or name lookup for Coordinator/Admin
-  const idMatch = question.match(/\b(PES\d+|ADM\d+|KO\d+)\b/i);
-  const nameAfterKeyword = question.match(/(?:status|nilai|progres|absen(?:si)?|cek|cari|peserta|anak didik)\s+(?:atas nama\s+|dari\s+)?([A-Za-z]{3,25})/i);
-  const ignoredWords = new Set(['saya', 'aku', 'hari', 'ini', 'bulan', 'magang', 'sertifikat', 'izin', 'sakit', 'alfa', 'semua', 'anak', 'didik', 'peserta', 'bpu', 'program', 'nilai', 'progres', 'target']);
+  const idMatch = qRaw.match(/\b(PES\d+|ADM\d+|KO\d+)\b/i);
+  const nameAfterKeyword = qRaw.match(/(?:status|nilai|progres|absen(?:si)?|cek|cari|peserta|anak didik)\s+(?:atas nama\s+|dari\s+)?([A-Za-z]{3,25})/i);
+  const ignoredWords = new Set(['saya', 'aku', 'hari', 'ini', 'bulan', 'magang', 'sertifikat', 'izin', 'sakit', 'alfa', 'semua', 'anak', 'didik', 'peserta', 'bpu', 'program', 'nilai', 'progres', 'target', 'saja', 'terbaik', 'yang', 'belum']);
   const candidateSearch = idMatch?.[1] || (nameAfterKeyword && !ignoredWords.has(nameAfterKeyword[1].toLowerCase()) ? nameAfterKeyword[1] : null);
-  const wantsMenteeLookup = roleGroup !== 'Peserta' && Boolean(candidateSearch);
+  const wantsMenteeLookup = roleGroup !== 'Peserta' && Boolean(candidateSearch) && !wantsMenteeList;
+
+  const isGreeting = /^(halo+|hai+|hi+|hey+|selamat\s+(pagi|siang|sore|malam)|assalamu'?alaikum|permisi|pagi|siang|sore|malam|ping)\b[!.,?\s]*$/i.test(qRaw);
+  const isThanks = /^(terima\s*kasih|makasih+|thanks+|thank\s*you|oke+|ok+|sip+|mantap+|siap|noted)\b[!.,?\s]*$/i.test(qRaw);
+  const isHelpOrIdentity = /\b(siapa kamu|kamu siapa|bisa apa|kemampuan|bantuan|help|menu|cara pakai)\b/.test(qLower);
+
+  const hasOperationalIntent =
+    wantsCalc || wantsMenteeList || wantsMenteeLookup || wantsMySummary || wantsSchedule || wantsGradingRules || wantsLeaveCert;
+  const hasExplicitRegIntent = /\b(5 program|program bpjs|program bpjstk|jkk|jkm|jht|jp|jkp|stmb|beasiswa|klaim|santunan|apa itu|bagaimana aturan|aturan|regulasi|uu|cara daftar|cara absen|syarat|sop)\b/.test(qLower);
+
+  if (!hasOperationalIntent && !hasExplicitRegIntent) {
+    if (isThanks) {
+      return {
+        topic: 'BPJSTK Smart Agent',
+        answer: `Sama-sama, **${firstName}**! Jika ada pertanyaan lain seputar program BPJSTK, simulasi iuran BPU, atau data pemagangan, silakan ketik kapan saja.`,
+        source: 'conversational_agent',
+        engine: 'bpjstk-autonomous-agent',
+        model: 'deterministic-planner-v3',
+        toolsUsed: []
+      };
+    }
+
+    if (isGreeting || isHelpOrIdentity) {
+      const roleExamples =
+        roleGroup === 'Administrator'
+          ? [
+              '*"Ringkasan sistem, anomali & reissue hari ini"*',
+              '*"Daftar semua peserta magang"* atau *"Cek status PES001"*',
+              '*"Jadwal kerja, hari libur & lokasi geofence"*',
+              '*"Target & bobot penilaian magang"* atau *"Hitung iuran BPU 3 program upah 3 juta 6 bulan"*'
+            ]
+          : roleGroup === 'Koordinator'
+            ? [
+                '*"Ringkasan anak didik & pending approval"*',
+                '*"Siapa saja peserta binaan saya?"* atau *"Cek status peserta PES001"*',
+                '*"Target penilaian & standar kelulusan"*',
+                '*"Hitung iuran BPU 2 program 6 bulan"*'
+              ]
+            : [
+                '*"Cek absensi & progres saya bulan ini"*',
+                '*"Cek status izin & sertifikat saya"*',
+                '*"Jadwal jam masuk, libur & lokasi geofence"*',
+                '*"Hitung iuran BPU 3 program upah 3 juta 6 bulan"*'
+              ];
+
+      return {
+        topic: 'BPJSTK Smart Agent',
+        answer:
+          `Halo **${firstName}**! Saya **BPJSTK Smart Agent** (peran **${roleGroup}**) yang terhubung langsung ke database sistem.\n\n` +
+          `### Hal yang bisa langsung Anda tanyakan:\n` +
+          roleExamples.map((ex, i) => `${i + 1}. ${ex}`).join('\n') +
+          `\n\nAnda juga bisa bertanya seputar regulasi **5 Program BPJSTK** (JKK, JKM, JHT, JP, JKP), klaim STMB, santunan JKM, maupun aturan presensi/sertifikat.`,
+        source: 'conversational_agent',
+        engine: 'bpjstk-autonomous-agent',
+        model: 'deterministic-planner-v3',
+        toolsUsed: []
+      };
+    }
+  }
 
   const sections = [];
   let mainTopic = 'BPJSTK Smart Agent';
-
   const tasks = [];
+
+  if (wantsMenteeList) {
+    tasks.push(
+      tools.search_mentee_status.execute({ searchNameOrId: 'ALL' }).then((data) => {
+        mainTopic = 'Daftar Peserta Magang Aktif';
+        if (!data.authorized) return;
+        if (!data.matches.length) {
+          sections.push('Belum ada data peserta magang aktif yang tercatat pada cakupan Anda.');
+          return;
+        }
+        const lines = data.matches.map(
+          (m, idx) =>
+            `${idx + 1}. **${m.full_name} (${m.unique_id})** — ${m.penempatan || 'Umum'}\n` +
+            `   Kunjungan BPU: **${m.kunjungan_bpu ?? 0}** | Akuisisi BPU: **${m.hasil_akuisisi_bpu ?? 0}** | Kunjungan PU: **${m.kunjungan_pu ?? 0}** | Nilai: **${m.nilai ?? 0}** (${m.grade || '-'})\n` +
+            `   Sertifikat: ${m.certificate_number ? `Terbit (${m.certificate_type}: \`${m.certificate_number}\`)` : 'Belum terbit'}`
+        );
+        sections.push(`### Daftar Peserta Magang (${data.matches.length} ditampilkan):\n${lines.join('\n')}`);
+      })
+    );
+  }
 
   if (wantsMenteeLookup) {
     tasks.push(
@@ -597,38 +724,38 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
         mainTopic = `Pencarian Peserta: ${candidateSearch}`;
         if (!data.authorized) return;
         if (!data.matches.length) {
-          sections.push(`**Hasil Pencarian Peserta ("${candidateSearch}"):**\nBelum ditemukan anak didik binaan yang cocok dengan kata kunci tersebut.`);
+          sections.push(`Belum ditemukan peserta magang aktif yang cocok dengan **"${candidateSearch}"**.`);
           return;
         }
         const lines = data.matches.map(
-          (m) =>
-            `• **${m.full_name} (${m.unique_id})** — ${m.penempatan || 'Umum'} (${m.status})\n` +
-            `  Kunjungan BPU: **${m.kunjungan_bpu ?? 0}** | Akuisisi BPU: **${m.hasil_akuisisi_bpu ?? 0}** | Kunjungan PU: **${m.kunjungan_pu ?? 0}** | Nilai: **${m.nilai ?? 0}** (Grade **${m.grade || '-'}**)\n` +
-            `  Sertifikat: ${m.certificate_number ? `Terbit (${m.certificate_type}: \`${m.certificate_number}\`)` : 'Belum diterbitkan'}`
+          (m, idx) =>
+            `${idx + 1}. **${m.full_name} (${m.unique_id})** — ${m.penempatan || 'Umum'} (${m.status})\n` +
+            `   Kunjungan BPU: **${m.kunjungan_bpu ?? 0}** | Akuisisi BPU: **${m.hasil_akuisisi_bpu ?? 0}** | Kunjungan PU: **${m.kunjungan_pu ?? 0}** | Nilai: **${m.nilai ?? 0}** (Grade **${m.grade || '-'}**)\n` +
+            `   Sertifikat: ${m.certificate_number ? `Terbit (${m.certificate_type}: \`${m.certificate_number}\`)` : 'Belum diterbitkan'}`
         );
-        sections.push(`**Profil & Capaian Anak Didik:**\n${lines.join('\n')}`);
+        sections.push(`### Profil & Capaian Peserta:\n${lines.join('\n')}`);
       })
     );
   }
 
   if (wantsCalc) {
-    const calcParams = parseCalculatorParams(question);
+    const calcParams = parseCalculatorParams(qRaw);
     tasks.push(
       tools.calculate_bpu_contribution.execute(calcParams).then((res) => {
         if (mainTopic === 'BPJSTK Smart Agent') mainTopic = 'Simulasi Kalkulator Iuran BPU';
         const mb = res.monthlyBreakdown;
         sections.push(
-          `**Simulasi Iuran BPU (${res.programPackage === '3_program' ? '3 Program: JKK + JKM + JHT' : '2 Program: JKK + JKM'}) — ${res.months} Bulan:**\n` +
+          `### Simulasi Iuran BPU (${res.programPackage === '3_program' ? '3 Program: JKK + JKM + JHT' : '2 Program: JKK + JKM'}) — ${res.months} Bulan\n` +
             `• Dasar Upah Dilaporkan: **${fmtRp(res.basisIncomeRp)}/bulan**\n` +
             `• Rincian/Bulan: JKK **${fmtRp(mb.jkkRp)}** + JKM **${fmtRp(mb.jkmRp)}**${mb.jhtRp ? ` + Tabungan JHT **${fmtRp(mb.jhtRp)}**` : ''}\n` +
             `• **Total Iuran/Bulan:** ${fmtRp(mb.totalPerMonthRp)} | **Total ${res.months} Bulan:** **${fmtRp(res.totalForPeriodRp)}**\n` +
-            `• Perlindungan: Medis JKK **Unlimited**, Santunan Kematian **${fmtRp(res.benefits.jkmDeathBenefitRp)}**, Beasiswa Maks **${fmtRp(res.benefits.maxScholarshipRp)}**.`
+            `• Manfaat Perlindungan: Medis JKK **Unlimited**, Santunan Kematian **${fmtRp(res.benefits.jkmDeathBenefitRp)}**, Beasiswa Maks **${fmtRp(res.benefits.maxScholarshipRp)}**.`
         );
       })
     );
   }
 
-  if (wantsMySummary) {
+  if (wantsMySummary && !wantsMenteeList) {
     tasks.push(
       tools.get_my_internship_summary.execute({}).then((data) => {
         if (mainTopic === 'BPJSTK Smart Agent') mainTopic = `Ringkasan Live ${data.role}`;
@@ -636,7 +763,7 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
           const a = data.attendance || {};
           const p = data.progress || {};
           sections.push(
-            `**Ringkasan Magang Anda (${data.user.full_name} • ${data.user.unique_id}):**\n` +
+            `### Ringkasan Magang Anda (${data.user.full_name} • ${data.user.unique_id})\n` +
               `• **Presensi Bulan Ini (${data.period})**: Hadir **${a.hadir || 0}**, Terlambat **${a.terlambat || 0}**, Izin **${a.izin || 0}**, Sakit **${a.sakit || 0}**, Alfa **${a.alfa || 0}** (Tingkat Kehadiran: **${a.attendanceRatePct || 0}%**).\n` +
               `• **Progres & Penilaian**: Kunjungan BPU **${p.kunjungan_bpu ?? 0}**, Akuisisi BPU **${p.hasil_akuisisi_bpu ?? 0}**, Kunjungan PU **${p.kunjungan_pu ?? 0}**, Nilai Akhir **${p.nilai ?? 0}** (Grade **${p.grade || '-'}**), Rata-rata Modul **${data.moduleScores?.avg_score ?? 0}** (${data.moduleScores?.count ?? 0} modul).\n` +
               `• **Sertifikat**: ${data.certificate ? `Sudah Terbit — ${data.certificate.certificate_type} (\`${data.certificate.certificate_number}\`, ${data.certificate.predicate})` : 'Belum diterbitkan koordinator'}.`
@@ -646,7 +773,7 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
             .map((m) => `${m.full_name} (${m.unique_id}: Nilai ${m.nilai})`)
             .join(', ');
           sections.push(
-            `**Ringkasan Operasional Koordinator (${data.user.full_name}):**\n` +
+            `### Ringkasan Operasional Koordinator (${data.user.full_name})\n` +
               `• **Anak Didik Binaan Aktif**: **${data.activeMenteesCount}** peserta | **Sertifikat Terbit**: **${data.issuedCertificatesForMentees}**.\n` +
               `• **Menunggu Verifikasi Anda**: **${data.pendingLeavesToReview}** pengajuan izin/sakit | **${data.pendingBpuVerifications}** bukti akuisisi BPU.\n` +
               `• **Perlu Perhatian (<75)**: ${attn || 'Seluruh peserta di atas batas minimal'}.`
@@ -655,7 +782,7 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
           const u = data.users || {};
           const ta = data.todayAttendance || {};
           sections.push(
-            `**Ringkasan Live Administrator (${data.todayDateWib} WIB):**\n` +
+            `### Ringkasan Live Administrator (${data.todayDateWib} WIB)\n` +
               `• **Akun Aktif**: **${u.active_users || 0}** total (**${u.active_peserta || 0}** Peserta, **${u.active_koordinator || 0}** Koordinator) di **${data.totalBatches}** batch.\n` +
               `• **Presensi Hari Ini**: **${ta.total || 0}** log (Hadir **${ta.hadir || 0}**, Terlambat **${ta.terlambat || 0}**, Alfa **${ta.alfa || 0}**).\n` +
               `• **Keamanan & Sertifikat**: **${data.securityAnomalies24h}** anomali keamanan (24 jam) | **${data.pendingCertificateReissues}** permohonan reissue sertifikat menunggu persetujuan.`
@@ -670,6 +797,7 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
       tools.get_attendance_schedule_and_geofence.execute({}).then((data) => {
         if (mainTopic === 'BPJSTK Smart Agent') mainTopic = 'Jadwal Kerja, Libur & Geofence';
         const s = data.schedule;
+        const tol = Number(s.late_tolerance_minutes || 0);
         const holText = data.upcomingHolidays.length
           ? data.upcomingHolidays.map((h) => `${h.holiday_date} (${h.holiday_name})`).join(', ')
           : 'Tidak ada hari libur terdekat terdaftar';
@@ -677,8 +805,8 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
           ? data.activeGeofences.map((g) => `${g.name} (${g.radius_meters}m)`).join(', ')
           : 'Kantor Cabang Utama';
         sections.push(
-          `**Jadwal Presensi, Libur & Titik Geofence:**\n` +
-            `• **Jam Operasional (WIB)**: Check-in buka **${String(s.check_in_start).slice(0, 5)}**, Jam Masuk **${String(s.work_start_time).slice(0, 5)}**, Batas Pulang / Auto-Alfa **${String(s.work_end_time).slice(0, 5)}**.\n` +
+          `### Jadwal Presensi, Libur & Titik Geofence\n` +
+            `• **Jam Operasional (WIB)**: Buka Absen **${String(s.work_start_time).slice(0, 5)}**, Tepat Waktu s.d. **${String(s.work_ontime_limit).slice(0, 5)}**${tol > 0 ? ` (+${tol} mnt toleransi)` : ''}, Batas Pulang / Auto-Alfa **${String(s.work_end_time).slice(0, 5)}**.\n` +
             `• **Kuota Izin Bulanan**: Maksimal **${data.maxMonthlyLeavesQuota}x** per bulan | **Weekend**: ${s.allow_weekend ? 'Dibuka' : 'Terkunci'}.\n` +
             `• **Titik Geofence Aktif**: ${geoText}.\n` +
             `• **Hari Libur Terdekat**: ${holText}.`
@@ -693,9 +821,10 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
         if (mainTopic === 'BPJSTK Smart Agent') mainTopic = 'Target & Bobot Penilaian Magang';
         const g = data.gradingSettings;
         sections.push(
-          `**Target & Standar Kelulusan Magang Aktif:**\n` +
+          `### Target, Bobot & Standar Kelulusan Magang\n` +
             `• **Target Aktivitas**: Kunjungan BPU **${g.target_kunjungan_bpu}**, Akuisisi BPU **${g.target_akuisisi_bpu}**, Kunjungan PU **${g.target_kunjungan_pu}**, Video **${g.target_video}**, Seminar **${g.target_seminar}**, Sosialisasi **${g.target_sosialisasi}**.\n` +
-            `• **Standar Nilai**: Passing Grade **${g.passing_grade}** (Grade A ≥ ${g.grade_a_cutoff}, Grade B ≥ ${g.grade_b_cutoff}).\n` +
+            `• **Bobot Penilaian**: Akuisisi BPU **${g.weight_akuisisi_bpu}%**, Kunjungan BPU **${g.weight_kunjungan_bpu}%**, Kunjungan PU **${g.weight_kunjungan_pu}%**, Video **${g.weight_video}%**, Seminar **${g.weight_seminar}%**, Sosialisasi **${g.weight_sosialisasi}%**.\n` +
+            `• **Standar Nilai**: Batas Lulus **≥ ${g.passing_grade}** (Grade A ≥ ${g.grade_a_cutoff}, Grade B ≥ ${g.grade_b_cutoff}, Grade C ≥ ${g.grade_c_cutoff}).\n` +
             `• **Instansi & Penandatangan**: ${data.institution.branch_name || 'BPJS Ketenagakerjaan'} (Kepala Cabang: ${data.institution.branch_head_name || '-'}, Mentor: ${data.institution.mentor_name || '-'}).`
         );
       })
@@ -714,14 +843,14 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
             ? `Sudah Terbit — **${data.certificate.certificate_type}** (\`${data.certificate.certificate_number}\`, Predikat: ${data.certificate.predicate})`
             : 'Belum diterbitkan.';
           sections.push(
-            `**Status Izin & Sertifikat Anda:**\n` +
+            `### Status Izin & Sertifikat Anda\n` +
               `• **Sisa Kuota Izin Bulan Ini**: **${data.remainingQuota} / ${data.monthlyQuota} kali**\n` +
               `• **Riwayat Pengajuan Terbaru**: ${leaveList}\n` +
               `• **Status Sertifikat**: ${certText}`
           );
         } else {
           sections.push(
-            `**Antrean Persetujuan Izin & Koreksi Sertifikat (${data.role}):**\n` +
+            `### Antrean Persetujuan Izin & Koreksi Sertifikat (${data.role})\n` +
               `• **Izin/Sakit Pending**: **${data.pendingLeaves.length}** pengajuan${data.pendingLeaves.length ? ` (${data.pendingLeaves.slice(0, 3).map((l) => `${l.full_name}: ${l.leave_type} ${l.start_date}`).join(', ')})` : ''}.\n` +
               `• **Permohonan Reissue Sertifikat**: **${data.pendingReissueCertificates.length}** permohonan.`
           );
@@ -730,20 +859,25 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
     );
   }
 
-  // Always check regulation lookup if question is regulatory OR nothing else matched yet
-  const isPureOperationalOnly = tasks.length > 0 && !/\b(program|jkk|jkm|jht|jp|jkp|stmb|beasiswa|klaim|syarat|apa itu|bagaimana aturan|regulasi|uu)\b/.test(combinedText);
-  if (!isPureOperationalOnly || tasks.length === 0) {
+  // Only invoke regulation lookup if explicitly regulatory OR no operational tool matched
+  const shouldLookupReg =
+    tasks.length === 0 ||
+    (!wantsCalc && hasExplicitRegIntent) ||
+    (wantsCalc && /\b(stmb|beasiswa|klaim|syarat|apa itu|jht|jkp|jp)\b/.test(qLower));
+
+  if (shouldLookupReg) {
     tasks.push(
-      tools.lookup_bpjs_regulation.execute({ topicQuery: question }).then((reg) => {
+      tools.lookup_bpjs_regulation.execute({ topicQuery: qRaw }).then((reg) => {
         if (mainTopic === 'BPJSTK Smart Agent') mainTopic = reg.matchedTopic;
-        if (reg.databaseDocuments.length > 0) {
-          const top = reg.databaseDocuments[0];
-          sections.push(`**${top.title}** *(Knowledge Base: ${top.category || 'Regulasi'})*:\n${top.content}`);
-          if (reg.curatedRegulation) {
-            sections.push(`**Ringkasan Aturan Terkait:**\n${reg.curatedRegulation}`);
-          }
-        } else if (reg.curatedRegulation) {
+        if (reg.curatedRegulation) {
           sections.push(reg.curatedRegulation);
+          if (reg.databaseDocuments.length > 0 && tasks.length <= 1 && !hasExplicitRegIntent) {
+            const top = reg.databaseDocuments[0];
+            sections.push(`*Referensi Knowledge Base (${top.title}):* ${top.content}`);
+          }
+        } else if (reg.databaseDocuments.length > 0) {
+          const top = reg.databaseDocuments[0];
+          sections.push(`### ${top.title} *(${top.category || 'Regulasi'})*\n${top.content}`);
         }
       })
     );
@@ -752,7 +886,6 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
   await Promise.all(tasks);
 
   if (sections.length === 0) {
-    // Broad fallback combining live rates & schedule
     const [rates, sched] = await Promise.all([
       getLiveBpuRates(),
       tools.get_attendance_schedule_and_geofence.execute({})
@@ -760,10 +893,11 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
     mainTopic = 'Asisten Pintar BPJSTK';
     const s = sched.schedule;
     sections.push(
-      `Saya belum menemukan kecocokan spesifik untuk *"${question}"*, namun berikut informasi cepat untuk Anda:\n` +
-        `• **Simulasi BPU**: Coba ketik *"Hitung iuran BPU 3 program upah 3 juta untuk 6 bulan"* (${fmtRp(rates.jkkMin + rates.jkmFlat)}/bln untuk 2 program; ${fmtRp(rates.jkkMin + rates.jkmFlat + rates.jhtMin)}/bln untuk 3 program).\n` +
-        `• **Data Live Anda**: Ketik *"Cek ringkasan absensi dan progres saya"* atau *"Cek status izin dan sertifikat"*.\n` +
-        `• **Jam Kerja Aktif**: ${String(s.work_start_time).slice(0, 5)} – ${String(s.work_end_time).slice(0, 5)} WIB.`
+      `Berikut panduan cepat yang bisa langsung Anda gunakan bersama **BPJSTK Smart Agent**:\n` +
+        `1. **Simulasi Iuran BPU**: Ketik *"Hitung iuran BPU 3 program upah 3 juta 6 bulan"* (Mulai ${fmtRp(rates.jkkMin + rates.jkmFlat)}/bln untuk 2 program atau ${fmtRp(rates.jkkMin + rates.jkmFlat + rates.jhtMin)}/bln untuk 3 program).\n` +
+        `2. **Data Live Database**: Ketik *"Cek ringkasan absensi dan progres saya"*, *"Target & bobot penilaian"*, atau *"Cek status izin dan sertifikat"*.\n` +
+        `3. **Regulasi BPJSTK**: Tanyakan tentang **5 Program BPJSTK**, **klaim STMB JKK**, **santunan kematian JKM**, **pencairan JHT**, **JKP**, atau aturan **Auto-Alfa & Geofence**.\n` +
+        `4. **Jam Operasional Aktif**: **${String(s.work_start_time).slice(0, 5)} – ${String(s.work_end_time).slice(0, 5)} WIB** (Tepat waktu s.d. ${String(s.work_ontime_limit).slice(0, 5)} WIB).`
     );
   }
 
@@ -772,7 +906,7 @@ async function runDeterministicPlannerAgent({ user, question, history, tools, tr
     answer: sections.join('\n\n'),
     source: trace.length > 0 ? 'agent_multi_tool' : 'regulation_kb',
     engine: 'bpjstk-autonomous-agent',
-    model: 'deterministic-planner-v2',
+    model: 'deterministic-planner-v3',
     toolsUsed: trace
   };
 }

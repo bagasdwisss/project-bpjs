@@ -56,6 +56,28 @@ function renderFormattedText(text) {
       {lines.map((line, idx) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={idx} className="h-1" />;
+
+        const headingMatch = trimmed.match(/^#{1,3}\s+(.+)$/);
+        if (headingMatch) {
+          return (
+            <h5 key={idx} className="font-black text-[12px] text-[#121214] pt-0.5">
+              {renderInlineSegments(headingMatch[1])}
+            </h5>
+          );
+        }
+
+        const numMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+        if (numMatch) {
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-0.5">
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-md bg-[#EBF7F0] border border-[#008F4C]/30 text-[10px] font-black text-[#007A43] shrink-0 mt-0.5">
+                {numMatch[1]}
+              </span>
+              <span className="leading-relaxed">{renderInlineSegments(numMatch[2])}</span>
+            </div>
+          );
+        }
+
         const bulletMatch = trimmed.match(/^(?:•|-|\*)\s+(.+)$/);
         if (bulletMatch) {
           return (
@@ -65,6 +87,7 @@ function renderFormattedText(text) {
             </div>
           );
         }
+
         return (
           <p key={idx} className="leading-relaxed">
             {renderInlineSegments(trimmed)}
