@@ -36,6 +36,7 @@ import { runTieredStorageMigration, getTieredStorageStatus } from '../utils/tier
 import { generateDynamicIdCardPayload, verifyDynamicIdQr } from '../utils/dynamicIdQr.js';
 import { compileEvaluationDossier } from '../utils/pdfDossierGenerator.js';
 import { getCachedFallback, setCachedFallback } from '../utils/cacheFallback.js';
+import { runBpjstkAgent } from '../utils/bpjstkAgent.js';
 import { getTimeBankBalance, recordOvertimeHours, claimCompTimeLeave, getTimeBankLedger } from '../utils/timeBankManager.js';
 import { generateMbkmDossier } from '../utils/mbkmConverter.js';
 import { checkOcspStatus, revokeCertificate, getCrlList } from '../utils/ocspManager.js';
@@ -647,151 +648,38 @@ router.post('/messages', authenticateToken, async (req, res) => {
 });
 
 // =========================================================================
-// 4. AI CHATBOT ASISTEN REGULASI "TANYA BPJSTK" (RAG Knowledge Engine)
+// 4. AI CHATBOT ASISTEN REGULASI "TANYA BPJSTK" (Multi-Tool Agentic Engine)
 // =========================================================================
-
-const BPJSTK_KNOWLEDGE_BASE = [
-  {
-    topic: '5 Program Utama BPJSTK',
-    keywords: ['program', 'apa saja', '5 program', 'manfaat', 'cakupan'],
-    answer: `BPJSTK menyelenggarakan 5 Program Jaminan Sosial Ketenagakerjaan berdasarkan amanat UU No. 40/2004 & UU No. 24/2011:
-1. **JKK (Jaminan Kecelakaan Kerja)**: Perlindungan atas risiko kecelakaan kerja mulai dari berangkat, di tempat kerja, hingga pulang, serta penyakit akibat kerja. Manfaat: pengobatan medis tanpa batas biaya dan santunan upah (STMB).
-2. **JKM (Jaminan Kematian)**: Santunan tunai sebesar Rp 42.000.000 bagi ahli waris pekerja yang meninggal dunia bukan karena kecelakaan kerja.
-3. **JHT (Jaminan Hari Tua)**: Tabungan akumulasi iuran + hasil pengembangan yang dicairkan saat pensiun (56 tahun), cacat total tetap, atau berhenti bekerja (PHK/mundur).
-4. **JP (Jaminan Pensiun)**: Manfaat uang tunai berkala setiap bulan untuk mempertahankan derajat kehidupan yang layak saat memasuki usia pensiun atau ahli warisnya.
-5. **JKP (Jaminan Kehilangan Pekerjaan)**: Manfaat berupa uang tunai 6 bulan (45% upah di 3 bulan pertama, 25% di 3 bulan berikutnya), akses informasi pasar kerja, dan pelatihan kerja untuk pekerja yang ter-PHK.`
-  },
-  {
-    topic: 'Iuran & Pendaftaran Pekerja BPU (Bukan Penerima Upah)',
-    keywords: ['bpu', 'iuran', 'bukan penerima upah', '16800', '16.800', 'daftar bpu', 'informal', 'pedagang', 'ojol', 'petani'],
-    answer: `Untuk pekerja informal/BPU (Pedagang pasar, ojek online, petani, nelayan, UMKM mandiri):
-- **Paket Hemat 2 Program (JKK + JKM)**: Iuran hanya **Rp 16.800/bulan** (JKK Rp 10.000 + JKM Rp 6.800).
-  * Memberikan santunan kematian Rp 42 Juta + Biaya medis JKK unlimited + Beasiswa 2 anak s.d. Rp 174 Juta setelah masa kepesertaan 3 tahun.
-- **Paket Lengkap 3 Program (JKK + JKM + JHT)**: Iuran mulai **Rp 36.800/bulan** (JKK Rp 10.000 + JKM Rp 6.800 + Tabungan JHT Rp 20.000).
-- **Syarat Pendaftaran Mandiri**: Cukup e-KTP dan No HP aktif via aplikasi JMO, website resmi, atau scan QR referral peserta magang!`
-  },
-  {
-    topic: 'Klaim JKM & Santunan Rp 42 Juta',
-    keywords: ['klaim jkm', 'santunan kematian', 'meninggal', '42 juta', 'ahli waris', 'syarat klaim jkm'],
-    answer: `Manfaat santunan Jaminan Kematian (JKM) total sebesar **Rp 42.000.000** dengan rincian:
-1. Santunan sekaligus: Rp 20.000.000
-2. Santunan berkala (24 bulan x Rp 500.000 dibayar sekaligus): Rp 12.000.000
-3. Biaya pemakaman: Rp 10.000.000
-4. Manfaat Tambahan Beasiswa untuk 2 orang anak maksimal Rp 174.000.000 (dari jenjang TK sampai Sarjana S1) bagi peserta dengan masa iuran minimal 3 tahun.
-*Syarat Dokumen Klaim*: Kartu BPJSTK asli, e-KTP peserta & ahli waris, Kartu Keluarga (KK), Surat Kematian dari instansi berwenang, dan buku rekening bank aktif ahli waris.`
-  },
-  {
-    topic: 'Santunan Sementara Tidak Mampu Bekerja (STMB) JKK',
-    keywords: ['stmb', 'pengganti upah', 'istirahat dokter', 'tidak mampu bekerja', 'jkk', 'kecelakaan'],
-    answer: `Manfaat STMB (Santunan Sementara Tidak Mampu Bekerja) diberikan kepada pekerja yang mengalami kecelakaan kerja selama masa pemulihan medis:
-- **6 Bulan Pertama**: 100% dari upah yang dilaporkan.
-- **6 Bulan Kedua**: 100% dari upah yang dilaporkan.
-- **Bulan ke-13 sampai sembuh**: 50% dari upah yang dilaporkan.
-Biaya pengobatan dan perawatan medis di Rumah Sakit Pusat Layanan Kecelakaan Kerja (PLKK) ditanggung **tanpa batas plafon biaya (Unlimited)** sesuai indikasi medis dokter.`
-  },
-  {
-    topic: 'Geofencing Presensi & Aturan Magang',
-    keywords: ['geofence', 'presensi', 'radius', 'titik binaan', 'fake gps', 'lokasi', 'izin', 'sakit'],
-    answer: `Aturan Presensi & Integritas Magang BPJSTK:
-1. **Multi-Titik Geofence**: Presensi valid dilakukan di Kantor Cabang resmi atau titik binaan lapangan (Pasar Binaan, Sentra UMKM, Kawasan Industri) dengan toleransi radius 100-250 meter.
-2. **Presensi Selfie Wajah**: Sistem mewajibkan foto kamera selfie langsung dengan verifikasi liveness (anti-foto ulang).
-3. **Anti-Fake GPS Protection**: Penggunaan aplikasi mock location / GPS palsu terdeteksi otomatis oleh sistem forensik dan akan ditandai anomali untuk evaluasi Koordinator.
-4. **Ketidakhadiran (Izin/Sakit)**: Wajib diajukan via menu Permohonan Izin dengan melampirkan foto Surat Keterangan Sakit dari Dokter resmi.`
-  }
-];
 
 /**
  * POST /api/ai/ask
- * Smart RAG assistant for regulations & operational queries
+ * Multi-tool Agentic AI assistant (Vercel AI SDK ToolLoopAgent + Autonomous DB Tool Planner)
  */
 router.post('/ai/ask', authenticateToken, async (req, res) => {
   try {
-    const { question } = req.body;
+    const { question, history } = req.body;
     if (!question || !question.trim()) {
       return res.status(400).json({ success: false, message: 'Pertanyaan tidak boleh kosong.' });
     }
 
-    const qLower = question.toLowerCase();
-
-    // 1. Live database lookups (Full-Text Knowledge Base + live BPU rates + Work Schedule)
-    const [kbSearchRes, ratesRes, schedRes] = await Promise.all([
-      searchKnowledgeBase(question, 'all', 3).catch(() => ({ results: [] })),
-      query(`SELECT * FROM bpu_rates ORDER BY id ASC LIMIT 1`).catch(() => ({ rows: [] })),
-      query(`SELECT check_in_start, work_start_time, work_end_time FROM attendance_settings ORDER BY id ASC LIMIT 1`).catch(() => ({ rows: [] }))
-    ]);
-
-    const liveRate = ratesRes.rows[0] || {};
-    const jkkMin = Number(liveRate.jkk_min_amount ?? 10000);
-    const jkmFlat = Number(liveRate.jkm_flat_amount ?? 6800);
-    const jhtMin = Number(liveRate.jht_min_amount ?? 20000);
-    const deathBenefit = Number(liveRate.death_benefit_amount ?? 42000000);
-    const maxScholarship = Number(liveRate.max_scholarship_amount ?? 174000000);
-    const fmtRp = (v) => `Rp ${Number(v).toLocaleString('id-ID')}`;
-
-    // 2. Match curated regulations & dynamic database values
-    let bestMatch = null;
-    let highestScore = 0;
-
-    for (const item of BPJSTK_KNOWLEDGE_BASE) {
-      let score = 0;
-      for (const kw of item.keywords) {
-        if (qLower.includes(kw.toLowerCase())) {
-          score += 2;
-        }
-      }
-      if (score > highestScore) {
-        highestScore = score;
-        bestMatch = item;
-      }
-    }
-
-    const kbHits = kbSearchRes?.results || [];
-    let responseAnswer = '';
-    let matchedTopic = '';
-    let sourceUsed = 'regulation_kb';
-
-    if (kbHits.length > 0 && (highestScore < 2 || qLower.length > 18)) {
-      const topDoc = kbHits[0];
-      matchedTopic = topDoc.title;
-      responseAnswer = `${topDoc.content}\n\n---\n*Sumber Database Knowledge Base (${topDoc.category || 'Regulasi'})*`;
-      if (bestMatch && highestScore >= 2) {
-        responseAnswer += `\n\n**Ringkasan Terkait (${bestMatch.topic}):**\n${bestMatch.answer}`;
-      }
-      sourceUsed = 'postgresql_fts';
-    } else if (bestMatch && highestScore >= 2) {
-      matchedTopic = bestMatch.topic;
-      responseAnswer = bestMatch.answer
-        .replace(/Rp 16\.800/g, fmtRp(jkkMin + jkmFlat))
-        .replace(/Rp 10\.000/g, fmtRp(jkkMin))
-        .replace(/Rp 6\.800/g, fmtRp(jkmFlat))
-        .replace(/Rp 36\.800/g, fmtRp(jkkMin + jkmFlat + jhtMin))
-        .replace(/Rp 20\.000(?![.\d])/g, fmtRp(jhtMin))
-        .replace(/Rp 42\.000\.000/g, fmtRp(deathBenefit))
-        .replace(/Rp 42 Juta/g, fmtRp(deathBenefit))
-        .replace(/Rp 174\.000\.000/g, fmtRp(maxScholarship))
-        .replace(/Rp 174 Juta/g, fmtRp(maxScholarship));
-    } else {
-      matchedTopic = 'Ketentuan Umum BPJSTK';
-      const sched = schedRes.rows[0];
-      const schedInfo = sched
-        ? `\n• **Jam Operasional Presensi**: Buka ${String(sched.check_in_start).slice(0, 5)} WIB, masuk ${String(sched.work_start_time).slice(0, 5)} WIB, batas pulang/auto-alfa ${String(sched.work_end_time).slice(0, 5)} WIB.`
-        : '';
-      responseAnswer = `Halo! Terkait pertanyaan Anda: "${question}", berikut panduan ringkas operasional BPJSTK (sinkron database live):\n\n` +
-        `• **Pekerja BPU (2 Program JKK+JKM)**: Iuran aktif ${fmtRp(jkkMin + jkmFlat)}/bulan (santunan kematian ${fmtRp(deathBenefit)}, beasiswa maksimal ${fmtRp(maxScholarship)}).\n` +
-        `• **Pekerja BPU (3 Program JKK+JKM+JHT)**: Iuran mulai ${fmtRp(jkkMin + jkmFlat + jhtMin)}/bulan.\n` +
-        `• **Pekerja Penerima Upah (PU)**: Diikutsertakan oleh pemberi kerja untuk program JKK, JKM, JHT, JP, dan JKP.\n` +
-        `• **Klaim & Layanan**: Dapat diakses melalui aplikasi JMO (Jamsostek Mobile), Call Center 175, atau Kantor Cabang terdekat.${schedInfo}\n\n` +
-        `*Silakan tanyakan hal spesifik seperti "Iuran BPU", "Santunan JKM", "STMB JKK", atau "Aturan Geofence".*`;
-    }
+    const agentResult = await runBpjstkAgent({
+      user: req.user,
+      question: question.trim(),
+      history: Array.isArray(history) ? history : []
+    });
 
     return res.json({
       success: true,
       data: {
-        question,
-        topic: matchedTopic,
-        answer: responseAnswer,
-        source: sourceUsed,
-        confidence: kbHits.length > 0 || highestScore > 0 ? 'High' : 'General',
+        question: question.trim(),
+        topic: agentResult.topic,
+        answer: agentResult.answer,
+        source: agentResult.source,
+        engine: agentResult.engine,
+        model: agentResult.model,
+        toolsUsed: agentResult.toolsUsed,
+        stepsCount: agentResult.stepsCount,
+        confidence: 'High',
         timestamp: new Date().toISOString()
       }
     });

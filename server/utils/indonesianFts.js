@@ -1,8 +1,9 @@
-// server/utils/indonesianFts.js - PostgreSQL Native Full-Text Search with Indonesian Stemmer
+// server/utils/indonesianFts.js - PostgreSQL Native Full-Text Search with Multi-Word Fallback
 import { query } from '../db.js';
 
 /**
- * Searches the official BPJS knowledge base using PostgreSQL tsvector and plainto_tsquery
+ * Searches the official BPJS knowledge base using PostgreSQL tsvector,
+ * falling back to OR-keyword matching / ILIKE when strict AND returns no hits.
  */
 export async function searchKnowledgeBase(searchTerm, category = 'all', limit = 10) {
   if (!searchTerm || !searchTerm.trim()) {
@@ -10,6 +11,16 @@ export async function searchKnowledgeBase(searchTerm, category = 'all', limit = 
   }
 
   const cleanTerm = searchTerm.trim();
+  const safeLimit = parseInt(limit, 10) || 10;
+
+  // Build OR tsquery from significant words (>=3 chars) so natural questions match reliably
+  const tokens = cleanTerm
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 3)
+    .slice(0, 6);
+
   let sql = `
     SELECT 
       doc_id, title, category, content, created_at,
@@ -27,9 +38,31 @@ export async function searchKnowledgeBase(searchTerm, category = 'all', limit = 
   }
 
   sql += ` ORDER BY relevance_score DESC LIMIT $${params.length + 1}`;
-  params.push(parseInt(limit, 10) || 10);
+  params.push(safeLimit);
 
-  const res = await query(sql, params);
+  let res = await query(sql, params);
+
+  // Fallback to OR token matching + ILIKE if strict plainto_tsquery returned nothing
+  if (res.rows.length === 0 && tokens.length > 0) {
+    const orTsQuery = tokens.join(' | ');
+    const likePattern = `%${tokens[0]}%`;
+    let fallbackSql = `
+      SELECT 
+        doc_id, title, category, content, created_at,
+        ts_rank(search_vector, to_tsquery('simple', $1)) as relevance_score,
+        LEFT(content, 240) as snippet
+      FROM knowledge_base_documents
+      WHERE (search_vector @@ to_tsquery('simple', $1) OR title ILIKE $2 OR content ILIKE $2)
+    `;
+    const fbParams = [orTsQuery, likePattern];
+    if (category && category !== 'all') {
+      fbParams.push(category);
+      fallbackSql += ` AND category = $${fbParams.length}`;
+    }
+    fallbackSql += ` ORDER BY relevance_score DESC LIMIT $${fbParams.length + 1}`;
+    fbParams.push(safeLimit);
+    res = await query(fallbackSql, fbParams).catch(() => ({ rows: [] }));
+  }
 
   return {
     query: cleanTerm,

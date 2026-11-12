@@ -1699,12 +1699,15 @@ async function runEndToEndTests() {
         })
       : { status: 0 };
 
-    const prevProgRes = await query(`SELECT hasil_akuisisi_bpu, nilai, grade FROM progress WHERE user_id = $1 LIMIT 1`, [pesertaUserId]);
+    const prevProgRes = await query(`SELECT id, hasil_akuisisi_bpu, nilai, grade FROM progress WHERE user_id = $1 LIMIT 1`, [pesertaUserId]);
     prevProgressSnapshot = prevProgRes.rows[0] || null;
-    const editScoreRes = await api(`/api/grading/participants/${pesertaUserId}/scores`, {
+    const progressTargetId = prevProgressSnapshot?.id || pesertaUserId;
+    const targetTestNilai = Number(prevProgressSnapshot?.nilai) === 91 ? 92 : 91;
+    const targetTestGrade = String(prevProgressSnapshot?.grade || '') === 'A' ? 'B' : 'A';
+    const editScoreRes = await api(`/api/grading/participants/${progressTargetId}/scores`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${koorToken}` },
-      body: JSON.stringify({ nilai: 91, grade: 'A' })
+      body: JSON.stringify({ nilai: targetTestNilai, grade: targetTestGrade })
     });
 
     const auditFetch = await api('/api/admin/forensic-audit?category=mutations', {
@@ -1728,7 +1731,7 @@ async function runEndToEndTests() {
     const scoreLog = auditRows.find(
       (r) =>
         r.activity_type === 'GRADING_SCORES_UPDATED' &&
-        String(r.details).includes('-> "91"') &&
+        String(r.details).includes(`-> "${targetTestNilai}"`) &&
         String(r.details).includes('WIB')
     );
     auditAttLogged = verifyAttRes.status === 200 && Boolean(attLog) && Boolean(attLog?.full_name);
@@ -1749,6 +1752,39 @@ async function runEndToEndTests() {
     auditAttLogged && auditBpuLogged && auditScoreLogged,
     `Att=${auditAttLogged}, BPU=${auditBpuLogged}, Score=${auditScoreLogged}`,
     0
+  );
+
+  // 10.8 BPJSTK Multi-Tool AI Agent (/api/ai/ask)
+  const agentPesertaRes = await api('/api/ai/ask', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${pesertaToken}` },
+    body: JSON.stringify({
+      question: 'Cek absensi & progres saya bulan ini, lalu hitung iuran BPU 3 program upah 3 juta untuk 6 bulan'
+    })
+  });
+  const agentToolsPeserta = (agentPesertaRes.data?.data?.toolsUsed || []).map((t) => t.tool);
+  const agentKoorRes = await api('/api/ai/ask', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${koorToken}` },
+    body: JSON.stringify({
+      question: 'Cek status peserta PES001'
+    })
+  });
+  const agentToolsKoor = (agentKoorRes.data?.data?.toolsUsed || []).map((t) => t.tool);
+  const agentPesertaOk =
+    agentPesertaRes.status === 200 &&
+    agentToolsPeserta.includes('get_my_internship_summary') &&
+    agentToolsPeserta.includes('calculate_bpu_contribution') &&
+    String(agentPesertaRes.data?.data?.answer || '').includes('PES001');
+  const agentKoorOk =
+    agentKoorRes.status === 200 &&
+    agentToolsKoor.includes('search_mentee_status') &&
+    String(agentKoorRes.data?.data?.answer || '').includes('Arthur');
+  recordTest(
+    '10.8 BPJSTK Multi-Tool AI Agent (/api/ai/ask)',
+    agentPesertaOk && agentKoorOk,
+    `PesertaTools=[${agentToolsPeserta.join(',')}], KoorTools=[${agentToolsKoor.join(',')}]`,
+    agentPesertaRes.duration + agentKoorRes.duration
   );
 
   // -------------------------------------------------------------
