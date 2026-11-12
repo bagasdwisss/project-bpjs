@@ -421,7 +421,7 @@ const Backup = () => {
                         })}
                       </td>
                       <td className="px-5 py-4 font-bold text-[#121214]/80">
-                        {b.file_size_kb || 512} KB
+                        {b.file_size_kb ?? 0} KB
                       </td>
                       <td className="px-5 py-4 font-medium text-[#121214]/80">
                         {b.created_by_name || 'Admin Sistem'}

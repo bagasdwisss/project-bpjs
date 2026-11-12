@@ -431,10 +431,10 @@ const Monitoring = () => {
                   <Clock className="w-4 h-4 text-[#121214]" />
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-[#121214]">
-                  {telemetry?.serverInstance?.coldStartDurationMs ?? 240} ms
+                  {telemetry?.serverInstance?.coldStartDurationMs ?? 0} ms
                 </p>
                 <p className="text-[11px] text-[#121214]/60 font-semibold mt-1">
-                  Uptime: {telemetry?.serverInstance?.uptimeSeconds ?? 120}s (Node.js)
+                  Uptime: {telemetry?.serverInstance?.uptimeSeconds ?? 0}s (Node.js)
                 </p>
               </div>
 
@@ -444,10 +444,10 @@ const Monitoring = () => {
                   <Activity className="w-4 h-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-emerald-700">
-                  {telemetry?.performance?.p95LatencyMs ?? 42} / {telemetry?.performance?.p99LatencyMs ?? 78} ms
+                  {telemetry?.performance?.p95LatencyMs ?? 0} / {telemetry?.performance?.p99LatencyMs ?? 0} ms
                 </p>
                 <p className="text-[11px] text-[#121214]/60 font-semibold mt-1">
-                  P50 Rata-rata: {telemetry?.performance?.p50LatencyMs ?? 18} ms
+                  P50 Rata-rata: {telemetry?.performance?.p50LatencyMs ?? 0} ms
                 </p>
               </div>
 
@@ -457,7 +457,7 @@ const Monitoring = () => {
                   <Database className="w-4 h-4 text-blue-600" />
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-blue-700">
-                  {telemetry?.performance?.databasePingMs ?? 15} ms
+                  {telemetry?.performance?.databasePingMs ?? 0} ms
                 </p>
                 <p className="text-[11px] text-[#121214]/60 font-semibold mt-1">
                   Neon PostgreSQL Serverless
@@ -470,10 +470,10 @@ const Monitoring = () => {
                   <Cpu className="w-4 h-4 text-purple-600" />
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-purple-700">
-                  {telemetry?.memory?.heapUsedMb ?? 48} MB
+                  {telemetry?.memory?.heapUsedMb ?? 0} MB
                 </p>
                 <p className="text-[11px] text-[#121214]/60 font-semibold mt-1">
-                  Total RSS: {telemetry?.memory?.rssMb ?? 92} MB
+                  Total RSS: {telemetry?.memory?.rssMb ?? 0} MB
                 </p>
               </div>
             </div>

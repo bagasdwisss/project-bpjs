@@ -410,7 +410,7 @@ const ParticipantDashboard = () => {
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Modul Selesai</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {stats.completedModules ?? 0} / {stats.totalModules ?? 4}
+                    {stats.completedModules ?? 0} / {stats.totalModules ?? 0}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum Inti</p>
                 </div>

@@ -201,7 +201,7 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Admin</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalAdmins ?? 1}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalAdmins ?? 0}</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Superuser</p>
                 </div>
               </div>
@@ -247,7 +247,7 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Rata-Rata Hadir</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.attendanceRate ?? 95}%</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.attendanceRate ?? 0}%</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Bulan berjalan</p>
                 </div>
                 <div>
