@@ -75,8 +75,9 @@ const TanyaBPJSBot = () => {
       {/* Floating Launcher Button */}
       {!isOpen && (
         <button
+          type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center space-x-2.5 px-4 py-3 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] font-black text-xs transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none animate-bounce duration-1000"
+          className="fixed bottom-5 right-5 z-40 flex items-center space-x-2.5 px-4 py-3 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#121214] font-black text-xs transition-all duration-150 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer"
           title="Tanya Regulasi BPJSTK (AI Assistant)"
         >
           <div className="w-6 h-6 rounded-lg bg-white border border-[#121214] flex items-center justify-center">

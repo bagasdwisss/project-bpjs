@@ -22,11 +22,11 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, maxWidth = '
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain" role="dialog" aria-modal="true" aria-label={title || 'Dialog'}>
       <div 
-        className="fixed inset-0 bg-[#121214]/40 backdrop-blur-sm transition-opacity" 
+        className="fixed inset-0 bg-[#121214]/40 backdrop-blur-sm animate-in fade-in duration-150" 
         onClick={onClose} 
       />
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className={`relative w-full ${maxWidth} bg-white rounded-[26px] shadow-2xl border border-[#EAE9E4] overflow-hidden transform transition-all z-10`}>
+        <div className={`relative w-full ${maxWidth} bg-white rounded-[26px] shadow-2xl border border-[#EAE9E4] overflow-hidden modal-surface-enter z-10`}>
           {title && (
             <div className="px-6 py-5 border-b border-[#EAE9E4] flex items-center justify-between">
               <div>
@@ -36,7 +36,8 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, maxWidth = '
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-[#F5F4F0] text-[#121214] hover:bg-[#EAE9E4] flex items-center justify-center transition-colors"
+                aria-label="Tutup dialog"
+                className="w-8 h-8 rounded-full bg-[#F5F4F0] text-[#121214] hover:bg-[#EAE9E4] flex items-center justify-center transition-all duration-200 hover:rotate-90 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

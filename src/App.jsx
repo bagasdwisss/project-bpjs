@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PageLoader from './components/Common/PageLoader';
 import MaintenanceOverlay from './components/Common/MaintenanceOverlay';
 import PwaUpdateNudge from './components/Common/PwaUpdateNudge';
+import GlobalActivityBar from './components/Common/GlobalActivityBar';
 import ChunkErrorBoundary from './components/Common/ChunkErrorBoundary';
 import lazyRetry from './utils/lazyRetry';
 import './App.css';
@@ -61,6 +62,7 @@ function App() {
       <ToastProvider>
         <DashboardProvider>
           <Router>
+            <GlobalActivityBar />
             <MaintenanceOverlay />
             <PwaUpdateNudge />
             <ChunkErrorBoundary>

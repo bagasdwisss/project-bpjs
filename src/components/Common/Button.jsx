@@ -1,5 +1,6 @@
 // src/components/Common/Button.jsx
 import React from 'react';
+import { triggerMicroFeedback } from '../../utils/microFeedback';
 
 export const Button = ({
   children,
@@ -7,14 +8,15 @@ export const Button = ({
   variant = 'primary',
   size = 'md',
   disabled = false,
+  loading = false,
   onClick,
   className = '',
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-full transition-all duration-200 active:scale-[0.98] focus:outline-none';
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#121214] cursor-pointer';
   
   const variants = {
-    primary: 'bg-[#121214] hover:bg-neutral-800 text-white shadow-sm',
+    primary: 'bg-[#121214] hover:bg-neutral-800 text-white shadow-sm hover:shadow-md',
     secondary: 'bg-white hover:bg-[#EAE9E4] text-[#121214] border border-[#EAE9E4] shadow-sm',
     pink: 'bg-[#F5C6EC] hover:bg-[#E59CD8] text-[#121214] font-semibold',
     yellow: 'bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-semibold',
@@ -32,16 +34,26 @@ export const Button = ({
     lg: 'px-7 py-3.5 text-base'
   };
 
-  const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
+  const isDisabled = disabled || loading;
+  const disabledClasses = isDisabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
+
+  const handleClick = (e) => {
+    if (isDisabled) return;
+    triggerMicroFeedback('tap');
+    if (onClick) onClick(e);
+  };
 
   return (
     <button
       type={type}
-      disabled={disabled}
-      onClick={onClick}
+      disabled={isDisabled}
+      onClick={handleClick}
       className={`${baseClasses} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${disabledClasses} ${className}`}
       {...props}
     >
+      {loading && (
+        <span className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin shrink-0" aria-hidden="true" />
+      )}
       {children}
     </button>
   );

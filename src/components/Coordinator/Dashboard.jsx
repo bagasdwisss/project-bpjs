@@ -10,6 +10,7 @@ import { getTimeGreeting } from '../../utils/trueTime';
 
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 import { DashboardSkeleton } from '../Common/Skeleton';
+import AnimatedNumber from '../Common/AnimatedNumber';
 import { 
   Users, TrendingUp, Award, Clock, CheckCircle, 
   AlertCircle, RefreshCw, ChevronRight, Eye, Edit3, 
@@ -380,7 +381,7 @@ const CoordinatorDashboard = () => {
         )}
 
         {/* 4-Card Pastel Bento Grid (Intelly Signature - Perfectly Symmetrical 2x2) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch stagger-grid">
           {/* Card 1: Participants (Pastel Butter Yellow) */}
           <div className="h-full rounded-2xl bg-[#FCE373] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
@@ -401,20 +402,20 @@ const CoordinatorDashboard = () => {
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Kantor</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {participants.filter(p => (p.penempatan || '').toLowerCase() === 'kantor').length}
+                    <AnimatedNumber value={participants.filter(p => (p.penempatan || '').toLowerCase() === 'kantor').length} />
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Administrasi</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Lapangan</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {participants.filter(p => (p.penempatan || '').toLowerCase() === 'lapangan').length}
+                    <AnimatedNumber value={participants.filter(p => (p.penempatan || '').toLowerCase() === 'lapangan').length} />
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Akuisisi Mitra</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Progress</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{avgProgress}%</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={avgProgress} />%</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Rata-rata</p>
                 </div>
               </div>
@@ -449,17 +450,17 @@ const CoordinatorDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Akuisisi</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{totalAkuisisi}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalAkuisisi} /></p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Peserta BPU</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Kunjungan PU</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{totalKunjunganPU}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalKunjunganPU} /></p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Entitas Mitra</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Kepatuhan Absen</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{complianceRate}%</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={complianceRate} />%</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Bulan Berjalan</p>
                 </div>
               </div>
@@ -490,18 +491,18 @@ const CoordinatorDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade A</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{gradeACount} Peserta</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={gradeACount} /> Peserta</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Sangat Memuaskan</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade B</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{gradeBCount} Peserta</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={gradeBCount} /> Peserta</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Baik</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Perlu Review</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {participants.filter(p => !progressData[p.user_id]?.grade || progressData[p.user_id]?.grade === '-').length} Peserta
+                    <AnimatedNumber value={participants.filter(p => !progressData[p.user_id]?.grade || progressData[p.user_id]?.grade === '-').length} /> Peserta
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Belum Dinilai</p>
                 </div>
@@ -533,17 +534,17 @@ const CoordinatorDashboard = () => {
               <div className="grid grid-cols-3 gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Seminar</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{totalSeminar} Sesi</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalSeminar} /> Sesi</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Terlaksana</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Sosialisasi</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{totalSosialisasi} Kegiatan</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalSosialisasi} /> Kegiatan</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Masyarakat</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Video Konten</p>
-                  <p className="text-2xl font-black text-[#121214] mt-0.5">{totalVideo} Video</p>
+                  <p className="text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={totalVideo} /> Video</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Edukasi Program</p>
                 </div>
               </div>

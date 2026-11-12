@@ -90,13 +90,17 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   const { general, tools } = getCategorizedMenu();
 
+  const supportsNativeSiblingIdx =
+    typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('animation-delay', 'calc(sibling-index() * 0.1s)');
+
   const renderNavList = (items) => (
-    <ul className="space-y-1">
-      {items.map((item) => {
+    <ul className="space-y-1 nav-stagger">
+      {items.map((item, idx) => {
         const Icon = item.icon;
+        const fallbackDelayStyle = supportsNativeSiblingIdx ? undefined : { '--sibling-index': idx + 1 };
         if (item.isChat) {
           return (
-            <li key="chat-bimbingan">
+            <li key="chat-bimbingan" style={fallbackDelayStyle}>
               <button
                 type="button"
                 onClick={() => {
@@ -107,9 +111,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               >
                 <div className="flex items-center space-x-3">
                   <Icon className="w-4 h-4 text-[#F5C6EC] group-hover:scale-110 transition-transform duration-200" />
-                  <span>{item.label}</span>
+                  <span className="transition-transform duration-200 group-hover:translate-x-0.5">{item.label}</span>
                 </div>
-                <span className="w-2 h-2 rounded-full bg-[#B8C96E]"></span>
+                <span className="w-2 h-2 rounded-full bg-[#B8C96E] animate-pulse"></span>
               </button>
             </li>
           );
@@ -119,7 +123,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           (item.path === '/coordinator/mentee-attendance' && location.pathname === '/coordinator/attendance');
 
         return (
-          <li key={item.path}>
+          <li key={item.path} style={fallbackDelayStyle}>
             <Link
               to={item.path}
               onClick={() => {
@@ -135,7 +139,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             >
               <div className="flex items-center space-x-3 min-w-0">
                 <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#F5C6EC]' : 'text-[#9CA3AF]'}`} />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate transition-transform duration-200 group-hover:translate-x-0.5">{item.label}</span>
               </div>
               {isActive && (
                 <div className="w-1.5 h-1.5 rounded-full bg-[#F5C6EC] shrink-0"></div>

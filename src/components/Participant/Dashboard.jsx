@@ -18,6 +18,7 @@ const QRCodeModal = lazy(() => import('../Common/QRCodeModal'));
 const LiveChatModal = lazy(() => import('../Common/LiveChatModal'));
 import { DashboardSkeleton } from '../Common/Skeleton';
 import CompanyCertificateModal from '../Common/CompanyCertificateModal';
+import AnimatedNumber from '../Common/AnimatedNumber';
 import { downloadCertificateDirectly } from '../../utils/certificateDownloader';
 
 const ParticipantDashboard = () => {
@@ -256,7 +257,7 @@ const ParticipantDashboard = () => {
         })()}
 
         {/* 4-Card Pastel Bento Grid (Intelly Signature - Perfectly Symmetrical 2x2) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch stagger-grid">
           {/* Card 1: Akuisisi BPU (Pastel Butter Yellow) */}
           <div className="h-full rounded-2xl bg-[#FCE373] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             <div className="absolute right-2 -bottom-2 opacity-15 pointer-events-none font-extrabold text-8xl">
@@ -276,17 +277,17 @@ const ParticipantDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Capaian</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{akuisisiBPU}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={akuisisiBPU} /></p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Peserta BPU</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Progress</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{progressPct}%</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={progressPct} />%</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Dari target</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Sisa Target</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{Math.max(0, targetAkuisisi - akuisisiBPU)}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={Math.max(0, targetAkuisisi - akuisisiBPU)} /></p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Peserta</p>
                 </div>
               </div>
@@ -321,17 +322,17 @@ const ParticipantDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hadir Efektif</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{attPresent} Hari</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={attPresent} /> Hari</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Dari {attTotal} hari</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Izin & Sakit</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{attIzin + attSick} Hari</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={attIzin + attSick} /> Hari</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat resmi</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Terlambat</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{attLate} Kali</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={attLate} /> Kali</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Pukul 08:00 WIB</p>
                 </div>
               </div>
@@ -363,14 +364,14 @@ const ParticipantDashboard = () => {
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Rata-Rata</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {averageScore !== null ? averageScore.toFixed(1) : '-'}
+                    {averageScore !== null ? <AnimatedNumber value={averageScore} decimals={1} /> : '-'}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Skala 100</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Nilai Tertinggi</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {maxScore !== null ? maxScore : '-'}
+                    {maxScore !== null ? <AnimatedNumber value={maxScore} /> : '-'}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Ujian / Tugas</p>
                 </div>
@@ -410,21 +411,21 @@ const ParticipantDashboard = () => {
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Modul Selesai</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {stats.completedModules ?? 0} / {stats.totalModules ?? 0}
+                    <AnimatedNumber value={stats.completedModules ?? 0} /> / {stats.totalModules ?? 0}
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum Inti</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Tugas Dinilai</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {stats.totalScores ?? 0} Nilai
+                    <AnimatedNumber value={stats.totalScores ?? 0} /> Nilai
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Dinilai Koordinator</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Hasil Akuisisi</p>
                   <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">
-                    {akuisisiBPU} BPU
+                    <AnimatedNumber value={akuisisiBPU} /> BPU
                   </p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Tercatat di DB</p>
                 </div>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { triggerMicroFeedback } from '../utils/microFeedback';
 
 const ToastContext = createContext(null);
 
@@ -15,6 +16,11 @@ export const ToastProvider = ({ children }) => {
     if (!message) return;
     const id = Date.now() + Math.random().toString(36).substring(2, 7);
     const newToast = { id, message, type, duration };
+
+    if (type === 'success') triggerMicroFeedback('success');
+    else if (type === 'error' || type === 'danger') triggerMicroFeedback('error');
+    else if (type === 'warning') triggerMicroFeedback('warning');
+    else triggerMicroFeedback('tap');
 
     setToasts((prev) => [...prev, newToast]);
 
@@ -124,7 +130,7 @@ export const ToastProvider = ({ children }) => {
           return (
             <div
               key={item.id}
-              className={`pointer-events-auto rounded-2xl border-2 border-[#121214] p-3.5 flex items-start justify-between gap-3 transition-all duration-200 animate-in slide-in-from-top-3 ${bgClass}`}
+              className={`pointer-events-auto relative overflow-hidden rounded-2xl border-2 border-[#121214] p-3.5 pb-4 flex items-start justify-between gap-3 transition-all duration-200 animate-in fade-in slide-in-from-top-3 ${bgClass}`}
               role="alert"
             >
               <div className="flex items-start gap-2.5 min-w-0">
@@ -144,11 +150,19 @@ export const ToastProvider = ({ children }) => {
               <button
                 type="button"
                 onClick={() => removeToast(item.id)}
-                className="p-1 rounded-lg hover:bg-black/10 active:scale-95 transition-all text-[#121214] shrink-0 mt-0.5"
+                className="p-1 rounded-lg hover:bg-black/10 active:scale-95 transition-all text-[#121214] shrink-0 mt-0.5 cursor-pointer"
                 aria-label="Tutup notifikasi"
               >
                 <X className="w-4 h-4" />
               </button>
+
+              {item.duration > 0 && (
+                <div
+                  className="toast-progress-bar absolute bottom-0 left-0 right-0 h-[3px] bg-[#121214]/35"
+                  style={{ '--toast-duration': `${item.duration}ms` }}
+                  aria-hidden="true"
+                />
+              )}
             </div>
           );
         })}
@@ -156,8 +170,8 @@ export const ToastProvider = ({ children }) => {
 
       {/* Neo-Brutalist Branded Confirmation Modal */}
       {confirmDialog && (
-        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white border-2 border-[#121214] rounded-2xl p-5 sm:p-6 shadow-[6px_6px_0px_#121214] max-w-sm sm:max-w-md w-full space-y-4 animate-in zoom-in-95 duration-150 pointer-events-auto">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150" role="alertdialog" aria-modal="true" aria-label={confirmDialog.title}>
+          <div className="bg-white border-2 border-[#121214] rounded-2xl p-5 sm:p-6 shadow-[6px_6px_0px_#121214] max-w-sm sm:max-w-md w-full space-y-4 modal-surface-enter pointer-events-auto">
             <div className="flex items-start gap-3">
               <div
                 className={`w-10 h-10 rounded-xl border-2 border-[#121214] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#121214] ${

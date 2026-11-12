@@ -4,6 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import dashboardService from '../../services/DashboardService';
 import api from '../../services/api';
 import SecurityPinModal from '../Common/SecurityPinModal';
+import AnimatedNumber from '../Common/AnimatedNumber';
 import { getTimeGreeting } from '../../utils/trueTime';
 import { 
   Users, TrendingUp, Database, Server, 
@@ -169,7 +170,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* 4-Card Pastel Bento Grid (Intelly Signature - Perfectly Symmetrical 2x2) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch stagger-grid">
           {/* Card 1: Users & Demographics (Pastel Butter Yellow) */}
           <div className="h-full rounded-2xl bg-[#FCE373] text-[#121214] p-5 sm:p-6 border-2 border-[#121214] shadow-[4px_4px_0px_#121214] relative overflow-hidden flex flex-col justify-between">
             {/* Watermark shape */}
@@ -191,17 +192,17 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Peserta</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.activeParticipants ?? 0}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.activeParticipants ?? 0} /></p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">BPU & PU</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Koordinator</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalCoordinators ?? 0}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.totalCoordinators ?? 0} /></p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Pembimbing</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Admin</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalAdmins ?? 0}</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.totalAdmins ?? 0} /></p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Superuser</p>
                 </div>
               </div>
@@ -247,17 +248,17 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-4 border-b border-[#121214]/15">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Rata-Rata Hadir</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.attendanceRate ?? 0}%</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.attendanceRate ?? 0} />%</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Bulan berjalan</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Terlambat</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.terlambatCount ?? 0} Kali</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.terlambatCount ?? 0} /> Kali</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Batas 08:00 WIB</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Izin / Sakit</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.izinSakitCount ?? 0} Hari</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.izinSakitCount ?? 0} /> Hari</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Toleransi aman</p>
                 </div>
               </div>
@@ -293,17 +294,17 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade A (&ge;85)</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.gradeA ?? 0} Peserta</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.gradeA ?? 0} /> Peserta</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Sangat Baik</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade B (75-84)</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.gradeB ?? 0} Peserta</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.gradeB ?? 0} /> Peserta</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kompeten</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Grade C (&lt;75)</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.gradeC ?? 0} Peserta</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.gradeC ?? 0} /> Peserta</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Perlu Bimbingan</p>
                 </div>
               </div>
@@ -336,12 +337,12 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-3">
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Total Batch</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalBatches ?? 0} Gelombang</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.totalBatches ?? 0} /> Gelombang</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Terselenggara</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#121214]/70 uppercase tracking-wider">Modul Aktif</p>
-                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5">{stats.totalModules} Modul</p>
+                  <p className="text-lg sm:text-2xl font-black text-[#121214] mt-0.5"><AnimatedNumber value={stats.totalModules ?? 0} /> Modul</p>
                   <p className="text-[10px] text-[#121214]/60 font-medium">Kurikulum BPJSTK</p>
                 </div>
                 <div>

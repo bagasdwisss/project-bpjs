@@ -7,6 +7,7 @@ export const Card = ({
   subtitle, 
   action, 
   variant = 'white', 
+  interactive = false,
   className = '', 
   headerClassName = '', 
   bodyClassName = '', 
@@ -24,12 +25,12 @@ export const Card = ({
 
   return (
     <div 
-      className={`rounded-[22px] relative overflow-hidden transition-all duration-200 ${variantStyles[variant] || variantStyles.white} ${className}`} 
+      className={`group rounded-[22px] relative overflow-hidden transition-all duration-200 ${interactive ? 'neo-card-interactive hover:shadow-md' : ''} ${variantStyles[variant] || variantStyles.white} ${className}`} 
       {...props}
     >
       {/* Decorative watermark silhouette */}
       {watermark && (
-        <div className="absolute right-3 -bottom-4 pointer-events-none select-none opacity-20 transform translate-x-2">
+        <div className="absolute right-3 -bottom-4 pointer-events-none select-none opacity-20 transform translate-x-2 transition-transform duration-300 group-hover:scale-105">
           {watermark}
         </div>
       )}

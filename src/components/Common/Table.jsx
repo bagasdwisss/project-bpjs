@@ -43,10 +43,10 @@ export const Table = ({
                   <tr 
                     key={rowKey} 
                     onClick={() => onRowClick && onRowClick(row)}
-                    className={`transition-colors duration-150 ${
+                    className={`group transition-all duration-150 ${
                       isActive 
                         ? 'bg-[#F5C6EC]/40 font-semibold text-[#121214]' 
-                        : 'hover:bg-[#F5F4F0]/70 text-[#121214]'
+                        : 'hover:bg-[#FCE373]/18 text-[#121214]'
                     } ${onRowClick ? 'cursor-pointer' : ''}`}
                   >
                     {columns.map((col, cIdx) => (

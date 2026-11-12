@@ -7,7 +7,7 @@ import React from 'react';
 
 export const Skeleton = ({ className = '', ...props }) => (
   <div 
-    className={`animate-pulse bg-[#E5E4DE] rounded-xl ${className}`} 
+    className={`skeleton-shimmer rounded-xl ${className}`} 
     {...props} 
   />
 );
