@@ -372,7 +372,7 @@ function AdminBatchManagement() {
                     required
                     value={formData.batch_name}
                     onChange={(e) => setFormData({ ...formData, batch_name: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:bg-white focus:outline-none"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
                     placeholder="Contoh: Gelombang 1 2026"
                   />
                 </div>

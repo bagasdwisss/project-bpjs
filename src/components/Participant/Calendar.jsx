@@ -804,7 +804,7 @@ const Calendar = () => {
                     value={formData.event_title}
                     onChange={(e) => setFormData({ ...formData, event_title: e.target.value })}
                     placeholder="Contoh: Evaluasi Tengah Periode / Ujian Kompetensi"
-                    className="w-full bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl px-4 py-2.5 text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
                   />
                 </div>
 
@@ -817,7 +817,7 @@ const Calendar = () => {
                     value={formData.event_description}
                     onChange={(e) => setFormData({ ...formData, event_description: e.target.value })}
                     placeholder="Instruksi, ruangan, atau link virtual meeting..."
-                    className="w-full bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl px-4 py-2.5 text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
                   />
                 </div>
 

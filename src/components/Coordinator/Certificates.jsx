@@ -1,5 +1,6 @@
 // src/components/Coordinator/Certificates.jsx
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Layout from '../Layout/Layout';
 import reportService from '../../services/reportService';
 import userService from '../../services/userService';
@@ -46,6 +47,22 @@ const Certificates = () => {
   const [downloadingCertId, setDownloadingCertId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submittingReissue, setSubmittingReissue] = useState(false);
+
+  // Lock body scroll and mark modal open for portal and backdrop safety
+  useEffect(() => {
+    const isAnyModalOpen = showGenerateModal || showBulkModal || showReissueModal || !!selectedCertificate;
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    };
+  }, [showGenerateModal, showBulkModal, showReissueModal, selectedCertificate]);
 
   // Form states - Type determines the design automatically!
   const [formData, setFormData] = useState({
@@ -390,7 +407,7 @@ const Certificates = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[2px_2px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
+              className="px-4 py-2.5 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs font-bold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] transition cursor-pointer"
             >
               <option value="all">Semua Status</option>
               <option value="issued">Telah Terbit</option>
@@ -566,28 +583,29 @@ const Certificates = () => {
         {/* =========================================================================
             MODAL 1: SINGLE GENERATE CERTIFICATE (With Password & Dedicated Type Design)
         ========================================================================== */}
-        {showGenerateModal && (
+        {showGenerateModal && typeof document !== 'undefined' && createPortal(
           <div
-            className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto overscroll-contain"
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-150"
             role="dialog"
             aria-modal="true"
             aria-label="Terbitkan Sertifikat Resmi"
             onClick={(e) => { if (e.target === e.currentTarget) setShowGenerateModal(false); }}
           >
-            <div className="bg-white rounded-[26px] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-4">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-[#FCE373]/40 border border-[#FCE373] flex items-center justify-center text-[#856B12]">
+            <div className="bg-white rounded-[24px] sm:rounded-[28px] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-5 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in zoom-in-95 duration-200 my-auto">
+              <div className="flex items-center justify-between pb-3.5 border-b border-[#EAE9E4]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#FCE373]/30 border border-[#FCE373] flex items-center justify-center text-[#856B12] shrink-0">
                     <Award className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-extrabold text-[#121214]">Terbitkan Sertifikat Resmi</h3>
-                    <p className="text-xs text-[#121214]/50">Pilih jenis sertifikat dan lakukan otorisasi kata sandi</p>
+                    <p className="text-xs text-[#121214]/60 mt-0.5">Pilih jenis sertifikat dan lakukan otorisasi kata sandi</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setShowGenerateModal(false)}
-                  className="w-8 h-8 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center text-[#121214]/60 hover:text-[#121214] hover:bg-[#F5F4F0] transition cursor-pointer shrink-0"
+                  aria-label="Tutup dialog"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -604,7 +622,7 @@ const Certificates = () => {
                     required
                     value={formData.participant_id}
                     onChange={(e) => setFormData({ ...formData, participant_id: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition cursor-pointer"
                   >
                     <option value="">-- Pilih Peserta Bimbingan --</option>
                     {participants.map(p => {
@@ -630,7 +648,7 @@ const Certificates = () => {
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition cursor-pointer"
                   >
                     <option value="Kelulusan">🌿 Sertifikat Kelulusan (Completion)</option>
                     <option value="Prestasi">👑 Sertifikat Prestasi (Achievement)</option>
@@ -638,17 +656,17 @@ const Certificates = () => {
                   </select>
 
                   {/* Informative Preview Card for the Type */}
-                  <div className={`mt-2.5 p-3 rounded-2xl border text-xs leading-relaxed transition ${
+                  <div className={`mt-3 p-3.5 rounded-xl border text-xs leading-relaxed transition ${
                     formData.type === 'Prestasi'
-                      ? 'bg-amber-50 border-amber-300 text-amber-950'
+                      ? 'bg-amber-50/70 border-amber-200 text-amber-950'
                       : formData.type === 'Partisipasi'
-                      ? 'bg-slate-50 border-slate-300 text-slate-900'
-                      : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                      ? 'bg-slate-50 border-slate-200 text-slate-800'
+                      : 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
                   }`}>
-                    <div className="font-extrabold flex items-center gap-1.5 mb-1">
+                    <div className="font-bold flex items-center gap-1.5 mb-1 text-xs">
                       <span>{formData.type === 'Prestasi' ? '👑 Desain Khusus Prestasi Unggul:' : formData.type === 'Partisipasi' ? '💎 Desain Partisipasi Aktif:' : '🌿 Desain Resmi Kelulusan Magang:'}</span>
                     </div>
-                    <p className="text-[11px]">
+                    <p className="text-[11px] leading-relaxed text-[#121214]/70">
                       {formData.type === 'Prestasi'
                         ? 'Judul: SERTIFIKAT PRESTASI. Menggunakan ornamen Royal Gold & Navy Elite dengan stempel dinas emas prestisius untuk peserta dengan capaian kinerja terbaik.'
                         : formData.type === 'Partisipasi'
@@ -659,13 +677,13 @@ const Certificates = () => {
                 </div>
 
                 {/* Coordinator Password Authorization */}
-                <div className="pt-2">
+                <div className="pt-1">
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#121214] flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-rose-600" />
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#121214] flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-rose-500" />
                       <span>Kata Sandi Otorisasi Koordinator</span>
                     </label>
-                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
                       Wajib
                     </span>
                   </div>
@@ -675,20 +693,20 @@ const Certificates = () => {
                     placeholder="Masukkan kata sandi login akun Anda untuk otorisasi..."
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
                   />
-                  <p className="text-[10px] text-gray-500 mt-1">
+                  <p className="text-[11px] text-[#121214]/50 mt-1.5 leading-normal">
                     Verifikasi sandi mencegah penerbitan tanpa izin dan menjamin akuntabilitas audit forensik.
                   </p>
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-2.5 pt-4 border-t border-[#EAE9E4]">
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#EAE9E4]">
                   <button
                     type="button"
                     disabled={submitting}
                     onClick={() => setShowGenerateModal(false)}
-                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition cursor-pointer"
+                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] bg-white hover:bg-[#FAF9F6] text-xs font-bold text-[#121214] transition cursor-pointer whitespace-nowrap shrink-0"
                   >
                     Batal
                   </button>
@@ -696,7 +714,7 @@ const Certificates = () => {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-60 active:scale-95"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-60 active:scale-95 whitespace-nowrap shrink-0"
                   >
                     {submitting ? (
                       <>
@@ -713,34 +731,36 @@ const Certificates = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* =========================================================================
             MODAL 2: BULK ISSUE CERTIFICATES (Batch Penerbitan Massal)
         ========================================================================== */}
-        {showBulkModal && (
+        {showBulkModal && typeof document !== 'undefined' && createPortal(
           <div
-            className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto overscroll-contain"
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-150"
             role="dialog"
             aria-modal="true"
             aria-label="Penerbitan Sertifikat Massal"
             onClick={(e) => { if (e.target === e.currentTarget) setShowBulkModal(false); }}
           >
-            <div className="bg-white rounded-[26px] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-4">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800">
+            <div className="bg-white rounded-[24px] sm:rounded-[28px] max-w-lg w-full max-h-[90vh] overflow-y-auto overscroll-contain p-5 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in zoom-in-95 duration-200 my-auto">
+              <div className="flex items-center justify-between pb-3.5 border-b border-[#EAE9E4]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 shrink-0">
                     <Layers className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-extrabold text-[#121214]">Penerbitan Sertifikat Massal</h3>
-                    <p className="text-xs text-[#121214]/50">Terbitkan sertifikat bagi seluruh anak didik sekaligus</p>
+                    <p className="text-xs text-[#121214]/60 mt-0.5">Terbitkan sertifikat bagi seluruh anak didik sekaligus</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setShowBulkModal(false)}
-                  className="w-8 h-8 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center text-[#121214]/60 hover:text-[#121214] hover:bg-[#F5F4F0] transition cursor-pointer shrink-0"
+                  aria-label="Tutup dialog"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -769,18 +789,18 @@ const Certificates = () => {
                   </div>
 
                   {unissuedParticipants.length === 0 ? (
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl text-center text-xs text-gray-500 font-medium">
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-xs text-gray-500 font-medium">
                       Semua peserta bimbingan Anda sudah memiliki sertifikat.
                     </div>
                   ) : (
-                    <div className="max-h-48 overflow-y-auto space-y-1.5 p-2 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl shadow-[2px_2px_0px_#121214]">
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 p-2 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl">
                       {unissuedParticipants.map(p => {
                         const isChecked = bulkSelectedIds.includes(p.user_id);
                         return (
                           <label
                             key={p.user_id}
-                            className={`flex items-center justify-between p-2 rounded-xl border text-xs font-bold cursor-pointer transition ${
-                              isChecked ? 'bg-white border-emerald-600 text-[#121214]' : 'bg-transparent border-transparent text-gray-600'
+                            className={`flex items-center justify-between p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${
+                              isChecked ? 'bg-white border-emerald-600 text-[#121214] shadow-xs' : 'bg-transparent border-transparent text-gray-600'
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
@@ -814,7 +834,7 @@ const Certificates = () => {
                   <select
                     value={bulkType}
                     onChange={(e) => setBulkType(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition cursor-pointer"
                   >
                     <option value="Kelulusan">🌿 Sertifikat Kelulusan (Desain Emerald Classic BPJSTK)</option>
                     <option value="Prestasi">👑 Sertifikat Prestasi (Desain Royal Gold & Navy Elite)</option>
@@ -833,17 +853,17 @@ const Certificates = () => {
                     placeholder="Masukkan kata sandi login Anda..."
                     value={bulkPassword}
                     onChange={(e) => setBulkPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
                   />
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-2.5 pt-4 border-t border-[#EAE9E4]">
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#EAE9E4]">
                   <button
                     type="button"
                     disabled={submitting}
                     onClick={() => setShowBulkModal(false)}
-                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition cursor-pointer"
+                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] bg-white hover:bg-[#FAF9F6] text-xs font-bold text-[#121214] transition cursor-pointer whitespace-nowrap shrink-0"
                   >
                     Batal
                   </button>
@@ -851,7 +871,7 @@ const Certificates = () => {
                   <button
                     type="submit"
                     disabled={submitting || bulkSelectedIds.length === 0}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 active:scale-95"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#121214] hover:bg-black text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 active:scale-95 whitespace-nowrap shrink-0"
                   >
                     {submitting ? (
                       <>
@@ -868,34 +888,36 @@ const Certificates = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* =========================================================================
             MODAL 3: REQUEST RE-ISSUE / CORRECTION TO ADMIN (HAPUS BERSIH PROTOCOL)
         ========================================================================== */}
-        {showReissueModal && reissueTargetCert && (
+        {showReissueModal && reissueTargetCert && typeof document !== 'undefined' && createPortal(
           <div
-            className="fixed inset-0 bg-[#121214]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto overscroll-contain"
+            className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-150"
             role="dialog"
             aria-modal="true"
             aria-label="Ajukan Koreksi Sertifikat"
             onClick={(e) => { if (e.target === e.currentTarget) setShowReissueModal(false); }}
           >
-            <div className="bg-white rounded-[26px] max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-6 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in fade-in zoom-in-95 duration-200 my-4">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EAE9E4]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800">
+            <div className="bg-white rounded-[24px] sm:rounded-[28px] max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain p-5 sm:p-7 shadow-2xl border border-[#EAE9E4] space-y-5 animate-in zoom-in-95 duration-200 my-auto">
+              <div className="flex items-center justify-between pb-3.5 border-b border-[#EAE9E4]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shrink-0">
                     <FileEdit className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-extrabold text-[#121214]">Ajukan Koreksi Sertifikat</h3>
-                    <p className="text-xs text-[#121214]/50">Permohonan penghapusan bersih & terbit ulang</p>
+                    <p className="text-xs text-[#121214]/60 mt-0.5">Permohonan penghapusan bersih & terbit ulang</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setShowReissueModal(false)}
-                  className="w-8 h-8 rounded-full border border-[#EAE9E4] flex items-center justify-center text-[#121214]/50 hover:text-[#121214] hover:bg-[#FAF9F6] transition cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#FAF9F6] border border-[#EAE9E4] flex items-center justify-center text-[#121214]/60 hover:text-[#121214] hover:bg-[#F5F4F0] transition cursor-pointer shrink-0"
+                  aria-label="Tutup dialog"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -921,7 +943,7 @@ const Certificates = () => {
                     placeholder="Contoh: Kesalahan penulisan nama lengkap (salah ketik huruf) atau penyesuaian gelar..."
                     value={reissueReason}
                     onChange={(e) => setReissueReason(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
                   />
                 </div>
 
@@ -930,12 +952,12 @@ const Certificates = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-2.5 pt-4 border-t border-[#EAE9E4]">
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#EAE9E4]">
                   <button
                     type="button"
                     disabled={submittingReissue}
                     onClick={() => setShowReissueModal(false)}
-                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition cursor-pointer"
+                    className="px-5 py-2.5 rounded-full border border-[#EAE9E4] bg-white hover:bg-[#FAF9F6] text-xs font-bold text-[#121214] transition cursor-pointer whitespace-nowrap shrink-0"
                   >
                     Batal
                   </button>
@@ -943,7 +965,7 @@ const Certificates = () => {
                   <button
                     type="submit"
                     disabled={submittingReissue || !reissueReason.trim()}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 active:scale-95"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 active:scale-95 whitespace-nowrap shrink-0"
                   >
                     {submittingReissue ? (
                       <>
@@ -960,7 +982,8 @@ const Certificates = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Modal Format Resmi E-Sertifikat BPJS Ketenagakerjaan */}

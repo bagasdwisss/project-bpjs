@@ -192,6 +192,37 @@ const TanyaBPJSBot = () => {
     setInputQuestion('');
   };
 
+  // Auto-hide launcher when any dialog or modal is open in the application
+  const [hasModalOpen, setHasModalOpen] = useState(false);
+
+  useEffect(() => {
+    const checkModal = () => {
+      if (typeof document === 'undefined') return;
+      const dialogs = document.querySelectorAll('[role="dialog"]');
+      let otherModalOpen = false;
+      dialogs.forEach((d) => {
+        const label = d.getAttribute('aria-label') || '';
+        if (label !== 'BPJSTK Smart Agent' && label !== 'Tanya BPJSTK AI') {
+          otherModalOpen = true;
+        }
+      });
+      if (document.body.classList.contains('modal-open') || document.body.style.overflow === 'hidden') {
+        otherModalOpen = true;
+      }
+      setHasModalOpen(otherModalOpen);
+    };
+
+    checkModal();
+    const observer = new MutationObserver(checkModal);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const handleCopyAnswer = async (text, idx) => {
     if (!navigator.clipboard) return;
     await navigator.clipboard.writeText(text).catch(() => {});
@@ -201,19 +232,19 @@ const TanyaBPJSBot = () => {
 
   return (
     <>
-      {/* Floating Launcher Button */}
-      {!isOpen && (
+      {/* Floating Launcher Button (Auto-hidden when any modal/dialog is open) */}
+      {!isOpen && !hasModalOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center space-x-2.5 px-4 py-3 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#121214] font-black text-xs transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0"
+          className="fixed bottom-5 right-5 z-40 flex items-center space-x-2.5 px-4 py-2.5 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-full shadow-[3px_3px_0px_#121214] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#121214] font-black text-xs transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0"
           title="Tanya BPJSTK Smart Agent (Tool-Calling AI)"
         >
-          <div className="w-6 h-6 rounded-lg bg-white border border-[#121214] flex items-center justify-center shrink-0">
-            <Bot className="w-4 h-4 text-[#121214]" />
+          <div className="w-5 h-5 rounded-full bg-white border border-[#121214] flex items-center justify-center shrink-0">
+            <Bot className="w-3.5 h-3.5 text-[#121214]" />
           </div>
-          <span className="hidden sm:inline">Tanya BPJSTK AI</span>
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-[#121214] animate-pulse shrink-0"></span>
+          <span className="hidden sm:inline font-extrabold">Tanya BPJSTK AI</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 border border-[#121214] animate-pulse shrink-0"></span>
         </button>
       )}
 

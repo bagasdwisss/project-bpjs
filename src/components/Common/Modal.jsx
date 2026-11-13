@@ -1,5 +1,6 @@
 // src/components/Common/Modal.jsx
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export const Modal = ({ isOpen, onClose, title, subtitle, children, maxWidth = 'max-w-lg', footer }) => {
@@ -9,20 +10,22 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, maxWidth = '
     };
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  return (
+  const content = (
     <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain" role="dialog" aria-modal="true" aria-label={title || 'Dialog'}>
       <div 
-        className="fixed inset-0 bg-[#121214]/40 backdrop-blur-sm animate-in fade-in duration-150" 
+        className="fixed inset-0 bg-[#121214]/50 backdrop-blur-sm animate-in fade-in duration-150" 
         onClick={onClose} 
       />
       <div className="flex min-h-full items-center justify-center p-2.5 sm:p-4">
@@ -53,6 +56,8 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, maxWidth = '
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(content, document.body) : content;
 };
 
 export default Modal;

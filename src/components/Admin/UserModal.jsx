@@ -133,7 +133,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               onChange={handleChange}
               required
               placeholder="e.g. PES001 / KO001 / ADM001"
-              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+              className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
             />
           </div>
 
@@ -148,7 +148,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               onChange={handleChange}
               required
               placeholder="Nama lengkap pengguna"
-              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+              className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
             />
           </div>
 
@@ -222,7 +222,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               <select
                 value={formData.coordinator_id || ''}
                 onChange={(e) => setFormData({...formData, coordinator_id: e.target.value})}
-                className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white cursor-pointer"
+                className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition cursor-pointer"
               >
                 <option value="">-- Pilih Koordinator Pembimbing --</option>
                 {coordinators.map(c => (
@@ -244,7 +244,7 @@ const UserModal = ({ user, onClose, onSave, coordinators, loading = false }) => 
               value={formData.password}
               onChange={handleChange}
               placeholder={user ? "Kosongkan jika tidak ingin mengubah sandi" : "Kosongkan untuk sandi default sistem"}
-              className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+              className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
             />
             {passwordError && (
               <p className="text-[11px] font-bold text-rose-600 mt-1">{passwordError}</p>

@@ -895,7 +895,7 @@ const AcquisitionResult = () => {
                     name="nama_peserta"
                     value={formData.nama_peserta}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                    className={`w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition ${
                       formErrors.nama_peserta ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan nama peserta"
@@ -914,7 +914,7 @@ const AcquisitionResult = () => {
                     name="nik"
                     value={formData.nik}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                    className={`w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition ${
                       formErrors.nik ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan NIK (minimal 16 digit)"
@@ -945,7 +945,7 @@ const AcquisitionResult = () => {
                     name="no_telepon"
                     value={formData.no_telepon}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                    className={`w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition ${
                       formErrors.no_telepon ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan no. telepon"
@@ -964,7 +964,7 @@ const AcquisitionResult = () => {
                     name="pekerjaan"
                     value={formData.pekerjaan}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition"
                     placeholder="Contoh: Petani, Ojek Online, Pedagang"
                   />
                 </div>
@@ -978,7 +978,7 @@ const AcquisitionResult = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                    className={`w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition ${
                       formErrors.email ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan email peserta"
@@ -1077,7 +1077,7 @@ const AcquisitionResult = () => {
                     name="biaya"
                     value={formatRupiah(formData.biaya)}
                     onChange={handleBiayaChange}
-                    className={`w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition-all ${
+                    className={`w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition ${
                       formErrors.biaya ? 'border-rose-500 ring-2 ring-rose-400' : ''
                     }`}
                     placeholder="Masukkan biaya"

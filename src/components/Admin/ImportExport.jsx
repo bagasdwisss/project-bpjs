@@ -242,7 +242,7 @@ const ImportExport = () => {
                   <select
                     value={exportType}
                     onChange={(e) => setExportType(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#FAF9F6] border-2 border-[#121214] rounded-2xl text-xs font-bold text-[#121214] shadow-[3px_3px_0px_#121214] focus:outline-none focus:bg-white transition cursor-pointer"
+                    className="w-full px-4 py-3 bg-[#FAF9F6] border border-[#EAE9E4] rounded-xl text-xs sm:text-sm font-semibold text-[#121214] focus:outline-none focus:bg-white focus:border-[#121214] focus:ring-2 focus:ring-[#121214]/10 transition cursor-pointer"
                   >
                     <option value="all">Semua Pengguna Terdaftar</option>
                     <option value="participants">Hanya Peserta Magang (Role 1)</option>

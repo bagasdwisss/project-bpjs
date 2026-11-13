@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   Printer, 
@@ -36,16 +37,22 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
 
-  // Close on ESC key
+  // Close on ESC key & lock body
   useEffect(() => {
     if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   useEffect(() => {
@@ -193,7 +200,7 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
   const isMobile = containerWidth < 1030;
   const scale = isMobile && fitScreen ? Math.max(0.32, (containerWidth - 20) / 1000) : 1;
 
-  return (
+  const modalElement = (
     <div 
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -688,6 +695,8 @@ const CompanyCertificateModal = ({ isOpen, onClose, certificate, participant }) 
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalElement, document.body) : modalElement;
 };
 
 export default CompanyCertificateModal;
