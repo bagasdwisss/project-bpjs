@@ -142,7 +142,7 @@ export const WhistleblowingModal = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={() => setActiveTab('submit')}
-            className={`flex-1 py-2 text-xs font-black rounded-lg transition ${
+            className={`flex-1 py-2 text-xs font-black rounded-lg transition whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === 'submit' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#121214]/70 hover:text-[#121214]'
             }`}
           >
@@ -151,7 +151,7 @@ export const WhistleblowingModal = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={() => setActiveTab('track')}
-            className={`flex-1 py-2 text-xs font-black rounded-lg transition ${
+            className={`flex-1 py-2 text-xs font-black rounded-lg transition whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === 'track' ? 'bg-[#121214] text-white shadow-sm' : 'text-[#121214]/70 hover:text-[#121214]'
             }`}
           >

@@ -125,15 +125,15 @@ const BpuCalculatorSettings = () => {
         {/* Header Banner */}
         <div className="bg-[#FCE373] border-2 border-[#121214] rounded-2xl p-6 shadow-[4px_4px_0px_#121214] relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#121214] text-white text-[11px] font-black uppercase tracking-wider mb-2 shadow-[2px_2px_0px_#121214]">
+            <div className="min-w-0 flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#121214] text-white text-[11px] font-black uppercase tracking-wider mb-2 shadow-[2px_2px_0px_#121214] shrink-0">
                 <Calculator className="w-3.5 h-3.5 text-[#FCE373]" />
                 Regulasi Iuran BPU Dinamis BPJSTK
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-[#121214] tracking-tight">
                 Kalkulator & Konfigurasi Tarif Iuran BPU
               </h1>
-              <p className="text-xs sm:text-sm text-[#121214]/80 font-semibold mt-1 max-w-2xl">
+              <p className="text-xs sm:text-sm text-[#121214]/80 font-semibold mt-1 max-w-2xl leading-relaxed">
                 Kelola persentase dan nominal batas minimum iuran program Bukan Penerima Upah (JKK, JKM, JHT), santunan kematian, serta uji coba simulasi perhitungan langsung secara interaktif.
               </p>
             </div>
@@ -143,9 +143,9 @@ const BpuCalculatorSettings = () => {
                 type="button"
                 onClick={fetchBpuRates}
                 disabled={loading}
-                className="px-3.5 py-2 rounded-xl border-2 border-[#121214] bg-white hover:bg-gray-100 active:scale-95 text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                className="px-3.5 py-2 rounded-xl border-2 border-[#121214] bg-white hover:bg-gray-100 active:scale-95 text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap shrink-0"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${loading ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </button>
             </div>

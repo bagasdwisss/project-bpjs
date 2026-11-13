@@ -261,15 +261,15 @@ const Analysis = () => {
         
         {/* Header Bento Box */}
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E]/40 text-[#3C4A11]">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E]/40 text-[#3C4A11] shrink-0">
                 <BarChart3 className="w-4 h-4" />
               </span>
               <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Statistik & Analisis</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Analisis Performa Peserta</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Evaluasi capaian rata-rata, distribusi grade, dan perbandingan performa peserta binaan</p>
+            <p className="text-sm text-[#121214]/60 mt-1 max-w-2xl leading-relaxed">Evaluasi capaian rata-rata, distribusi grade, dan perbandingan performa peserta binaan</p>
           </div>
         </div>
 

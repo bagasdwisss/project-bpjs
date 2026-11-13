@@ -180,32 +180,32 @@ const Reminders = () => {
         
         {/* Header Bento Box */}
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#BDD4F2]/40 text-[#1F4275]">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#BDD4F2]/40 text-[#1F4275] shrink-0">
                 <Bell className="w-4 h-4" />
               </span>
               <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Koordinator Notifikasi</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Pengingat & Notifikasi</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Buat, kelola, dan siarkan pengingat jadwal kegiatan atau pengumuman peserta</p>
+            <p className="text-sm text-[#121214]/60 mt-1 max-w-2xl leading-relaxed">Buat, kelola, dan siarkan pengingat jadwal kegiatan atau pengumuman peserta</p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               onClick={loadNotifications}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#EAE9E4] bg-white text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#EAE9E4] bg-white text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] transition shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Segarkan
+              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${loading ? 'animate-spin' : ''}`} />
+              <span>Segarkan</span>
             </button>
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#121214] text-xs font-bold text-white hover:bg-black transition shadow-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#121214] text-xs font-bold text-white hover:bg-black transition shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
             >
-              {showCreateForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-              {showCreateForm ? 'Tutup Formulir' : 'Buat Notifikasi'}
+              {showCreateForm ? <X className="w-3.5 h-3.5 shrink-0" /> : <Plus className="w-3.5 h-3.5 shrink-0" />}
+              <span>{showCreateForm ? 'Tutup Formulir' : 'Buat Notifikasi'}</span>
             </button>
           </div>
         </div>

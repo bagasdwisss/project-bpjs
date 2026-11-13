@@ -165,11 +165,11 @@ const BpuAcquisitions = () => {
       <div className="space-y-6">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black text-[#121214] tracking-tight">
               Akuisisi Peserta BPJSTK BPU
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 font-medium max-w-2xl leading-relaxed">
               Pemantauan dan verifikasi data calon peserta Bukan Penerima Upah yang diakuisisi peserta magang bimbingan Anda
             </p>
           </div>
@@ -178,10 +178,10 @@ const BpuAcquisitions = () => {
             <button
               onClick={fetchAcquisitions}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] hover:bg-[#FAF9F6] shadow-[2px_2px_0px_#121214] transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] hover:bg-[#FAF9F6] shadow-[2px_2px_0px_#121214] transition-all disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Segarkan Data
+              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${loading ? 'animate-spin' : ''}`} />
+              <span>Segarkan Data</span>
             </button>
           </div>
         </div>

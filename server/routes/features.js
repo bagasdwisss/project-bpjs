@@ -983,8 +983,19 @@ router.post('/certificates/generate', authenticateToken, requireRole('Koordinato
       ? batchRes.rows[0].batch_name
       : (batch_name || 'Batch 1 - Gelombang Berjalan');
 
-    const certCountRes = await query(`SELECT COUNT(*) FROM certificates`);
-    const nextSeq = parseInt(certCountRes.rows[0].count, 10) + 1;
+    const certSeqRes = await query(`
+      SELECT certificate_number FROM certificates 
+      WHERE certificate_number LIKE 'BPJSTK/MAGANG/2026/%'
+    `);
+    let maxSeq = 0;
+    for (const row of certSeqRes.rows) {
+      const match = (row.certificate_number || '').match(/(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxSeq) maxSeq = num;
+      }
+    }
+    const nextSeq = maxSeq + 1;
     const certNumber = `BPJSTK/MAGANG/2026/${String(nextSeq).padStart(3, '0')}`;
     const issueDate = new Date().toISOString().split('T')[0];
 

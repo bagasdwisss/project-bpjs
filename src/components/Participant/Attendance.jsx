@@ -649,28 +649,28 @@ const Attendance = () => {
         
         {/* Top Header with Quick Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black text-[#121214] tracking-tight">
               Presensi & Manajemen Kehadiran
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 font-medium max-w-2xl leading-relaxed">
               Geofencing Multi-Titik Kantor & Lapangan Binaan BPJSTK
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={() => setCalcModalOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl border-2 border-[#121214] bg-[#FCE373] hover:bg-[#ebd056] font-black text-xs text-[#121214] shadow-[3px_3px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl border-2 border-[#121214] bg-[#FCE373] hover:bg-[#ebd056] font-black text-xs text-[#121214] shadow-[3px_3px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Calculator className="w-4 h-4" />
+              <Calculator className="w-4 h-4 shrink-0" />
               <span>Kalkulator Iuran</span>
             </button>
             <button
               onClick={() => setQrModalOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl border-2 border-[#121214] bg-[#BDD4F2] hover:bg-[#a9c5eb] font-black text-xs text-[#121214] shadow-[3px_3px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl border-2 border-[#121214] bg-[#BDD4F2] hover:bg-[#a9c5eb] font-black text-xs text-[#121214] shadow-[3px_3px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <QrCode className="w-4 h-4" />
+              <QrCode className="w-4 h-4 shrink-0" />
               <span>QR Referral BPU</span>
             </button>
           </div>

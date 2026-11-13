@@ -223,16 +223,16 @@ const UserManagement = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Kelola Pengguna Sistem
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 max-w-2xl leading-relaxed">
               Total {users.length} pengguna terdaftar ({coordinators.length} koordinator pembimbing aktif).
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             <input
               type="file"
               ref={fileInputRef}
@@ -242,17 +242,17 @@ const UserManagement = () => {
             />
             <button
               onClick={handleImportClick}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Upload className="w-3.5 h-3.5" />
-              Import Excel
+              <Upload className="w-3.5 h-3.5 shrink-0" />
+              <span>Import Excel</span>
             </button>
             <button
               onClick={handleAddUser}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <UserPlus className="w-3.5 h-3.5" />
-              Tambah Pengguna Baru
+              <UserPlus className="w-3.5 h-3.5 shrink-0" />
+              <span>Tambah Pengguna Baru</span>
             </button>
           </div>
         </div>

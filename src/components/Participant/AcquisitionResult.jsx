@@ -552,21 +552,21 @@ const AcquisitionResult = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Hasil Akuisisi Kepesertaan BPU
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 max-w-2xl leading-relaxed">
               Catatan pendaftaran peserta BPU mandiri, verifikasi pembayaran, dan bukti sosialisasi lapangan.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={openAddForm}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Tambah Hasil Akuisisi
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span>Tambah Hasil Akuisisi</span>
             </button>
           </div>
         </div>

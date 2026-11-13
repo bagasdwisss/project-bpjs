@@ -206,14 +206,14 @@ const TanyaBPJSBot = () => {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center space-x-2.5 px-4 py-3 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#121214] font-black text-xs transition-all duration-150 cursor-pointer"
+          className="fixed bottom-5 right-5 z-40 flex items-center space-x-2.5 px-4 py-3 bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] rounded-2xl shadow-[4px_4px_0px_#121214] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#121214] font-black text-xs transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0"
           title="Tanya BPJSTK Smart Agent (Tool-Calling AI)"
         >
-          <div className="w-6 h-6 rounded-lg bg-white border border-[#121214] flex items-center justify-center">
+          <div className="w-6 h-6 rounded-lg bg-white border border-[#121214] flex items-center justify-center shrink-0">
             <Bot className="w-4 h-4 text-[#121214]" />
           </div>
           <span className="hidden sm:inline">Tanya BPJSTK AI</span>
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-[#121214] animate-pulse"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-[#121214] animate-pulse shrink-0"></span>
         </button>
       )}
 

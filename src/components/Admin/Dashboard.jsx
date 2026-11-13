@@ -145,11 +145,11 @@ const AdminDashboard = () => {
       <div className="space-y-6">
         {/* Top Greeting & Daily Summary */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               {getTimeGreeting()}, {user?.full_name?.split(' ')[0] || 'Admin'}
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 max-w-2xl leading-relaxed">
               Saat ini ada <span className="font-bold text-[#121214]">{stats.totalUsers} akun terdaftar</span>, <span className="font-bold text-[#121214]">{stats.activeParticipants} peserta aktif magang</span> pada {stats.totalBatches} batch aktif. Seluruh modul siap digunakan.
             </p>
           </div>
@@ -157,14 +157,14 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               onClick={fetchDashboard}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Segarkan Data
+              <span>Segarkan Data</span>
             </button>
-            <div className="px-3.5 py-1.5 bg-[#B8C96E] text-[#121214] rounded-full text-xs font-bold flex items-center gap-1.5">
+            <div className="px-3.5 py-1.5 bg-[#B8C96E] text-[#121214] rounded-full text-xs font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0">
               <span className="w-2 h-2 rounded-full bg-[#121214]"></span>
-              Sistem Online
+              <span>Sistem Online</span>
             </div>
           </div>
         </div>

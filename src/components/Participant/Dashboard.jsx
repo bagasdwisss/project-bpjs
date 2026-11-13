@@ -144,7 +144,7 @@ const ParticipantDashboard = () => {
       <div className="space-y-6">
         {/* Top Greeting & Action Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               {getTimeGreeting()}, {user?.full_name?.split(' ')[0] || 'Peserta'}
             </h1>
@@ -161,32 +161,32 @@ const ParticipantDashboard = () => {
             <button
               type="button"
               onClick={() => setCalcModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FCE373] hover:bg-[#ebd056] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FCE373] hover:bg-[#ebd056] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Calculator className="w-3.5 h-3.5" />
+              <Calculator className="w-3.5 h-3.5 shrink-0" />
               <span>Simulasi Iuran</span>
             </button>
             <button
               type="button"
               onClick={() => setQrModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#BDD4F2] hover:bg-[#a5c4ec] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#BDD4F2] hover:bg-[#a5c4ec] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <QrCode className="w-3.5 h-3.5" />
+              <QrCode className="w-3.5 h-3.5 shrink-0" />
               <span>QR Referral</span>
             </button>
             <button
               type="button"
               onClick={() => setChatModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#F5C6EC] hover:bg-[#e8b4dd] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#F5C6EC] hover:bg-[#e8b4dd] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Chat Pembimbing</span>
+              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+              <span>Chat Bimbingan</span>
             </button>
             <Link
               to="/participant/attendance"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all whitespace-nowrap shrink-0"
             >
-              <CheckCircle className="w-3.5 h-3.5 text-[#B8C96E]" />
+              <CheckCircle className="w-3.5 h-3.5 text-[#B8C96E] shrink-0" />
               <span>Isi Presensi</span>
             </Link>
           </div>

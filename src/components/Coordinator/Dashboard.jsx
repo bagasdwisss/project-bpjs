@@ -227,23 +227,23 @@ const CoordinatorDashboard = () => {
       <div className="space-y-6">
         {/* Top Header & Greeting */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               {getTimeGreeting()}, {user?.full_name?.split(' ')[0] || 'Koordinator'}
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 max-w-2xl leading-relaxed">
               Membimbing <span className="font-bold text-[#121214]">{totalCount} Peserta Magang Aktif</span>. Evaluasi pencapaian tugas dan target akuisisi harian.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0">
             <button
               type="button"
               onClick={() => {
                 setChatRecipientId(null);
                 setChatModalOpen(true);
               }}
-              className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#FCE373] hover:bg-[#ebd056] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+              className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#FCE373] hover:bg-[#ebd056] border-2 border-[#121214] rounded-full text-xs font-black text-[#121214] shadow-[2px_2px_0px_#121214] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               <MessageSquare className="w-3.5 h-3.5 shrink-0" />
               <span>Live Chat Bimbingan</span>
@@ -255,14 +255,14 @@ const CoordinatorDashboard = () => {
                 loadEarlyWarnings();
                 loadPendingLeaves();
               }}
-              className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all cursor-pointer"
+              className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${loading ? 'animate-spin' : ''}`} />
               <span>Segarkan Data</span>
             </button>
             <Link
               to="/coordinator/grading"
-              className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+              className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all whitespace-nowrap shrink-0"
             >
               <Award className="w-3.5 h-3.5 shrink-0" />
               <span>Kelola Penilaian</span>

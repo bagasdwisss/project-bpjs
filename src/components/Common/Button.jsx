@@ -12,7 +12,7 @@ export const Button = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#121214] cursor-pointer';
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#121214] cursor-pointer whitespace-nowrap shrink-0';
   
   const variants = {
     primary: 'bg-[#121214] hover:bg-neutral-800 text-white shadow-sm',

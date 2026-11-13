@@ -214,16 +214,16 @@ const Scores = () => {
       <div className="space-y-6">
         {/* Top Greeting & Action Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Nilai & Hasil Evaluasi
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 max-w-2xl leading-relaxed">
               Pantau perkembangan capaian kompetensi magang dan umpan balik langsung dari koordinator
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold bg-white border border-[#EAE9E4] text-[#121214] px-3.5 py-1.5 rounded-full shadow-sm">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold bg-white border border-[#EAE9E4] text-[#121214] px-3.5 py-1.5 rounded-full shadow-sm whitespace-nowrap shrink-0">
               Status: Evaluasi Aktif
             </span>
           </div>
@@ -261,26 +261,26 @@ const Scores = () => {
                 <button
                   type="button"
                   onClick={() => setShowCertModal(true)}
-                  className="px-4 py-2.5 rounded-full bg-white text-[#00552B] font-extrabold text-xs shadow-md hover:bg-emerald-50 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                  className="px-4 py-2.5 rounded-full bg-white text-[#00552B] font-extrabold text-xs shadow-md hover:bg-emerald-50 transition-all flex items-center gap-2 cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                 >
-                  <Eye className="w-4 h-4 text-[#008F4C]" />
+                  <Eye className="w-4 h-4 text-[#008F4C] shrink-0" />
                   <span>Lihat Format Resmi</span>
                 </button>
                 <Link
                   to={`/verify-certificate/${certificate.certificate_number}`}
-                  className="px-4 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs backdrop-blur-md border border-white/30 transition-all flex items-center gap-2"
+                  className="px-4 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs backdrop-blur-md border border-white/30 transition-all flex items-center gap-2 whitespace-nowrap shrink-0"
                 >
-                  <QrCode className="w-4 h-4 text-[#FCE373]" />
+                  <QrCode className="w-4 h-4 text-[#FCE373] shrink-0" />
                   <span>Verifikasi QR</span>
                 </Link>
                 <button
                   type="button"
                   onClick={handleDownloadCertificate}
                   disabled={downloadingCert}
-                  className="px-5 py-2.5 rounded-full bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-full bg-[#FCE373] hover:bg-[#F2CE46] text-[#121214] font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 whitespace-nowrap shrink-0"
                   title="Unduh langsung file sertifikat asli ke disk lokal"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4 shrink-0" />
                   <span>{downloadingCert ? 'Mengunduh...' : 'Unduh Sertifikat Langsung'}</span>
                 </button>
               </div>

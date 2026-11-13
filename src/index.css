@@ -266,15 +266,37 @@ html, body {
 body {
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-wrap: anywhere;
 }
 
 h1, h2, h3 {
   text-wrap: balance;
 }
 
-p, li {
+p, li, dd, figcaption, blockquote {
   text-wrap: pretty;
+  overflow-wrap: break-word;
+}
+
+/* Hard protection: interactive controls, pills, badges, tabs, and action elements never break words internally or collapse into deformed shapes */
+button,
+[role="button"],
+input,
+select,
+textarea,
+.badge,
+.badge-pill,
+.chip,
+.tag,
+.tab-btn,
+.nav-link,
+th {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* Ensure buttons and action pills preserve their natural width and never squeeze into vertical ovals */
+:where(button:not(.multiline), [role="button"]:not(.multiline)) {
+  white-space: nowrap;
 }
 
 /* Touch-device hit-target extension (>=44px effective target while preserving compact visual icon buttons) */

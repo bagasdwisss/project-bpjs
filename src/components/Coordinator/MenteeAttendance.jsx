@@ -421,8 +421,8 @@ export default function MenteeAttendance() {
         <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-[#008F4C]/10 via-[#FCE373]/10 to-transparent rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F5E9] border border-[#008F4C]/30 text-xs font-bold text-[#0C371E] mb-2">
+          <div className="min-w-0 flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F5E9] border border-[#008F4C]/30 text-xs font-bold text-[#0C371E] mb-2 shrink-0">
               <UserCheck className="w-3.5 h-3.5 text-[#008F4C]" />
               <span>Portal Pembina & Koordinator Lapangan</span>
             </div>
@@ -434,13 +434,13 @@ export default function MenteeAttendance() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={handleTriggerAutoAbsence}
               disabled={processingAction}
               title="Pindai manual & tandai 'Alfa' otomatis bagi anak didik yang belum presensi atau izin melewati batas jam masuk/kerja hari ini (WIB)"
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] text-xs font-black shadow-[2px_2px_0px_#121214] transition-all cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#FCE373] hover:bg-[#ebd056] text-[#121214] border-2 border-[#121214] text-xs font-black shadow-[2px_2px_0px_#121214] transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
             >
               <Clock className="w-3.5 h-3.5 text-[#121214]" />
               <span>Evaluasi Auto-Alfa</span>
@@ -448,7 +448,7 @@ export default function MenteeAttendance() {
             <button
               type="button"
               onClick={() => { loadAttendanceData(); showToast('Data presensi berhasil diperbarui!'); }}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold shadow-xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#008F4C]' : ''}`} />
               <span>Segarkan</span>
@@ -456,7 +456,7 @@ export default function MenteeAttendance() {
             <button
               type="button"
               onClick={handleExportCSV}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold shadow-xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               <Download className="w-3.5 h-3.5 text-[#008F4C]" />
               <span>Ekspor CSV</span>
@@ -465,7 +465,7 @@ export default function MenteeAttendance() {
               type="button"
               onClick={handlePrint}
               disabled={processingAction}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#080B09] hover:bg-neutral-900 text-white text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#080B09] hover:bg-neutral-900 text-white text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
             >
               <Printer className="w-3.5 h-3.5 text-[#FCE373]" />
               <span>{processingAction ? 'Menyiapkan Cetak...' : 'Cetak Rekap'}</span>

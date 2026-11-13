@@ -159,8 +159,8 @@ const Progress = () => {
       <div className="space-y-6">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-white border border-[#EAE9E4] px-3.5 py-1 rounded-full text-xs font-bold text-[#121214] mb-2 shadow-sm">
+          <div className="min-w-0 flex-1">
+            <div className="inline-flex items-center gap-2 bg-white border border-[#EAE9E4] px-3.5 py-1 rounded-full text-xs font-bold text-[#121214] mb-2 shadow-sm shrink-0">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               NIM/ID: {progressData.userInfo?.nim || user?.unique_id}
               <span className="text-[#8A8985]">•</span>
@@ -169,7 +169,7 @@ const Progress = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Progress & Capaian Magang
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-0.5">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-0.5 max-w-2xl leading-relaxed">
               Pantau target akuisisi kepesertaan BPU, kunjungan lapangan, dan evaluasi poin kumulatif
             </p>
           </div>
@@ -177,12 +177,12 @@ const Progress = () => {
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               onClick={fetchDataFromAPI}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#EAE9E4] rounded-full text-xs font-bold text-[#121214] hover:bg-[#FAF9F6] shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5 shrink-0" />
               <span>Segarkan</span>
             </button>
-            <span className="text-xs font-bold bg-[#121214] text-white px-3.5 py-2 rounded-full shadow-sm">
+            <span className="text-xs font-bold bg-[#121214] text-white px-3.5 py-2 rounded-full shadow-sm whitespace-nowrap shrink-0">
               Grade {progressData.userInfo?.grade || '-'}
             </span>
           </div>

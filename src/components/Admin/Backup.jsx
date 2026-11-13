@@ -178,22 +178,22 @@ const Backup = () => {
         <div className="bg-white rounded-2xl border-2 border-[#121214] p-6 shadow-[4px_4px_0px_#121214] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E] border border-[#121214] text-[#121214]">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E] border border-[#121214] text-[#121214] shrink-0">
                 <Database className="w-4 h-4" />
               </span>
               <span className="text-xs font-black uppercase tracking-wider text-[#121214]/60">Pemeliharaan & Keamanan</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-[#121214] tracking-tight">Backup & Restore Database</h1>
-            <p className="text-xs sm:text-sm text-[#121214]/70 mt-1 font-semibold">Kelola pencadangan data sistem dan snapshot basis data utama BPJSTK secara berkala</p>
+            <p className="text-xs sm:text-sm text-[#121214]/70 mt-1 font-semibold max-w-2xl leading-relaxed">Kelola pencadangan data sistem dan snapshot basis data utama BPJSTK secara berkala</p>
           </div>
 
           <button
             onClick={loadBackups}
             disabled={fetching}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-[#121214] bg-[#FAF9F6] text-xs font-black text-[#121214] hover:bg-[#FCE373] transition shadow-[2px_2px_0px_#121214] self-start sm:self-auto cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-[#121214] bg-[#FAF9F6] text-xs font-black text-[#121214] hover:bg-[#FCE373] transition shadow-[2px_2px_0px_#121214] self-start sm:self-auto cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${fetching ? 'animate-spin' : ''}`} />
-            Segarkan Riwayat
+            <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${fetching ? 'animate-spin' : ''}`} />
+            <span>Segarkan Riwayat</span>
           </button>
         </div>
 

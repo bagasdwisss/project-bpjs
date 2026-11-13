@@ -206,16 +206,16 @@ const Documents = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Basis Dokumen & Modul
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 max-w-2xl leading-relaxed">
               Pusat unduhan materi pelatihan, panduan magang, formulir, dan penyerahan tugas resmi
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold bg-[#121214] text-white px-3.5 py-1.5 rounded-full shadow-sm">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold bg-[#121214] text-white px-3.5 py-1.5 rounded-full shadow-sm whitespace-nowrap shrink-0">
               {safeDocs.length} Dokumen Tersedia
             </span>
           </div>

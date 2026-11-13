@@ -387,28 +387,28 @@ const Grading = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">
               Penilaian & Evaluasi Peserta
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1">
+            <p className="text-xs sm:text-sm text-[#6E6D6A] mt-1 max-w-2xl leading-relaxed">
               Evaluasi hasil capaian tugas, performa lapangan, dan penetapan nilai grade resmi.
             </p>
           </div>
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             <button 
               onClick={() => {
                 if (cancelTokenRef.current) cancelTokenRef.current.cancel('Refresh');
                 setSearchDebounced(search);
                 fetchData();
               }} 
-              className="px-4 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] shadow-sm transition-all"
+              className="px-4 py-2 bg-white border border-[#EAE9E4] text-[#121214] rounded-full text-xs font-bold hover:bg-[#FAF9F6] shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
               Segarkan
             </button>
             <button 
               onClick={openAddParticipantModal} 
-              className="px-5 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all"
+              className="px-5 py-2 bg-[#121214] text-white rounded-full text-xs font-bold hover:bg-neutral-800 shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
               + Tambah Peserta Penilaian
             </button>

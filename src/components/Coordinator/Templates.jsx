@@ -156,23 +156,23 @@ const Templates = () => {
         
         {/* Header Bento Box */}
         <div className="bg-white rounded-[22px] border border-[#EAE9E4] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E]/40 text-[#3C4A11]">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#B8C96E]/40 text-[#3C4A11] shrink-0">
                 <Layers className="w-4 h-4" />
               </span>
               <span className="text-xs font-bold uppercase tracking-wider text-[#121214]/60">Pusat Aset & Berkas</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#121214] tracking-tight">Pusat Template Dokumen</h1>
-            <p className="text-sm text-[#121214]/60 mt-1">Kelola dan unduh template resmi format laporan, formulir evaluasi, dan surat dinas BPJSTK</p>
+            <p className="text-sm text-[#121214]/60 mt-1 max-w-2xl leading-relaxed">Kelola dan unduh template resmi format laporan, formulir evaluasi, dan surat dinas BPJSTK</p>
           </div>
           
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-black transition shadow-sm self-start sm:self-auto"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#121214] text-white text-xs font-bold hover:bg-black transition shadow-sm self-start sm:self-auto whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            Tambah Template Baru
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>Tambah Template Baru</span>
           </button>
         </div>
 
